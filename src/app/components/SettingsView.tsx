@@ -105,6 +105,15 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
             checked={settings.soundEnabled}
             onCheckedChange={(v) => update('soundEnabled', v)}
           />
+          {settings.soundEnabled && (
+            <KromeSlider
+              label="Volume (%)"
+              value={Math.round((settings.volume ?? 0.5) * 100)}
+              min={1}
+              max={100}
+              onValueChange={(v) => update('volume', v / 100)}
+            />
+          )}
           <KromeToggle
             label="Notifications"
             description="Browser notifications on block events."
@@ -132,8 +141,8 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
               <button
                 onClick={() => update('densityMode', 'comfortable')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${(settings.densityMode || 'comfortable') === 'comfortable'
-                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 text-slate-500 hover:text-slate-300'
+                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                  : 'border-slate-700 text-slate-500 hover:text-slate-300'
                   }`}
               >
                 Comfortable
@@ -141,8 +150,8 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
               <button
                 onClick={() => update('densityMode', 'compact')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${settings.densityMode === 'compact'
-                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 text-slate-500 hover:text-slate-300'
+                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                  : 'border-slate-700 text-slate-500 hover:text-slate-300'
                   }`}
               >
                 Compact

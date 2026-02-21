@@ -36,6 +36,7 @@ export interface KromeSettings {
   countHelperBlocks: boolean;
   notifications: boolean;
   densityMode: 'comfortable' | 'compact';
+  volume: number;
 }
 
 export interface KromeDay {

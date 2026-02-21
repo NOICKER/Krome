@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: KromeSettings = {
   countHelperBlocks: false,
   notifications: true,
   densityMode: 'comfortable',
+  volume: 0.5,
 };
 
 const DEFAULT_SESSION: KromeSession = {
@@ -140,7 +141,7 @@ export function useKrome(userId?: string) {
 
       const newFilled = Math.floor(newElapsed / (session.intervalMinutes * 60 * 1000));
       if (newFilled > lastFilled && newFilled < session.totalBlocks) {
-        if (settings.soundEnabled) playFillSound(0.5);
+        if (settings.soundEnabled) playFillSound(settings.volume ?? 0.5);
         lastFilled = newFilled;
       }
 
@@ -298,7 +299,7 @@ export function useKrome(userId?: string) {
 
     // Trigger sound/vibrate if enabled
     if (completed) {
-      if (settings.soundEnabled) playEndSound(0.5, 1000, 1);
+      if (settings.soundEnabled) playEndSound(settings.volume ?? 0.5, 1000, 1);
       if (settings.notifications && "Notification" in window && Notification.permission === "granted") {
         new Notification("Block Complete", {
           body: "Focus session recorded.",
