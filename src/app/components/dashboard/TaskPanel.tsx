@@ -128,7 +128,8 @@ export function TaskPanel() {
                                             onClick={() => toggleTaskCompletion(task)}
                                             className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-slate-600 flex items-center justify-center hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-colors"
                                         >
-                                            {/* Empty box */}
+                                            {/* tick appears on hover, handled by CSS in parent */}
+                                            <Check size={10} strokeWidth={3} className="text-emerald-400 opacity-0 hover:opacity-100" />
                                         </button>
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium text-slate-200 leading-tight">{task.title}</span>

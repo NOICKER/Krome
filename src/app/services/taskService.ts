@@ -17,6 +17,7 @@ export const updateTask = (task: Task): void => {
     const tasks = getTasks();
     const index = tasks.findIndex(t => t.id === task.id);
     if (index !== -1) {
+        tasks[index] = task; // ← was missing: actually replace the task in the array
         setItem(TASKS_KEY, tasks);
     }
 };
