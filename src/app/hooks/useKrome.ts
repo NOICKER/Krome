@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { playEndSound, playFillSound } from '../utils/sound';
 import { getTasks, updateTask } from '../services/taskService';
 import { STORAGE_KEYS, getItem, setItem } from '../services/storageService';
+import { getSubjects } from '../services/subjectService';
 import { createNewSession, evaluateBlockCompletion } from '../core/sessionEngine';
 import { validateStreak, incrementStreak } from '../core/streakEngine';
 import { evaluatePotResult } from '../core/potEngine';
@@ -332,6 +333,12 @@ export function useKrome(userId?: string) {
     return newSub.id;
   };
 
+  // Reads the latest subjects from storage and syncs React state.
+  // Call this after any direct storage mutation (e.g. SubjectManager add/edit/delete).
+  const refreshSubjects = () => {
+    setSubjects(getSubjects() as any);
+  };
+
   return {
     state: {
       view,
@@ -353,6 +360,7 @@ export function useKrome(userId?: string) {
       updateIntent,
       updateTaskId,
       addSubject,
+      refreshSubjects,
       exportHistory: () => console.log('Exporting...', history),
     }
   };

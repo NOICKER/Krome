@@ -14,7 +14,7 @@ import { getSubjects } from "../../services/subjectService";
 import { getTodaySummary, getHeatmapData, getAdvancedObservations } from "../../services/analyticsService";
 
 export function DashboardLayout() {
-    const { state } = useKrome();
+    const { state, actions } = useKrome();
     const { streak, day, settings, session, history } = state;
     const todayISO = format(new Date(), "yyyy-MM-dd");
     const dateStr = format(new Date(), "EEEE, MMMM do");
@@ -26,6 +26,7 @@ export function DashboardLayout() {
 
     const refreshData = () => {
         setSubjects(getSubjects());
+        actions.refreshSubjects(); // Sync global useKrome state so FocusView updates live
         setSummary(getTodaySummary(todayISO));
         setHeatmap(getHeatmapData(new Date().getFullYear(), new Date().getMonth()));
         setObservations(getAdvancedObservations());
