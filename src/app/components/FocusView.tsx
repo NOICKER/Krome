@@ -3,8 +3,6 @@ import { BrickDisplay } from "./BrickDisplay";
 import { MirrorFrame } from "./MirrorFrame";
 import { SessionControls } from "./SessionControls";
 import { KromeSession, KromeSettings, KromeDay, KromeStreak, KromeSubject, ViewState } from "../types";
-import { Modal } from "./ui/Modal";
-import { FrictionModal } from "./FrictionModal";
 import { FocusHeader } from "./focus/FocusHeader";
 import { MicroInsight } from "./focus/MicroInsight";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
@@ -38,25 +36,11 @@ export function FocusView({
   elapsed,
   actions
 }: FocusViewProps) {
-  const [showQuitModal, setShowQuitModal] = useState(false);
   const [insights, setInsights] = useState<string[]>([]);
 
   useEffect(() => {
     setInsights(getAdvancedObservations());
   }, [day.blocksCompleted]);
-
-  const handleAbandonRequest = () => {
-    if (settings.wrapperEnabled) {
-      setShowQuitModal(true);
-    } else {
-      actions.requestAbandon();
-    }
-  };
-
-  const handleConfirmQuit = (reason: string, note: string) => {
-    setShowQuitModal(false);
-    actions.requestAbandon(reason, note);
-  };
 
   const handleStart = () => {
     actions.startSession();
@@ -96,7 +80,7 @@ export function FocusView({
             settings={settings}
             subjects={subjects}
             onStart={handleStart}
-            onAbandon={handleAbandonRequest}
+            onAbandon={actions.requestAbandon}
             onUndoAbandon={actions.undoAbandon}
             onUpdateSubject={actions.updateSubject}
             onUpdateIntent={actions.updateIntent}
@@ -105,20 +89,6 @@ export function FocusView({
           />
         </div>
       </div>
-
-      <Modal
-        isOpen={showQuitModal}
-        onClose={() => setShowQuitModal(false)}
-        title="Abandon Session?"
-      >
-        <FrictionModal
-          isEscalated={settings.progressiveEscalation && streak.current >= 3}
-          totalBlocks={session.totalBlocks}
-          currentFilledBricks={Math.floor(elapsed / (session.intervalMinutes * 60 * 1000))}
-          onConfirm={handleConfirmQuit}
-          onCancel={() => setShowQuitModal(false)}
-        />
-      </Modal>
     </div>
   );
 }

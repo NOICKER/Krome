@@ -13,11 +13,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { Toaster } from "sonner";
 import { cn } from "./components/ui/utils";
 import { useAuth } from "./context/AuthContext";
+import { Modal } from "./components/ui/Modal";
+import { FrictionModal } from "./components/FrictionModal";
 
 export default function App() {
   const { state, actions } = useKrome();
   const { view, settings, day, session, streak, history, subjects, elapsed } = state;
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
+  const [showQuitModal, setShowQuitModal] = useState(false);
   const { loading: authLoading } = useAuth();
 
   // Show break suggester when a standard block completes
@@ -35,6 +38,19 @@ export default function App() {
       setShowBreakSuggester(false);
     }
   }, [session.status, session.isActive, history, settings.autoSuggestBreaks]);
+
+  const handleConfirmQuit = (reason: string, note: string) => {
+    setShowQuitModal(false);
+    actions.requestAbandon(reason, note);
+  };
+
+  const handleAbandonTrigger = () => {
+    if (settings.wrapperEnabled) {
+      setShowQuitModal(true);
+    } else {
+      actions.requestAbandon();
+    }
+  };
 
   // Global background style
   useEffect(() => {
@@ -181,7 +197,7 @@ export default function App() {
                   elapsed={elapsed}
                   actions={{
                     startSession: actions.startSession,
-                    requestAbandon: actions.requestAbandon,
+                    requestAbandon: handleAbandonTrigger,
                     undoAbandon: actions.undoAbandon,
                     updateSubject: actions.updateSubject,
                     updateIntent: actions.updateIntent,
@@ -299,6 +315,20 @@ export default function App() {
           }}
         />
       </div>
-    </div>
+
+      <Modal
+        isOpen={showQuitModal}
+        onClose={() => setShowQuitModal(false)}
+        title="Abandon Session?"
+      >
+        <FrictionModal
+          isEscalated={settings.progressiveEscalation && streak.current >= 3}
+          totalBlocks={session.totalBlocks}
+          currentFilledBricks={Math.floor(elapsed / (session.intervalMinutes * 60 * 1000))}
+          onConfirm={handleConfirmQuit}
+          onCancel={() => setShowQuitModal(false)}
+        />
+      </Modal>
+    </div >
   );
 }
