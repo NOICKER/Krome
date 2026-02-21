@@ -132,9 +132,18 @@ export function useKrome(userId?: string) {
       return;
     }
 
+    let lastFilled = Math.floor((Date.now() - session.startTime) / (session.intervalMinutes * 60 * 1000));
+
     const tick = () => {
       const now = Date.now();
       const newElapsed = now - session.startTime!;
+
+      const newFilled = Math.floor(newElapsed / (session.intervalMinutes * 60 * 1000));
+      if (newFilled > lastFilled && newFilled < session.totalBlocks) {
+        if (settings.soundEnabled) playFillSound(0.5);
+        lastFilled = newFilled;
+      }
+
       setElapsed(newElapsed);
 
       // Check for completion
