@@ -72,6 +72,7 @@ export interface KromeStreak {
 export interface KromeSubject {
   id: string;
   name: string;
+  color?: string;
 }
 
 export type ViewState = 'focus' | 'dashboard' | 'review' | 'analytics' | 'settings';

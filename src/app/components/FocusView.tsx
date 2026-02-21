@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BrickDisplay } from "./BrickDisplay";
 import { MirrorFrame } from "./MirrorFrame";
 import { SessionControls } from "./SessionControls";
@@ -7,6 +7,7 @@ import { FocusHeader } from "./focus/FocusHeader";
 import { MicroInsight } from "./focus/MicroInsight";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
+import { buildSubjectMap, getSubjectColor } from "../utils/subjectUtils";
 
 interface FocusViewProps {
   session: KromeSession;
@@ -38,6 +39,10 @@ export function FocusView({
 }: FocusViewProps) {
   const [insights, setInsights] = useState<string[]>([]);
 
+  // Memoize subject map for O(1) color lookup
+  const subjectMap = useMemo(() => buildSubjectMap(subjects as any), [subjects]);
+  const activeSubjectColor = getSubjectColor(subjectMap, session.subjectId);
+
   useEffect(() => {
     setInsights(getAdvancedObservations());
   }, [day.blocksCompleted]);
@@ -61,6 +66,7 @@ export function FocusView({
               elapsedMs={elapsed}
               isActive={session.isActive}
               blindMode={settings.blindMode}
+              subjectColor={activeSubjectColor}
             />
           </MirrorFrame>
         </div>

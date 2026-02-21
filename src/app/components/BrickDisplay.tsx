@@ -1,6 +1,5 @@
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
-
 import { calculateBricks } from "../core/sessionEngine";
 
 interface BrickDisplayProps {
@@ -9,6 +8,7 @@ interface BrickDisplayProps {
   elapsedMs: number;
   isActive: boolean;
   blindMode: boolean;
+  subjectColor?: string;
 }
 
 export function BrickDisplay({
@@ -16,7 +16,8 @@ export function BrickDisplay({
   intervalMinutes,
   elapsedMs,
   isActive,
-  blindMode
+  blindMode,
+  subjectColor = '#10b981',
 }: BrickDisplayProps) {
 
   const totalBlocks = Math.ceil(totalDurationMinutes / intervalMinutes);
@@ -41,19 +42,28 @@ export function BrickDisplay({
 
   return (
     <div className="w-full max-w-4xl mx-auto py-8 lg:py-16 px-4">
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-3 lg:gap-4">
+      {/* Responsive grid: 2 cols mobile → 3-4 tablet → 5 desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
         {Array.from({ length: totalBlocks }).map((_, index) => {
           const isFilled = index < filledBlocks;
           const isCurrent = index === currentBlockIndex && isActive;
 
+          // Filled color: use subject color; glow matches that color
+          const filledBg = subjectColor;
+          const glowColor = `${subjectColor}66`; // 40% alpha for shadow
+
           return (
-            <div key={index} className="w-[52px] h-[52px] sm:w-[72px] sm:h-[72px] md:w-[88px] md:h-[88px] lg:w-[104px] lg:h-[104px] relative group">
+            <div key={index} className="aspect-square relative group">
               {/* Background of the brick */}
-              <div className="absolute inset-0 bg-slate-800/50 rounded-lg md:rounded-xl lg:rounded-2xl border border-slate-700/50" />
+              <div className="absolute inset-0 bg-slate-800/50 rounded-lg md:rounded-xl border border-slate-700/50" />
 
               {/* Filled State */}
               <motion.div
-                className="absolute inset-0 bg-emerald-500 rounded-lg md:rounded-xl lg:rounded-2xl shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                className="absolute inset-0 rounded-lg md:rounded-xl"
+                style={{
+                  backgroundColor: isFilled ? filledBg : 'transparent',
+                  boxShadow: isFilled ? `0 0 15px ${glowColor}` : 'none',
+                }}
                 initial={false}
                 animate={{
                   opacity: isFilled ? 1 : 0,
@@ -65,7 +75,8 @@ export function BrickDisplay({
               {/* Current Active Pulse */}
               {isCurrent && (
                 <motion.div
-                  className="absolute inset-0 bg-emerald-500/20 rounded-lg md:rounded-xl lg:rounded-2xl border border-emerald-500/50 overflow-hidden"
+                  className="absolute inset-0 rounded-lg md:rounded-xl border overflow-hidden"
+                  style={{ borderColor: `${subjectColor}80`, backgroundColor: `${subjectColor}14` }}
                   animate={{
                     opacity: [0.2, 0.5, 0.2],
                     scale: [0.95, 1.02, 0.95],
@@ -78,9 +89,12 @@ export function BrickDisplay({
                 >
                   {/* Progress Fill for Current Block */}
                   <motion.div
-                    className="absolute bottom-0 left-0 right-0 bg-emerald-500/40"
-                    style={{ height: `${progressInCurrentBlock * 100}%` }}
-                    transition={{ duration: 0.2 }} // Smooth update from tick
+                    className="absolute bottom-0 left-0 right-0"
+                    style={{
+                      height: `${progressInCurrentBlock * 100}%`,
+                      backgroundColor: `${subjectColor}40`,
+                    }}
+                    transition={{ duration: 0.2 }}
                   />
                 </motion.div>
               )}
@@ -95,9 +109,9 @@ export function BrickDisplay({
           <span
             className={cn(
               "w-2 h-2 rounded-full",
-              isActive ? "bg-emerald-500 animate-pulse" : "bg-slate-500"
+              isActive ? "animate-pulse" : "bg-slate-500"
             )}
-            style={!isActive ? { animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" } : undefined}
+            style={isActive ? { backgroundColor: subjectColor } : undefined}
           />
           <span className="text-slate-400 font-mono text-xs md:text-sm font-medium uppercase tracking-widest">
             {isActive ? "Session Active" : "Ready"}
