@@ -9,9 +9,12 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ date, streak, potValue, strictMode, isActive }: DashboardHeaderProps) {
     return (
         <div className="w-full flex md:flex-row flex-col items-start md:items-center justify-between bg-slate-950 pb-6 border-b border-slate-800/50 mb-6">
-            <div className="flex flex-col mb-4 md:mb-0">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-100">Overview</h1>
-                <p className="text-sm text-slate-500">{date}</p>
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+                <img src="/logo.png" alt="Krome Logo" className="w-10 h-10 rounded-xl border border-slate-800 shadow-lg" />
+                <div className="flex flex-col">
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-100">Overview</h1>
+                    <p className="text-sm text-slate-500">{date}</p>
+                </div>
             </div>
 
             <div className="flex items-center space-x-6">

@@ -114,10 +114,13 @@ export default function App() {
 
       {/* Desktop Side Navigation — hidden on mobile */}
       <nav className="hidden md:flex flex-col w-20 lg:w-56 h-full border-r border-slate-800 bg-slate-950/80 backdrop-blur-md py-8 px-2 lg:px-4 flex-shrink-0">
-        <div className="mb-10 px-2">
-          <h1 className="text-lg lg:text-xl font-bold tracking-tight text-slate-100 hidden lg:block">Krome</h1>
-          <h1 className="text-lg font-bold tracking-tight text-slate-100 lg:hidden text-center">K</h1>
-          <p className="text-[10px] font-bold tracking-widest text-slate-600 uppercase mt-1 hidden lg:block">Mirror Interface</p>
+        <div className="mb-10 px-2 flex items-center space-x-3">
+          <img src="/logo.png" alt="Krome Logo" className="w-8 h-8 rounded-lg border border-slate-800 shadow-sm" />
+          <div className="hidden lg:block">
+            <h1 className="text-lg lg:text-xl font-bold tracking-tight text-slate-100">Krome</h1>
+            <p className="text-[10px] font-bold tracking-widest text-slate-600 uppercase mt-0.5">Mirror Interface</p>
+          </div>
+          <h1 className="text-lg font-bold tracking-tight text-slate-100 lg:hidden text-center flex-1">K</h1>
         </div>
 
         <div className="flex flex-col space-y-4 flex-1 mt-4">
