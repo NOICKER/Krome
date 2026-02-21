@@ -39,7 +39,6 @@ export function FocusView({
   actions
 }: FocusViewProps) {
   const [showQuitModal, setShowQuitModal] = useState(false);
-  const [mode, setMode] = useState<'focus' | 'reset'>('focus');
   const [insights, setInsights] = useState<string[]>([]);
 
   useEffect(() => {
@@ -60,30 +59,28 @@ export function FocusView({
   };
 
   const handleStart = () => {
-    if (mode === 'reset') {
-      actions.updateSubject('reset');
-      actions.updateTaskId(undefined);
-    }
     actions.startSession();
   };
 
   return (
     <div className="flex flex-col h-full relative p-4 md:p-8 overflow-y-auto overflow-x-hidden pb-32">
-      {/* 1. Header (Time + Pot + Mode) */}
-      <FocusHeader potValue={day.potValue} mode={mode} onModeChange={setMode} />
+      {/* 1. Header (Time + Pot) */}
+      <FocusHeader potValue={day.potValue} />
 
-      {/* 2. Central Mirror Frame */}
-      <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start items-center">
-        <MirrorFrame>
-          <BrickDisplay
-            totalDurationMinutes={session.totalDurationMinutes}
-            intervalMinutes={session.intervalMinutes}
-            elapsedMs={elapsed}
-            isActive={session.isActive}
-            blindMode={settings.blindMode}
-          />
-        </MirrorFrame>
-      </div>
+      {/* 2. Central Mirror Frame - Only show when running */}
+      {session.isActive && (
+        <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start items-center">
+          <MirrorFrame>
+            <BrickDisplay
+              totalDurationMinutes={session.totalDurationMinutes}
+              intervalMinutes={session.intervalMinutes}
+              elapsedMs={elapsed}
+              isActive={session.isActive}
+              blindMode={settings.blindMode}
+            />
+          </MirrorFrame>
+        </div>
+      )}
 
       {/* 4. Micro Insight Whisper */}
       <MicroInsight insights={insights} />
@@ -98,7 +95,6 @@ export function FocusView({
             session={session}
             settings={settings}
             subjects={subjects}
-            mode={mode}
             onStart={handleStart}
             onAbandon={handleAbandonRequest}
             onUndoAbandon={actions.undoAbandon}

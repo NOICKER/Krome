@@ -3,15 +3,12 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import { AuthModal } from "../auth/AuthModal";
-import { ModeStrip } from "./ModeStrip";
 
 interface FocusHeaderProps {
     potValue: number;
-    mode: 'focus' | 'reset';
-    onModeChange: (mode: 'focus' | 'reset') => void;
 }
 
-export function FocusHeader({ potValue, mode, onModeChange }: FocusHeaderProps) {
+export function FocusHeader({ potValue }: FocusHeaderProps) {
     const { user } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -35,9 +32,8 @@ export function FocusHeader({ potValue, mode, onModeChange }: FocusHeaderProps) 
                 </div>
             </div>
 
-            {/* Middle: Focus / Reset Toggle */}
+            {/* Middle: Removed Toggle */}
             <div className="flex-1 flex justify-center">
-                <ModeStrip mode={mode} onModeChange={onModeChange} />
             </div>
 
             {/* Right: Pot Badge + Auth Capsule */}

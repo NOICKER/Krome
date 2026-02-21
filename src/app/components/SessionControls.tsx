@@ -18,7 +18,6 @@ interface SessionControlsProps {
   onUpdateIntent: (val: string) => void;
   onUpdateTaskId: (val: string | undefined) => void;
   onAddSubject: (val: string) => void;
-  mode: 'focus' | 'reset';
 }
 
 export function SessionControls({
@@ -32,7 +31,6 @@ export function SessionControls({
   onUpdateIntent,
   onUpdateTaskId,
   onAddSubject,
-  mode,
 }: SessionControlsProps) {
 
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
@@ -78,15 +76,16 @@ export function SessionControls({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex justify-center pt-8"
+        className="flex justify-center"
       >
         <Button
-          variant="destructive"
+          variant="ghost"
+          size="sm"
           onClick={onAbandon}
-          className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
+          className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
         >
-          <XCircle size={18} className="mr-2" />
-          Abandon Session
+          <XCircle size={16} className="mr-2" />
+          Cancel Session
         </Button>
       </motion.div>
     );
@@ -98,7 +97,7 @@ export function SessionControls({
       animate={{ opacity: 1 }}
       className="w-full space-y-6"
     >
-      {settings.wrapperEnabled && mode === 'focus' && (
+      {settings.wrapperEnabled && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
 
