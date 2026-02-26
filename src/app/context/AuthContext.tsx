@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 import { toast } from 'sonner';
@@ -19,6 +19,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    // Track whether user was null before current event to distinguish genuine sign-ins from token refreshes
+    const previousUserRef = useRef<User | null>(null);
+    const initialLoadDoneRef = useRef(false);
 
     useEffect(() => {
         // Initial session fetch
@@ -27,10 +30,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error("Supabase session error:", error);
             }
             setSession(session);
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            previousUserRef.current = currentUser;
+            initialLoadDoneRef.current = true;
             setLoading(false);
         }).catch((err) => {
             console.error("Unexpected error fetching session:", err);
+            initialLoadDoneRef.current = true;
             setLoading(false);
         });
 
@@ -38,9 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
                 setSession(session);
-                setUser(session?.user ?? null);
+                const newUser = session?.user ?? null;
+                setUser(newUser);
 
-                if (event === 'SIGNED_IN') {
+                // Only show toast on genuine sign-in (user was null before) — not on token refresh / tab refocus
+                if (event === 'SIGNED_IN' && initialLoadDoneRef.current && previousUserRef.current === null && newUser !== null) {
+                    // Mark this device as having an account
+                    try { localStorage.setItem('krome_has_account', 'true'); } catch { }
                     toast('Signed in', {
                         className: 'bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase',
                         duration: 3000
@@ -51,6 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         duration: 3000
                     });
                 }
+
+                previousUserRef.current = newUser;
             }
         );
 
@@ -73,3 +86,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
+

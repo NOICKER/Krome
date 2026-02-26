@@ -17,7 +17,7 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                 </div>
             </div>
 
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center gap-6">
                 <div className="flex flex-col items-center">
                     <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Streak</span>
                     <span className="text-lg font-mono text-emerald-400 leading-none">{streak}</span>
@@ -30,9 +30,9 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                     </div>
                 )}
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Status</span>
-                    <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                    <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                         {isActive ? 'FOCUSING' : 'IDLE'}
                     </div>
                 </div>
