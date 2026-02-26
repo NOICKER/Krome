@@ -34,7 +34,7 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                     <span className="text-lg font-mono text-emerald-400 leading-none">{streak}</span>
                 </div>
 
-                {strictMode && (
+                {strictMode && potValue !== 0 && (
                     <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Pot</span>
                         <span className="text-lg font-mono text-amber-500 leading-none">{potValue}</span>
@@ -50,6 +50,14 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
 
                 {/* Divider */}
                 <div className="h-6 w-px bg-slate-800" />
+
+                {/* Pot pill */}
+                <div className="flex items-center space-x-1.5 rounded-full bg-slate-900 border border-slate-800 px-3 py-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pot</span>
+                    <span className={`text-xs font-bold font-mono ${potValue > 0 ? 'text-emerald-400' : potValue < 0 ? 'text-red-400' : 'text-amber-500'}`}>
+                        {potValue > 0 ? `+${potValue}` : potValue}
+                    </span>
+                </div>
 
                 {/* Profile / Auth */}
                 <div className="relative">
