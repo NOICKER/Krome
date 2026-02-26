@@ -379,8 +379,12 @@ export function useKromeLogic() {
   const updateTaskId = (val: string | undefined) => setSession(prev => ({ ...prev, taskId: val }));
 
   const addSubject = (name: string) => {
-    const newSub = { id: uuidv4(), name };
-    setSubjects(prev => [...prev, newSub]);
+    const newSub = { id: uuidv4(), name, color: 'emerald' };
+    setSubjects(prev => {
+      const updated = [...prev, newSub];
+      setItem(STORAGE_KEYS.SUBJECTS, updated);
+      return updated;
+    });
     return newSub.id;
   };
 
