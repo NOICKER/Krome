@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { Subject } from "../../types";
-import { getSubjects, saveSubject, deleteSubject } from "../../services/subjectService";
 import { getHistory } from "../../services/storageService";
 import { getTasks } from "../../services/taskService";
+import { useKromeStore } from "../../hooks/useKrome";
 import { Folder, Plus, Trash2, Edit2, AlertTriangle, X, Check } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
-interface SubjectManagerProps {
-    onSubjectsChange: () => void;
-}
-
 const COLORS = ["emerald", "blue", "amber", "red", "purple", "slate"];
 
-export function SubjectManager({ onSubjectsChange }: SubjectManagerProps) {
-    const [subjects, setSubjects] = useState<Subject[]>(getSubjects());
+export function SubjectManager() {
+    const { state, actions } = useKromeStore();
+    const subjects = state.subjects as unknown as Subject[];
+    const { addSubject, editSubject, deleteSubject } = actions;
+
     const [isAdding, setIsAdding] = useState(false);
     const [newName, setNewName] = useState("");
     const [newColor, setNewColor] = useState("emerald");
@@ -24,11 +23,6 @@ export function SubjectManager({ onSubjectsChange }: SubjectManagerProps) {
     const [editColor, setEditColor] = useState("");
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
-
-    const refresh = () => {
-        setSubjects(getSubjects());
-        onSubjectsChange();
-    };
 
     const handleAdd = () => {
         const trimmed = newName.trim();
@@ -46,11 +40,10 @@ export function SubjectManager({ onSubjectsChange }: SubjectManagerProps) {
             createdAt: Date.now()
         };
 
-        saveSubject(subj);
+        addSubject(trimmed);
         setIsAdding(false);
         setNewName("");
         setError("");
-        refresh();
     };
 
     const handleSaveEdit = (id: string) => {
@@ -65,12 +58,11 @@ export function SubjectManager({ onSubjectsChange }: SubjectManagerProps) {
 
         const subj = subjects.find(s => s.id === id);
         if (subj) {
-            saveSubject({ ...subj, name: trimmed, color: editColor as any });
+            editSubject(id, trimmed, editColor);
         }
 
         setEditingId(null);
         setError("");
-        refresh();
     };
 
     const initiateDelete = (id: string, name: string) => {
@@ -80,7 +72,6 @@ export function SubjectManager({ onSubjectsChange }: SubjectManagerProps) {
     const confirmDelete = (id: string) => {
         deleteSubject(id);
         setDeletingId(null);
-        refresh();
     };
 
     // Calculate usage

@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Target, ShieldCheck, Zap, X } from "lucide-react";
+import { Target, CheckCircle2, Zap, X } from "lucide-react";
 import { getItem, setItem } from "../../services/storageService";
 
 export function OnboardingModal() {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        const hasSeen = getItem<boolean>('krome_has_seen_intro', false);
+        const hasSeen = getItem<boolean>('krome_intro_v2_seen', false);
         if (!hasSeen) {
             setIsOpen(true);
         }
@@ -15,7 +15,7 @@ export function OnboardingModal() {
 
     const handleClose = () => {
         setIsOpen(false);
-        setItem('krome_has_seen_intro', true);
+        setItem('krome_intro_v2_seen', true);
     };
 
     return (
@@ -41,8 +41,8 @@ export function OnboardingModal() {
                         <div className="relative z-10 flex flex-col space-y-6">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Krome</h2>
-                                    <p className="text-sm font-medium uppercase tracking-widest text-slate-500 mt-1">System Initialized</p>
+                                    <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Welcome to Krome</h2>
+                                    <p className="text-sm font-medium uppercase tracking-widest text-slate-500 mt-1">Get Started in 3 Steps</p>
                                 </div>
                                 <button
                                     onClick={handleClose}
@@ -58,18 +58,18 @@ export function OnboardingModal() {
                                         <Target size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Unforgiving Retention</h3>
-                                        <p className="text-sm text-slate-400">Lock in your sessions. Claim time back. If you abandon a session early, a spill is recorded and your metric pot penalizes you -20. Standard completion grants +10.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 1. Pick a Subject</h3>
+                                        <p className="text-sm text-slate-400">Select what you will focus on before starting.</p>
                                     </div>
                                 </div>
 
                                 <div className="flex space-x-4">
                                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 text-blue-400 mt-1">
-                                        <ShieldCheck size={20} />
+                                        <CheckCircle2 size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Local & Deterministic</h3>
-                                        <p className="text-sm text-slate-400">Your data never leaves your browser. Zero backend. Zero latency. Your history, configurations, and tasks are saved directly in local storage.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 2. Define an Intent</h3>
+                                        <p className="text-sm text-slate-400">State exactly what you plan to accomplish in the next block.</p>
                                     </div>
                                 </div>
 
@@ -78,8 +78,8 @@ export function OnboardingModal() {
                                         <Zap size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Clinical Execution</h3>
-                                        <p className="text-sm text-slate-400">No gamification. No confetti. Just strict block tracking and neutral behavioral insights to expose your work patterns objectively.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 3. Execute Block</h3>
+                                        <p className="text-sm text-slate-400">Work without interruption until the timer fills.</p>
                                     </div>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@ export function OnboardingModal() {
                                     onClick={handleClose}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-widest uppercase py-3 rounded-xl transition-colors"
                                 >
-                                    Acknowledge & Begin
+                                    Begin
                                 </button>
                             </div>
                         </div>

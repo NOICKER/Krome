@@ -40,11 +40,15 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
 console.log("Mounting Krome...");
 
+import { KromeProvider } from './src/app/hooks/useKrome';
+
 try {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <App />
+        <KromeProvider>
+          <App />
+        </KromeProvider>
       </ErrorBoundary>
     </React.StrictMode>
   );

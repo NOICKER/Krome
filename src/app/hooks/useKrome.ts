@@ -57,9 +57,51 @@ const getTodayDate = () => format(new Date(), 'yyyy-MM-dd');
 
 import { toast } from "sonner";
 
-export function useKrome(userId?: string) {
+interface KromeStoreStructure {
+  state: {
+    view: ViewState;
+    settings: KromeSettings;
+    day: KromeDay;
+    session: KromeSession;
+    streak: KromeStreak;
+    history: HistoryEntry[];
+    subjects: KromeSubject[];
+    elapsed: number;
+  };
+  actions: {
+    setView: (view: ViewState) => void;
+    setSettings: (settings: KromeSettings) => void;
+    startSession: () => void;
+    requestAbandon: (reason?: string, note?: string) => void;
+    undoAbandon: () => void;
+    updateSubject: (val: string) => void;
+    updateIntent: (val: string) => void;
+    updateTaskId: (val: string | undefined) => void;
+    addSubject: (name: string) => string;
+    editSubject: (id: string, name: string, color: string) => void;
+    deleteSubject: (id: string) => void;
+    refreshSubjects: () => void;
+    exportHistory: () => void;
+  };
+}
+
+import React, { createContext, useContext } from 'react';
+
+const KromeContext = createContext<KromeStoreStructure | null>(null);
+
+export function useKromeStore() {
+  const ctx = useContext(KromeContext);
+  if (!ctx) throw new Error("useKromeStore must be used within KromeProvider");
+  return ctx;
+}
+
+export function useKromeLogic() {
   // --- State ---
-  const [view, setView] = useState<ViewState>('focus');
+  const [view, setView] = useState<ViewState>(() => {
+    const session = getItem<KromeSession | null>(STORAGE_KEYS.SESSION, null);
+    if (session && session.isActive) return 'focus';
+    return 'dashboard';
+  });
 
   const [settings, setSettings] = useState<KromeSettings>(() => {
     return getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
@@ -289,6 +331,15 @@ export function useKrome(userId?: string) {
       // For now, Krome v2 stores it in a generic frictionlog key if needed, but history handles most of it.
     }
 
+    // Deterministic Pot Update (Only for strict mode & standard blocks)
+    if (settings.strictMode && session.type === 'standard') {
+      const delta = completed ? 10 : -20;
+      setDay(prev => ({
+        ...prev,
+        potValue: Math.max(0, (prev.potValue || 0) + delta)
+      }));
+    }
+
     // Reset session
     setSession({
       ...DEFAULT_SESSION,
@@ -339,6 +390,22 @@ export function useKrome(userId?: string) {
     setSubjects(getSubjects() as any);
   };
 
+  const editSubject = (id: string, name: string, color: string) => {
+    setSubjects(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, name, color } : s);
+      setItem(STORAGE_KEYS.SUBJECTS, updated);
+      return updated;
+    });
+  };
+
+  const deleteSubject = (id: string) => {
+    setSubjects(prev => {
+      const filtered = prev.filter(s => s.id !== id);
+      setItem(STORAGE_KEYS.SUBJECTS, filtered);
+      return filtered;
+    });
+  };
+
   return {
     state: {
       view,
@@ -361,7 +428,14 @@ export function useKrome(userId?: string) {
       updateTaskId,
       addSubject,
       refreshSubjects,
+      editSubject,
+      deleteSubject,
       exportHistory: () => console.log('Exporting...', history),
     }
   };
+}
+
+export function KromeProvider({ children }: { children: React.ReactNode }) {
+  const store = useKromeLogic();
+  return React.createElement(KromeContext.Provider, { value: store }, children);
 }

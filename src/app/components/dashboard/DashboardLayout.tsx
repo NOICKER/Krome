@@ -9,24 +9,19 @@ import { MilestoneWidget } from "./MilestoneWidget";
 import { TaskPanel } from "./TaskPanel";
 import { SubjectManager } from "./SubjectManager";
 
-import { useKrome } from "../../hooks/useKrome";
-import { getSubjects } from "../../services/subjectService";
+import { useKromeStore } from "../../hooks/useKrome";
 import { getTodaySummary, getHeatmapData, getAdvancedObservations } from "../../services/analyticsService";
 
 export function DashboardLayout() {
-    const { state, actions } = useKrome();
-    const { streak, day, settings, session, history } = state;
+    const { state } = useKromeStore();
+    const { streak, day, settings, session, history, subjects } = state;
     const todayISO = format(new Date(), "yyyy-MM-dd");
     const dateStr = format(new Date(), "EEEE, MMMM do");
-
-    const [subjects, setSubjects] = useState(getSubjects());
     const [summary, setSummary] = useState(getTodaySummary(todayISO));
     const [heatmap, setHeatmap] = useState(getHeatmapData(new Date().getFullYear(), new Date().getMonth()));
     const [observations, setObservations] = useState(getAdvancedObservations());
 
     const refreshData = () => {
-        setSubjects(getSubjects());
-        actions.refreshSubjects(); // Sync global useKrome state so FocusView updates live
         setSummary(getTodaySummary(todayISO));
         setHeatmap(getHeatmapData(new Date().getFullYear(), new Date().getMonth()));
         setObservations(getAdvancedObservations());
@@ -62,7 +57,7 @@ export function DashboardLayout() {
 
                             return <SubjectCard
                                 key={sub.id}
-                                subject={sub}
+                                subject={sub as any}
                                 blocksToday={blocks}
                                 minutesToday={Math.floor(mins)}
                                 lastSessionTime={last}
@@ -71,7 +66,7 @@ export function DashboardLayout() {
                     )}
 
                     <div className="pt-4 border-t border-slate-800/50">
-                        <SubjectManager onSubjectsChange={refreshData} />
+                        <SubjectManager />
                     </div>
                 </div>
 

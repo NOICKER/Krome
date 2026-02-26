@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useKrome } from "./hooks/useKrome";
+import { useKromeStore } from "./hooks/useKrome";
 import { FocusView } from "./components/FocusView";
 import { ReviewView } from "./components/ReviewView";
 import { SettingsView } from "./components/SettingsView";
@@ -17,7 +17,7 @@ import { Modal } from "./components/ui/Modal";
 import { FrictionModal } from "./components/FrictionModal";
 
 export default function App() {
-  const { state, actions } = useKrome();
+  const { state, actions } = useKromeStore();
   const { view, settings, day, session, streak, history, subjects, elapsed } = state;
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);

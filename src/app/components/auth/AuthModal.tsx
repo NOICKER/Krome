@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { supabase } from "../../services/supabaseClient";
+import { supabase, isSupabaseConfigured } from "../../services/supabaseClient";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 
@@ -38,26 +38,58 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setStatus("loading");
         setErrorMsg("");
 
-        const { error } = await supabase.auth.signInWithOtp({ email });
-
-        if (error) {
+        if (!isSupabaseConfigured) {
+            console.error("Magic Link Failed:", { message: "Supabase connection is unconfigured.", status: 500 });
             setStatus("error");
-            setErrorMsg(error.message);
-        } else {
-            setStatus("success");
+            setErrorMsg("Authentication service is not configured. Please contact support.");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.auth.signInWithOtp({ email });
+
+            if (error) {
+                console.error("Magic Link Failed:", error, "\nStatus:", error.status);
+                setStatus("error");
+                setErrorMsg(error.message || "Failed to send magic link. Please try again.");
+            } else {
+                setStatus("success");
+            }
+        } catch (err: any) {
+            console.error("Magic Link Network/Unknown Error:", err);
+            setStatus("error");
+            setErrorMsg("A network error occurred while connecting to the authentication service.");
         }
     };
 
     const handleGoogleLogin = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: window.location.origin,
-            }
-        });
-        if (error) {
-            setErrorMsg(error.message);
+        if (!isSupabaseConfigured) {
+            console.error("OAuth Failed:", { message: "Supabase connection is unconfigured.", status: 500 });
             setStatus("error");
+            setErrorMsg("Authentication service is not configured. Please contact support.");
+            return;
+        }
+
+        setStatus("loading");
+        setErrorMsg("");
+
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin,
+                }
+            });
+
+            if (error) {
+                console.error("OAuth Init Failed:", error, "\nStatus:", error.status);
+                setErrorMsg(error.message || "Failed to initialize Google login.");
+                setStatus("error");
+            }
+        } catch (err: any) {
+            console.error("OAuth Network/Unknown Error:", err);
+            setStatus("error");
+            setErrorMsg("A network error occurred while initiating Google login.");
         }
     };
 

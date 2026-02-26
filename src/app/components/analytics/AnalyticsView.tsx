@@ -7,7 +7,7 @@ import {
     getSubjectDistribution, getCategoryDistribution, getPotTrend,
     getStreakTrend, getSessionDurationDistribution, getAbandonFrequency
 } from "../../services/analyticsService";
-import { useKrome } from "../../hooks/useKrome";
+import { useKromeStore } from "../../hooks/useKrome";
 import { BarChart3 } from "lucide-react";
 
 // Colors requested in Phase 3
@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function AnalyticsView() {
-    const { state } = useKrome();
+    const { state } = useKromeStore();
     const { history, settings } = state;
 
     // A) Time per Subject (Bar Chart)
