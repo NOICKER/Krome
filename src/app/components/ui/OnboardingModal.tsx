@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Target, CheckCircle2, Zap, X } from "lucide-react";
+import { Timer, Layers, ClipboardList, X } from "lucide-react";
 import { getItem, setItem } from "../../services/storageService";
 
 export function OnboardingModal() {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        const hasSeen = getItem<boolean>('krome_intro_v2_seen', false);
+        const hasSeen = getItem<boolean>('krome_intro_v3_seen', false);
         if (!hasSeen) {
             setIsOpen(true);
         }
@@ -15,7 +15,7 @@ export function OnboardingModal() {
 
     const handleClose = () => {
         setIsOpen(false);
-        setItem('krome_intro_v2_seen', true);
+        setItem('krome_intro_v3_seen', true);
     };
 
     return (
@@ -42,7 +42,7 @@ export function OnboardingModal() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-100 tracking-tight">Welcome to Krome</h2>
-                                    <p className="text-sm font-medium uppercase tracking-widest text-slate-500 mt-1">Get Started in 3 Steps</p>
+                                    <p className="text-sm font-medium uppercase tracking-widest text-slate-500 mt-1">How this works in 30 seconds</p>
                                 </div>
                                 <button
                                     onClick={handleClose}
@@ -55,31 +55,37 @@ export function OnboardingModal() {
                             <div className="space-y-6">
                                 <div className="flex space-x-4">
                                     <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0 text-emerald-500 mt-1">
-                                        <Target size={20} />
+                                        <Timer size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 1. Pick a Subject</h3>
-                                        <p className="text-sm text-slate-400">Select what you will focus on before starting.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Blocks</h3>
+                                        <p className="text-sm text-slate-400">You work in timed blocks (default: 25 minutes).<br />Finish the block → it counts.<br />Quit early → it counts against you.</p>
                                     </div>
                                 </div>
 
                                 <div className="flex space-x-4">
                                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 text-blue-400 mt-1">
-                                        <CheckCircle2 size={20} />
+                                        <Layers size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 2. Define an Intent</h3>
-                                        <p className="text-sm text-slate-400">State exactly what you plan to accomplish in the next block.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Sessions</h3>
+                                        <p className="text-sm text-slate-400">Multiple blocks form a session.<br />Sessions build your daily record.</p>
                                     </div>
                                 </div>
 
                                 <div className="flex space-x-4">
                                     <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0 text-amber-500 mt-1">
-                                        <Zap size={20} />
+                                        <ClipboardList size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Step 3. Execute Block</h3>
-                                        <p className="text-sm text-slate-400">Work without interruption until the timer fills.</p>
+                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">The Ledger</h3>
+                                        <p className="text-sm text-slate-400">
+                                            Krome tracks:<br />
+                                            • What subject you worked on<br />
+                                            • How many blocks you finished<br />
+                                            • How often you quit
+                                        </p>
+                                        <p className="text-sm text-slate-500 mt-2">No streaks. No badges.<br />Just proof of whether you showed up.</p>
                                     </div>
                                 </div>
                             </div>
@@ -89,7 +95,7 @@ export function OnboardingModal() {
                                     onClick={handleClose}
                                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-widest uppercase py-3 rounded-xl transition-colors"
                                 >
-                                    Begin
+                                    Start Your First Block
                                 </button>
                             </div>
                         </div>
