@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/app/App';
+import { KromeProvider } from './src/app/hooks/useKrome';
+import { AuthProvider } from './src/app/context/AuthContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -39,9 +41,6 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 console.log("Mounting Krome...");
-
-import { KromeProvider } from './src/app/hooks/useKrome';
-import { AuthProvider } from './src/app/context/AuthContext';
 
 try {
   root.render(
