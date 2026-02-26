@@ -34,7 +34,7 @@ export function GlobalProfileButton() {
 
     return (
         <>
-            <div className="fixed top-3 right-16 md:top-4 md:right-20 z-50" data-profile-dropdown>
+            <div className="fixed top-3 right-[5.5rem] md:top-4 md:right-28 z-50" data-profile-dropdown>
                 {user ? (
                     <div className="relative">
                         <button
