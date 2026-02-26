@@ -1,10 +1,20 @@
 import { format } from "date-fns";
+import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../services/supabaseClient";
+import { AuthModal } from "../auth/AuthModal";
+import { User } from "lucide-react";
 
 interface FocusHeaderProps {
     potValue: number;
 }
 
 export function FocusHeader({ potValue }: FocusHeaderProps) {
+    const { user } = useAuth();
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const hasAccount = typeof window !== 'undefined' && localStorage.getItem('krome_has_account') === 'true';
+
     const now = new Date();
     const timeString = format(now, 'HH:mm');
     const dateString = format(now, 'EEEE, MMMM do');
@@ -24,27 +34,69 @@ export function FocusHeader({ potValue }: FocusHeaderProps) {
                 </div>
             </div>
 
-            {/* Right: Pot Badge */}
-            <div className="flex justify-end items-center min-w-[220px] flex-shrink-0 gap-3">
+            {/* Right: Pot Badge + Auth */}
+            <div className="flex items-center gap-3">
+                {/* Pot Badge */}
                 <div className="group relative cursor-help">
                     <div className="flex items-center space-x-2 rounded-full bg-slate-900/60 border border-slate-800 px-4 py-1.5 text-sm transition-colors group-hover:bg-slate-800/60">
-                        <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-                            Pot
-                        </span>
+                        <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Pot</span>
                         <span className="text-emerald-400 font-mono font-bold">
                             {potValue > 0 ? `+${potValue}` : potValue}
                         </span>
                     </div>
-
-                    {/* Tooltip */}
                     <div className="absolute top-10 right-0 w-48 bg-slate-800 border border-slate-700/80 rounded-lg p-2.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-50">
                         <p className="text-[10px] text-slate-300 font-medium tracking-wide text-center">
                             <span className="text-emerald-400">Retained</span> – <span className="text-amber-500">Spilled</span> = Pot
                         </p>
                     </div>
                 </div>
+
+                {/* Auth */}
+                <div className="relative">
+                    {user ? (
+                        <>
+                            <button
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                className="flex items-center space-x-2 rounded-full bg-slate-900/60 border border-slate-800 px-3 py-1.5 text-sm transition-colors hover:bg-slate-800/60"
+                            >
+                                <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 uppercase">
+                                    {user.email ? user.email[0] : '?'}
+                                </div>
+                                <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]">
+                                    {user.email}
+                                </span>
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute top-full right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-50">
+                                    <div className="px-2 pt-1 pb-1">
+                                        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Signed in as</p>
+                                        <p className="text-sm text-slate-200 truncate mt-0.5">{user.email}</p>
+                                    </div>
+                                    <div className="border-t border-slate-800 my-2" />
+                                    <button
+                                        onClick={async () => { setIsDropdownOpen(false); await supabase.auth.signOut(); }}
+                                        className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                    >
+                                        Sign Out
+                                    </button>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setIsAuthModalOpen(true)}
+                            className="flex items-center space-x-1.5 rounded-full bg-slate-900/60 border border-slate-800 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300 hover:bg-slate-800/60 transition-colors"
+                        >
+                            <User size={13} className="text-slate-400" />
+                            <span>{hasAccount ? 'Sign In' : 'Sign Up'}</span>
+                        </button>
+                    )}
+                </div>
             </div>
+
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         </div>
     );
 }
+
 
