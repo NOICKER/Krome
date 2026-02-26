@@ -441,5 +441,9 @@ export function useKromeLogic() {
 
 export function KromeProvider({ children }: { children: React.ReactNode }) {
   const store = useKromeLogic();
-  return React.createElement(KromeContext.Provider, { value: store }, children);
+  return (
+    <KromeContext.Provider value= { store } >
+    { children }
+    </KromeContext.Provider>
+  );
 }
