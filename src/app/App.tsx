@@ -7,7 +7,6 @@ import { BreakSuggester } from "./components/BreakSuggester";
 import { OnboardingModal } from "./components/ui/OnboardingModal";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import { AnalyticsView } from "./components/analytics/AnalyticsView";
-import { PotIndicator } from "./components/ui/PotIndicator";
 import { Settings, CheckSquare, Target, Undo, LayoutDashboard, BarChart3, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Toaster } from "sonner";
@@ -95,7 +94,6 @@ export default function App() {
       <OnboardingModal />
       <Toaster theme="dark" position="top-center" />
 
-      <PotIndicator day={day} history={history} />
 
       {/* Undo Snackbar Overlay */}
       <AnimatePresence>
