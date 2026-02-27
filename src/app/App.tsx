@@ -55,7 +55,7 @@ export default function App() {
 
   // Global background style
   useEffect(() => {
-    document.body.className = "bg-[#080C18] text-slate-200 antialiased selection:bg-kromeAccent/30 w-full max-w-full overflow-x-hidden";
+    document.body.classList.add("bg-[#080C18]", "text-slate-200", "antialiased", "w-full", "max-w-full", "overflow-x-hidden");
 
     const handleMouseMove = (e: MouseEvent) => {
       const cards = document.getElementsByClassName("spotlight-card");
