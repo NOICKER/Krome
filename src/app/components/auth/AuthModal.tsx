@@ -140,7 +140,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     ) : (
                         <div className="flex flex-col">
                             <div className="mb-6 text-center flex flex-col items-center">
-                                <img src="/logo.png" alt="Krome Logo" className="w-12 h-12 mb-4 rounded-xl shadow-lg border border-slate-800" />
+                                <img src="/k-icon.png" alt="Krome Logo" className="w-12 h-12 mb-4 rounded-xl shadow-lg border border-slate-800" />
                                 <h2 className="text-xl font-bold tracking-tight text-slate-100 mb-1">{hasAccount ? 'Welcome Back' : 'Create Account'}</h2>
                                 <p className="text-sm text-slate-400">{hasAccount ? 'Sign in to access your mirror.' : 'Set up your identity to sync across devices.'}</p>
                             </div>
