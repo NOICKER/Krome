@@ -36,8 +36,8 @@ export function PotIndicator({ day, history }: PotIndicatorProps) {
     let borderColor = "border-slate-700";
 
     if (day.potValue > 0) {
-        valueColor = "text-emerald-500";
-        borderColor = "border-emerald-500/20";
+        valueColor = "text-kromeAccent";
+        borderColor = "border-kromeAccent/20";
     } else if (day.potValue < 0) {
         valueColor = "text-red-400";
         borderColor = "border-red-500/20";
@@ -60,7 +60,7 @@ export function PotIndicator({ day, history }: PotIndicatorProps) {
                 {/* Tooltip on Hover */}
                 <div className="absolute top-full right-0 mt-2 w-56 bg-slate-800 border border-slate-700 p-3 rounded-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 shadow-2xl origin-top-right z-50">
                     <p className="text-slate-300 text-xs leading-relaxed mb-2">
-                        Retained sessions add <span className="text-emerald-400 font-bold">+10</span>. Abandoned sessions spill <span className="text-amber-500 font-bold">-20</span>.
+                        Retained sessions add <span className="text-kromeAccent font-bold">+10</span>. Abandoned sessions spill <span className="text-amber-500 font-bold">-20</span>.
                     </p>
                     <div className="flex justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold border-t border-slate-700 pt-2">
                         <span>{retainedCount} Retained</span>

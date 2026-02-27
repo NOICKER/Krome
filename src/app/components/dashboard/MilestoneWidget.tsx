@@ -87,7 +87,7 @@ export function MilestoneWidget() {
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-sm rounded-lg text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                            className="w-full bg-[#080C18] border border-slate-800 px-3 py-2 text-sm rounded-lg text-slate-200 focus:outline-none focus:border-kromeAccent/50"
                             placeholder="E.g. Final Exams"
                         />
                     </div>
@@ -98,7 +98,7 @@ export function MilestoneWidget() {
                             min={todayStr}
                             value={dateStr}
                             onChange={(e) => setDateStr(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-sm rounded-lg text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                            className="w-full bg-[#080C18] border border-slate-800 px-3 py-2 text-sm rounded-lg text-slate-200 focus:outline-none focus:border-kromeAccent/50"
                         />
                     </div>
 
@@ -106,7 +106,7 @@ export function MilestoneWidget() {
                         <button
                             onClick={handleSave}
                             disabled={!title.trim() || !dateStr}
-                            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-2xl flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full h-12 bg-kromeAccent hover:bg-kromeAccent/85 text-white font-medium rounded-2xl flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Check size={18} />
                             <span>Save Milestone</span>
@@ -128,7 +128,7 @@ export function MilestoneWidget() {
                     <p className="text-slate-500 text-sm">Set a target date to anchor your progress.</p>
                     <button
                         onClick={() => setIsAdding(true)}
-                        className="text-xs font-bold uppercase tracking-widest text-emerald-500 hover:text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 bg-emerald-500/10 px-4 py-2 rounded-lg transition-all"
+                        className="text-xs font-bold uppercase tracking-widest text-kromeAccent hover:text-kromeAccent border border-kromeAccent/30 hover:border-kromeAccent/50 bg-kromeAccent/10 px-4 py-2 rounded-lg transition-all"
                     >
                         Add Milestone
                     </button>
@@ -137,7 +137,7 @@ export function MilestoneWidget() {
                 <div className="w-full flex justify-between items-center group">
                     <div className="flex flex-col">
                         <h3 className="text-slate-300 font-bold uppercase tracking-widest text-sm flex items-center mb-1">
-                            <Flag size={14} className="mr-2 text-emerald-500" />
+                            <Flag size={14} className="mr-2 text-kromeAccent" />
                             {activeMilestone.title}
                         </h3>
                         <p className="text-slate-500 text-xs">Target: {format(new Date(activeMilestone.targetDate), "MMM do, yyyy")}</p>
@@ -146,7 +146,7 @@ export function MilestoneWidget() {
                     <div className="flex items-center space-x-6">
                         <div className="flex flex-col items-end">
                             {getDaysRemaining(activeMilestone.targetDate) < 0 ? (
-                                <span className="text-emerald-500 font-bold uppercase tracking-widest text-sm">Milestone Reached</span>
+                                <span className="text-kromeAccent font-bold uppercase tracking-widest text-sm">Milestone Reached</span>
                             ) : (
                                 <>
                                     <span className="text-3xl font-mono text-slate-200 leading-none">

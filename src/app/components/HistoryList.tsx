@@ -30,11 +30,11 @@ export function HistoryList({ entries }: HistoryListProps) {
             exit={{ opacity: 0, height: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Card className="flex items-center justify-between p-4 group hover:bg-slate-800/80 transition-colors border-l-4 border-l-transparent hover:border-l-emerald-500">
+            <Card className="flex items-center justify-between p-4 group hover:bg-slate-800/80 transition-colors border-l-4 border-l-transparent hover:border-l-kromeAccent">
               <div className="flex items-start space-x-4">
                 <div className={cn(
                   "p-2 rounded-full mt-1",
-                  entry.completed ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                  entry.completed ? "bg-kromeAccent/10 text-kromeAccent" : "bg-red-500/10 text-red-500"
                 )}>
                   {entry.completed ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
                 </div>
@@ -73,7 +73,7 @@ export function HistoryList({ entries }: HistoryListProps) {
 
               {/* Right side duration badge (for successful ones mostly) */}
               {entry.completed && (
-                <div className="hidden sm:block text-emerald-500/50 font-mono text-xl font-light tracking-tighter">
+                <div className="hidden sm:block text-kromeAccent/50 font-mono text-xl font-light tracking-tighter">
                   {Math.floor(entry.durationMs / 60000)}
                   <span className="text-sm ml-0.5">m</span>
                 </div>

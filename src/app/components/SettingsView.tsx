@@ -132,16 +132,16 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
       <section className="space-y-4">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Layout Density</h3>
         <Card className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-200">Display Mode</p>
-              <p className="text-xs text-slate-500 mt-0.5">Compact reduces panel padding by ~20%.</p>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">Compact reduces panel padding by ~20%.</p>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 flex-shrink-0">
               <button
                 onClick={() => update('densityMode', 'comfortable')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${(settings.densityMode || 'comfortable') === 'comfortable'
-                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all flex-1 sm:flex-none ${(settings.densityMode || 'comfortable') === 'comfortable'
+                  ? 'border-kromeAccent/50 bg-kromeAccent/10 text-kromeAccent'
                   : 'border-slate-700 text-slate-500 hover:text-slate-300'
                   }`}
               >
@@ -149,8 +149,8 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
               </button>
               <button
                 onClick={() => update('densityMode', 'compact')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${settings.densityMode === 'compact'
-                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all flex-1 sm:flex-none ${settings.densityMode === 'compact'
+                  ? 'border-kromeAccent/50 bg-kromeAccent/10 text-kromeAccent'
                   : 'border-slate-700 text-slate-500 hover:text-slate-300'
                   }`}
               >

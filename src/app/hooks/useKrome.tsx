@@ -104,7 +104,8 @@ export function useKromeLogic() {
   });
 
   const [settings, setSettings] = useState<KromeSettings>(() => {
-    return getItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    const stored = getItem(STORAGE_KEYS.SETTINGS, {});
+    return { ...DEFAULT_SETTINGS, ...stored };
   });
 
   const [day, setDay] = useState<KromeDay>(() => {
@@ -363,7 +364,7 @@ export function useKromeLogic() {
         description: "Focus session recorded.",
         duration: 5000,
         position: "top-center",
-        className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+        className: "bg-kromeAccent/20 border-kromeAccent/30 text-slate-100",
       });
     } else {
       toast("Session Abandoned", {
@@ -379,7 +380,7 @@ export function useKromeLogic() {
   const updateTaskId = (val: string | undefined) => setSession(prev => ({ ...prev, taskId: val }));
 
   const addSubject = (name: string) => {
-    const newSub = { id: uuidv4(), name, color: 'emerald' };
+    const newSub = { id: uuidv4(), name, color: 'kromeAccent' };
     setSubjects(prev => {
       const updated = [...prev, newSub];
       setItem(STORAGE_KEYS.SUBJECTS, updated);
@@ -442,8 +443,8 @@ export function useKromeLogic() {
 export function KromeProvider({ children }: { children: React.ReactNode }) {
   const store = useKromeLogic();
   return (
-    <KromeContext.Provider value= { store } >
-    { children }
+    <KromeContext.Provider value={store} >
+      {children}
     </KromeContext.Provider>
   );
 }

@@ -15,7 +15,7 @@ export function BreakSuggester({ onStartBreak, onDismiss }: BreakSuggesterProps)
                 exit={{ opacity: 0, y: 50, scale: 0.9 }}
                 className="fixed bottom-24 right-4 md:right-8 z-40 bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl p-4 w-72 md:w-80 overflow-hidden group"
             >
-                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                <div className="absolute top-0 left-0 w-1 h-full bg-kromeAccent" />
 
                 <button
                     onClick={onDismiss}
@@ -25,7 +25,7 @@ export function BreakSuggester({ onStartBreak, onDismiss }: BreakSuggesterProps)
                 </button>
 
                 <div className="flex items-start space-x-4">
-                    <div className="p-2 bg-emerald-500/10 rounded-full text-emerald-500 flex-shrink-0">
+                    <div className="p-2 bg-kromeAccent/10 rounded-full text-kromeAccent flex-shrink-0">
                         <Coffee size={24} />
                     </div>
                     <div className="space-y-1 pr-6">
@@ -39,7 +39,7 @@ export function BreakSuggester({ onStartBreak, onDismiss }: BreakSuggesterProps)
                 <div className="mt-4 flex gap-2">
                     <button
                         onClick={onStartBreak}
-                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow-sm transition-colors"
+                        className="flex-1 py-1.5 bg-kromeAccent hover:bg-kromeAccent/85 text-white text-xs font-bold rounded shadow-sm transition-colors"
                     >
                         5m Break
                     </button>

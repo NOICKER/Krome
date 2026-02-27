@@ -68,7 +68,7 @@ export function TaskPanel() {
     };
 
     return (
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full flex flex-col">
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full flex flex-col shadow-lg shadow-black/30">
             <h3 className="text-slate-300 font-bold uppercase tracking-widest text-sm mb-4">Tasks</h3>
 
             {/* Internal Form */}
@@ -78,13 +78,13 @@ export function TaskPanel() {
                     placeholder="New task..."
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
-                    className="bg-slate-950 border border-slate-800 flex-1 px-3 py-2 text-sm rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50"
+                    className="bg-[#080C18] border border-slate-800 flex-1 px-3 py-2 text-sm rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-kromeAccent/50"
                 />
                 <div className="flex space-x-2">
                     <select
                         value={newTaskSubjectId}
                         onChange={(e) => setNewTaskSubjectId(e.target.value)}
-                        className="flex-1 bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs rounded-lg text-slate-400 focus:outline-none focus:border-emerald-500/50"
+                        className="flex-1 bg-[#080C18] border border-slate-800 px-3 py-1.5 text-xs rounded-lg text-slate-400 focus:outline-none focus:border-kromeAccent/50"
                     >
                         <option value="none">No Subject</option>
                         {subjects.map(s => (
@@ -96,13 +96,13 @@ export function TaskPanel() {
                         placeholder="Est. blocks"
                         value={newTaskEstimates}
                         onChange={(e) => setNewTaskEstimates(e.target.value)}
-                        className="w-24 bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50"
+                        className="w-24 bg-[#080C18] border border-slate-800 px-3 py-1.5 text-xs rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-kromeAccent/50"
                         min="1"
                     />
                     <button
                         type="submit"
                         disabled={!newTaskTitle.trim()}
-                        className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="bg-kromeAccent/20 text-kromeAccent p-1.5 rounded-lg border border-kromeAccent/30 hover:bg-kromeAccent/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <Plus size={16} />
                     </button>
@@ -121,15 +121,15 @@ export function TaskPanel() {
                             : 0;
 
                         return (
-                            <div key={task.id} className="group flex flex-col bg-slate-950/50 border border-slate-800/50 rounded-lg p-3 hover:border-slate-700 transition-colors">
+                            <div key={task.id} className="group flex flex-col bg-[#080C18]/50 border border-slate-800/50 rounded-lg p-3 hover:border-slate-700 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start space-x-3">
                                         <button
                                             onClick={() => toggleTaskCompletion(task)}
-                                            className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-slate-600 flex items-center justify-center hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-colors"
+                                            className="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-slate-600 flex items-center justify-center hover:border-kromeAccent/50 hover:bg-kromeAccent/10 transition-colors"
                                         >
                                             {/* tick appears on hover, handled by CSS in parent */}
-                                            <Check size={10} strokeWidth={3} className="text-emerald-400 opacity-0 hover:opacity-100" />
+                                            <Check size={10} strokeWidth={3} className="text-kromeAccent opacity-0 hover:opacity-100" />
                                         </button>
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium text-slate-200 leading-tight">{task.title}</span>
@@ -181,11 +181,11 @@ export function TaskPanel() {
                     {showCompleted && (
                         <div className="flex flex-col space-y-2 mt-3">
                             {completedTasks.slice(0, 10).map(task => (
-                                <div key={task.id} className="flex items-center justify-between bg-slate-950/30 rounded-lg p-2 border border-slate-800/30">
+                                <div key={task.id} className="flex items-center justify-between bg-[#080C18]/30 rounded-lg p-2 border border-slate-800/30">
                                     <div className="flex items-center space-x-3 opacity-50">
                                         <button
                                             onClick={() => toggleTaskCompletion(task)}
-                                            className="w-4 h-4 rounded border border-emerald-500/50 bg-emerald-500/20 flex items-center justify-center text-emerald-400"
+                                            className="w-4 h-4 rounded border border-kromeAccent/50 bg-kromeAccent/20 flex items-center justify-center text-kromeAccent"
                                         >
                                             <Check size={10} strokeWidth={3} />
                                         </button>

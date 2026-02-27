@@ -92,7 +92,7 @@ export function SubjectManager() {
                 </h3>
                 <button
                     onClick={() => { setIsAdding(true); setError(""); }}
-                    className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-kromeAccent hover:bg-kromeAccent/10 rounded-lg transition-colors"
                     title="Add Subject"
                 >
                     <Plus size={18} />
@@ -102,13 +102,13 @@ export function SubjectManager() {
             {error && <p className="text-red-400 text-xs mb-4">{error}</p>}
 
             {isAdding && (
-                <div className="mb-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="mb-4 bg-[#080C18]/50 p-4 rounded-xl border border-slate-800 space-y-3">
                     <input
                         type="text"
                         placeholder="Subject Name"
                         value={newName}
                         onChange={(e) => { setNewName(e.target.value); setError(""); }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-kromeAccent/50"
                         autoFocus
                     />
                     <div className="flex flex-col space-y-4">
@@ -118,7 +118,7 @@ export function SubjectManager() {
                                     key={c}
                                     onClick={() => setNewColor(c)}
                                     className={`w-6 h-6 rounded-full border-2 transition-all ${newColor === c ? 'border-slate-200 scale-110' : 'border-transparent hover:scale-105'}`}
-                                    style={{ backgroundColor: c === 'emerald' ? '#10b981' : c === 'blue' ? '#3b82f6' : c === 'amber' ? '#f59e0b' : c === 'red' ? '#ef4444' : c === 'purple' ? '#a855f7' : '#64748b' }}
+                                    style={{ backgroundColor: c === 'emerald' ? '#62699D' : c === 'blue' ? '#3b82f6' : c === 'amber' ? '#f59e0b' : c === 'red' ? '#ef4444' : c === 'purple' ? '#a855f7' : '#64748b' }}
                                 />
                             ))}
                         </div>
@@ -130,7 +130,7 @@ export function SubjectManager() {
                             )}
                             <div className="flex space-x-2">
                                 <button onClick={() => setIsAdding(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 uppercase tracking-widest font-bold transition-colors">Cancel</button>
-                                <button disabled={!newName.trim()} onClick={handleAdd} className="px-5 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold tracking-widest uppercase transition-colors">Add</button>
+                                <button disabled={!newName.trim()} onClick={handleAdd} className="px-5 py-1.5 text-xs bg-kromeAccent hover:bg-kromeAccent/85 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold tracking-widest uppercase transition-colors">Add</button>
                             </div>
                         </div>
                     </div>
@@ -166,12 +166,12 @@ export function SubjectManager() {
 
                     if (isEditing) {
                         return (
-                            <div key={sub.id} className="bg-slate-950/50 p-4 rounded-xl border border-slate-700 space-y-3">
+                            <div key={sub.id} className="bg-[#080C18]/50 p-4 rounded-xl border border-slate-700 space-y-3">
                                 <input
                                     type="text"
                                     value={editName}
                                     onChange={(e) => { setEditName(e.target.value); setError(""); }}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/50"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-kromeAccent/50"
                                     autoFocus
                                 />
                                 <div className="flex items-center justify-between">
@@ -181,13 +181,13 @@ export function SubjectManager() {
                                                 key={c}
                                                 onClick={() => setEditColor(c)}
                                                 className={`w-5 h-5 rounded-full border-2 ${editColor === c ? 'border-slate-200' : 'border-transparent'}`}
-                                                style={{ backgroundColor: c === 'emerald' ? '#10b981' : c === 'blue' ? '#3b82f6' : c === 'amber' ? '#f59e0b' : c === 'red' ? '#ef4444' : c === 'purple' ? '#a855f7' : '#64748b' }}
+                                                style={{ backgroundColor: c === 'emerald' ? '#62699D' : c === 'blue' ? '#3b82f6' : c === 'amber' ? '#f59e0b' : c === 'red' ? '#ef4444' : c === 'purple' ? '#a855f7' : '#64748b' }}
                                             />
                                         ))}
                                     </div>
                                     <div className="flex space-x-2">
                                         <button onClick={() => setEditingId(null)} className="p-1.5 text-slate-400 hover:text-white rounded-lg"><X size={16} /></button>
-                                        <button onClick={() => handleSaveEdit(sub.id)} className="p-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg"><Check size={16} /></button>
+                                        <button onClick={() => handleSaveEdit(sub.id)} className="p-1.5 bg-kromeAccent/20 text-kromeAccent hover:bg-kromeAccent/30 rounded-lg"><Check size={16} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -197,7 +197,7 @@ export function SubjectManager() {
                     return (
                         <div key={sub.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 border border-transparent hover:border-slate-800 transition-colors group">
                             <div className="flex items-center space-x-3">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sub.color === 'blue' ? '#3b82f6' : sub.color === 'amber' ? '#f59e0b' : sub.color === 'red' ? '#ef4444' : sub.color === 'purple' ? '#a855f7' : sub.color === 'slate' ? '#64748b' : '#10b981' }} />
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sub.color === 'blue' ? '#3b82f6' : sub.color === 'amber' ? '#f59e0b' : sub.color === 'red' ? '#ef4444' : sub.color === 'purple' ? '#a855f7' : sub.color === 'slate' ? '#64748b' : '#62699D' }} />
                                 <span className="text-sm font-medium text-slate-300">{sub.name}</span>
                             </div>
                             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">

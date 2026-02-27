@@ -33,27 +33,27 @@ export function WeeklyStrip({ onSetView }: WeeklyStripProps) {
     });
 
     return (
-        <div className="w-full max-w-[980px] mx-auto mt-2 flex justify-center">
-            <div className="flex space-x-2 sm:space-x-3 md:space-x-4">
+        <div className="w-full max-w-[980px] mx-auto mt-2 px-2 sm:px-4">
+            <div className="flex space-x-2 sm:space-x-3 md:space-x-4 overflow-x-auto scrollbar-none pb-2 sm:justify-center">
                 {daysData.map((day, i) => {
                     // Color mapping
                     let bgClass = "bg-slate-800/50 border-slate-700"; // none or observed
                     if (day.status === 'retained') {
-                        bgClass = "bg-emerald-500/20 border-emerald-500/50";
+                        bgClass = "bg-kromeAccent/20 border-kromeAccent/50";
                     } else if (day.status === 'spilled') {
                         bgClass = "bg-amber-500/20 border-amber-500/50";
                     } else if (day.status === 'mixed') {
-                        bgClass = "bg-gradient-to-br from-emerald-500/30 to-amber-500/30 border-slate-600";
+                        bgClass = "bg-gradient-to-br from-kromeAccent/30 to-amber-500/30 border-slate-600";
                     }
 
                     return (
                         <button
                             key={i}
                             onClick={() => onSetView && onSetView('review')} // Routing to Review on click
-                            className={`flex flex-col items-center justify-center w-10 h-10 sm:w-12 sm:h-12 border rounded-xl transition-colors hover:border-slate-500 ${bgClass}`}
+                            className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 border rounded-xl transition-colors hover:border-slate-500 ${bgClass}`}
                             title={format(day.date, 'MMM do')}
                         >
-                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                                 {day.label}
                             </span>
                         </button>

@@ -9,7 +9,7 @@ export function ModeStrip({ mode, onModeChange }: ModeStripProps) {
             <button
                 onClick={() => onModeChange('focus')}
                 className={`px-6 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-200 ${mode === 'focus'
-                    ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    ? 'bg-slate-800 text-kromeAccent border border-kromeAccent/30 shadow-sm'
                     : 'text-slate-500 hover:text-slate-300 border border-transparent'
                     }`}
             >
@@ -18,7 +18,7 @@ export function ModeStrip({ mode, onModeChange }: ModeStripProps) {
             <button
                 onClick={() => onModeChange('reset')}
                 className={`px-6 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase transition-all duration-200 ${mode === 'reset'
-                    ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    ? 'bg-slate-800 text-kromeAccent border border-kromeAccent/30 shadow-sm'
                     : 'text-slate-500 hover:text-slate-300 border border-transparent'
                     }`}
             >

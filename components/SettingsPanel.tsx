@@ -79,7 +79,7 @@ export function SettingsPanel({ state, updateSettings, isGoalLocked }: SettingsP
                         </div>
                         <button
                             onClick={() => updateSettings({ strictMode: !state.settings.strictMode })}
-                            className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${state.settings.strictMode ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${state.settings.strictMode ? 'bg-kromeAccent' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
                             <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${state.settings.strictMode ? 'translate-x-4' : 'translate-x-0'}`} />
                         </button>
@@ -92,7 +92,7 @@ export function SettingsPanel({ state, updateSettings, isGoalLocked }: SettingsP
                         </div>
                         <button
                             onClick={() => updateSettings({ blindMode: !state.settings.blindMode })}
-                            className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${state.settings.blindMode ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${state.settings.blindMode ? 'bg-kromeAccent' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
                             <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${state.settings.blindMode ? 'translate-x-4' : 'translate-x-0'}`} />
                         </button>
@@ -262,7 +262,7 @@ export function SettingsPanel({ state, updateSettings, isGoalLocked }: SettingsP
                         </button>
                         <button
                             onClick={() => updateSettings({ boxColor: 'teal' })}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${state.settings.boxColor === 'teal' ? 'bg-white shadow text-emerald-600' : 'text-slate-500'
+                            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${state.settings.boxColor === 'teal' ? 'bg-white shadow text-kromeAccent' : 'text-slate-500'
                                 }`}
                         >
                             Teal

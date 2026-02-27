@@ -113,7 +113,7 @@ export function SessionControls({
                       className={cn(
                         "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
                         isSelected
-                          ? "bg-slate-800 text-emerald-400 border-emerald-500 shadow-sm shadow-emerald-900/20 translate-y-[-1px]"
+                          ? "bg-slate-800 text-kromeAccent border-kromeAccent shadow-[0_0_10px_rgba(111,120,181,0.18)] translate-y-[-1px]"
                           : "bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200"
                       )}
                     >
@@ -131,7 +131,7 @@ export function SessionControls({
                   value={session.taskId || "none"}
                   onChange={(e) => onUpdateTaskId(e.target.value === "none" ? undefined : e.target.value)}
                   disabled={activeTasks.length === 0}
-                  className="w-full h-12 bg-slate-900/30 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 bg-slate-900/30 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 appearance-none focus:outline-none focus:ring-1 focus:ring-kromeAccent/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="none" disabled={activeTasks.length === 0}>
                     {activeTasks.length === 0 ? "No active tasks" : "Attach Task (Optional)"}
@@ -165,7 +165,7 @@ export function SessionControls({
           variant="default"
           size="lg"
           onClick={onStart}
-          className="w-full h-12 text-sm font-bold tracking-widest uppercase rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:translate-y-[-1px] active:scale-98 transition-all duration-200"
+          className="w-full h-12 text-sm font-bold tracking-widest uppercase rounded-2xl bg-kromeAccent hover:bg-kromeAccent/85 text-white shadow-[0_0_18px_rgba(111,120,181,0.25)] hover:translate-y-[-1px] active:scale-98 transition-all duration-200"
         >
           <Play fill="currentColor" size={18} className="mr-3" />
           Start Block ({settings.blockMinutes}m)

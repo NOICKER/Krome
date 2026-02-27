@@ -22,12 +22,12 @@ export function KromeToggle({ label, description, checked, onCheckedChange, disa
                 disabled={disabled}
                 className={cn(
                     "w-11 h-6 rounded-full transition-colors relative flex-shrink-0",
-                    checked ? "bg-emerald-600" : "bg-slate-700"
+                    checked ? "bg-kromeAccent" : "bg-slate-700"
                 )}
             >
                 <div className={cn(
-                    "absolute top-1 left-1 w-4 h-4 bg-slate-200 rounded-full transition-transform shadow-sm",
-                    checked ? "translate-x-5" : "translate-x-0"
+                    "absolute top-1 left-1 w-4 h-4 bg-slate-200 rounded-full transition-transform",
+                    checked ? "translate-x-5 shadow-[0_0_18px_#6F78B540]" : "translate-x-0 shadow-sm"
                 )} />
             </button>
         </div>

@@ -19,58 +19,60 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
     const hasAccount = typeof window !== 'undefined' && localStorage.getItem('krome_has_account') === 'true';
 
     return (
-        <div className="w-full flex md:flex-row flex-col items-start md:items-center justify-between bg-slate-950 pb-6 border-b border-slate-800/50 mb-6">
-            <div className="flex items-center space-x-4 mb-4 md:mb-0">
-                <img src="/logo.png" alt="Krome Logo" className="w-10 h-10 rounded-xl border border-slate-800 shadow-lg" />
-                <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-100">Overview</h1>
-                    <p className="text-sm text-slate-500">{date}</p>
+        <div className="w-full hidden md:flex flex-row items-center justify-between bg-[#080C18] pb-0 md:pb-6 border-b border-slate-800/50 mb-4 md:mb-6 h-16 md:h-auto overflow-hidden flex-nowrap min-w-0 max-w-full">
+            <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-shrink flex-nowrap overflow-hidden pr-2">
+                <img src="/k-icon.png" alt="Krome Icon" className="h-5 md:h-10 w-auto object-contain flex-shrink-0" />
+                <div className="flex flex-col min-w-0">
+                    <h1 className="text-lg md:text-2xl font-display font-bold tracking-tight text-slate-100 truncate">Overview</h1>
+                    <p className="text-xs md:text-sm text-slate-500 truncate hidden md:block">{date}</p>
                 </div>
             </div>
 
-            <div className="flex items-center gap-5">
-                <div className="flex flex-col items-center">
-                    <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Streak</span>
-                    <span className="text-lg font-mono text-emerald-400 leading-none">{streak}</span>
-                </div>
-
-                {strictMode && potValue !== 0 && (
+            <div className="flex items-center gap-2 md:gap-5 flex-shrink-0 flex-nowrap overflow-hidden">
+                <div className="hidden md:flex items-center gap-5 flex-shrink-0">
                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Pot</span>
-                        <span className="text-lg font-mono text-amber-500 leading-none">{potValue}</span>
+                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Streak</span>
+                        <span className="text-lg font-mono text-kromeAccent leading-none">{streak}</span>
                     </div>
-                )}
 
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Status</span>
-                    <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                        {isActive ? 'FOCUSING' : 'IDLE'}
+                    {strictMode && potValue !== 0 && (
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Pot</span>
+                            <span className="text-lg font-mono text-amber-500 leading-none">{potValue}</span>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Status</span>
+                        <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${isActive ? 'bg-kromeAccent/20 text-kromeAccent' : 'bg-slate-800 text-slate-400'}`}>
+                            {isActive ? 'FOCUSING' : 'IDLE'}
+                        </div>
                     </div>
+
+                    {/* Divider */}
+                    <div className="h-6 w-px bg-slate-800" />
                 </div>
-
-                {/* Divider */}
-                <div className="h-6 w-px bg-slate-800" />
 
                 {/* Pot pill */}
-                <div className="flex items-center space-x-1.5 rounded-full bg-slate-900 border border-slate-800 px-3 py-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pot</span>
-                    <span className={`text-xs font-bold font-mono ${potValue > 0 ? 'text-emerald-400' : potValue < 0 ? 'text-red-400' : 'text-amber-500'}`}>
+                <div className="flex items-center space-x-1 border-slate-800 md:space-x-1.5 rounded-full bg-slate-900 border px-2 py-1 md:px-3 md:py-1.5 flex-shrink-0">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:inline">Pot</span>
+                    <span className={`text-xs font-bold font-mono ${potValue > 0 ? 'text-kromeAccent' : potValue < 0 ? 'text-red-400' : 'text-amber-500'}`}>
                         {potValue > 0 ? `+${potValue}` : potValue}
                     </span>
                 </div>
 
                 {/* Profile / Auth */}
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                     {user ? (
                         <>
                             <button
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="flex items-center space-x-2 rounded-full bg-slate-900 border border-slate-800 px-3 py-1.5 text-sm transition-colors hover:bg-slate-800"
+                                className="flex items-center space-x-0 md:space-x-2 rounded-full bg-slate-900 border border-slate-800 p-0.5 md:px-3 md:py-1.5 text-sm transition-colors hover:bg-slate-800 flex-shrink-0"
                             >
-                                <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 uppercase">
+                                <div className="h-6 w-6 rounded-full bg-kromeAccent/20 flex items-center justify-center text-xs font-bold text-kromeAccent uppercase flex-shrink-0">
                                     {user.email ? user.email[0] : '?'}
                                 </div>
-                                <span className="text-slate-300 text-xs font-medium truncate max-w-[120px]">
+                                <span className="text-slate-300 text-xs font-medium truncate max-w-[120px] hidden md:block">
                                     {user.email}
                                 </span>
                             </button>
@@ -94,10 +96,11 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                     ) : (
                         <button
                             onClick={() => setIsAuthModalOpen(true)}
-                            className="flex items-center space-x-1.5 rounded-full bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-slate-800"
+                            className="flex items-center space-x-1 md:space-x-1.5 rounded-full bg-slate-900 border border-slate-800 px-2 py-1 md:px-3 md:py-1.5 text-xs font-bold uppercase tracking-widest text-slate-300 transition-colors hover:bg-slate-800 flex-shrink-0"
                         >
-                            <User size={13} className="text-slate-400" />
-                            <span>{hasAccount ? 'Sign In' : 'Sign Up'}</span>
+                            <User size={13} className="text-slate-400 flex-shrink-0" />
+                            <span className="hidden md:inline">{hasAccount ? 'Sign In' : 'Sign Up'}</span>
+                            <span className="md:hidden">In</span>
                         </button>
                     )}
                 </div>

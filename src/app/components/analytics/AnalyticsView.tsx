@@ -12,7 +12,7 @@ import { BarChart3 } from "lucide-react";
 
 // Colors requested in Phase 3
 const COLORS = {
-    emerald: "#10b981", // Study / Main accent
+    emerald: "#62699D", // Study / Main accent
     slate: "#64748b",   // Reset / Neutral line
     amber: "#f59e0b",   // Distraction
     red: "#ef4444"      // Away / Spilled pot dot
@@ -21,7 +21,7 @@ const COLORS = {
 function ChartCard({ title, children }: { title: string, children: React.ReactNode }) {
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full h-[300px] flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
-            <h3 className="text-slate-300 font-bold uppercase tracking-widest text-sm mb-4">{title}</h3>
+            <h3 className="text-slate-300 font-display font-bold uppercase tracking-widest text-sm mb-4">{title}</h3>
             <div className="flex-1 w-full relative">
                 {children}
             </div>
@@ -42,7 +42,7 @@ function EmptyState() {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-slate-950 border border-slate-800 p-3 rounded-lg shadow-xl">
+            <div className="bg-[#080C18] border border-slate-800 p-3 rounded-lg shadow-xl">
                 <p className="text-slate-300 text-xs font-bold mb-1">{label}</p>
                 {payload.map((entry: any, index: number) => (
                     <p key={index} className="text-xs" style={{ color: entry.color }}>
@@ -99,9 +99,9 @@ export function AnalyticsView() {
 
     return (
         <div className="p-4 md:p-8 w-full max-w-7xl mx-auto space-y-8">
-            <div className="mb-2">
-                <h2 className="text-2xl font-bold tracking-tight text-slate-100 mb-2">Analytics</h2>
-                <p className="text-slate-500 text-sm">Review your historical patterns and distributions.</p>
+            <div className="mb-2 min-w-0 max-w-full">
+                <h2 className="text-2xl font-display font-bold tracking-tight text-slate-100 mb-2 truncate">Analytics</h2>
+                <p className="text-slate-500 text-sm truncate">Review your historical patterns and distributions.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">

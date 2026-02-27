@@ -38,7 +38,7 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, o
     return (
         <div className="space-y-6">
             {/* Brick visualization */}
-            <div className="p-4 bg-slate-950 rounded-xl flex justify-center opacity-60 grayscale">
+            <div className="p-4 bg-[#080C18] rounded-xl flex justify-center opacity-60 grayscale">
                 <div className="flex gap-1 h-8 w-3/4">
                     {Array.from({ length: totalBlocks }).map((_, i) => (
                         <div key={i} className={`flex-1 rounded border ${i < currentFilledBricks ? 'bg-slate-400 border-slate-400' : 'bg-transparent border-slate-700'}`}></div>
@@ -64,8 +64,8 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, o
                                 key={reason}
                                 onClick={() => setSelectedReason(reason)}
                                 className={`text-left px-3 py-2 rounded-lg text-sm transition-colors border ${selectedReason === reason
-                                        ? 'bg-amber-500/10 border-amber-500/50 text-amber-500'
-                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                                    ? 'bg-amber-500/10 border-amber-500/50 text-amber-500'
+                                    : 'bg-[#080C18] border-slate-800 text-slate-400 hover:text-slate-200'
                                     }`}
                             >
                                 {reason}
@@ -80,7 +80,7 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, o
                             value={customNote}
                             onChange={(e) => setCustomNote(e.target.value)}
                             maxLength={140}
-                            className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded-lg p-3 focus:ring-1 focus:ring-amber-500 outline-none"
+                            className="w-full bg-[#080C18] border border-slate-800 text-slate-200 text-sm rounded-lg p-3 focus:ring-1 focus:ring-amber-500 outline-none"
                         />
                     </div>
 
@@ -100,7 +100,7 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, o
                         You've been abandoning frequently. Take a breath. Are you sure you want to stop?
                     </p>
                     <div className="flex gap-3 pt-4">
-                        <Button variant="default" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={onCancel}>
+                        <Button variant="default" className="flex-1 bg-kromeAccent hover:bg-kromeAccent/85 text-white" onClick={onCancel}>
                             Resume Session
                         </Button>
                         <Button variant="destructive" className="flex-1" onClick={handleConfirm}>

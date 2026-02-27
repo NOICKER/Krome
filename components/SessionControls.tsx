@@ -76,10 +76,10 @@ export function SessionControls({
                                     if (e.target.value === '_add_new_') setIsAddingSubject(true);
                                     else setSelectedSubject(e.target.value);
                                 }}
-                                className="w-full bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-emerald-500 text-slate-500 text-sm py-1 outline-none text-center sm:text-left cursor-pointer transition-colors appearance-none font-semibold uppercase tracking-widest"
+                                className="w-full bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-kromeAccent text-slate-500 text-sm py-1 outline-none text-center sm:text-left cursor-pointer transition-colors appearance-none font-semibold uppercase tracking-widest"
                             >
                                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                <option value="_add_new_" className="font-semibold text-emerald-600">+ Add new subject</option>
+                                <option value="_add_new_" className="font-semibold text-kromeAccent">+ Add new subject</option>
                             </select>
                         </div>
                     ) : (
@@ -91,7 +91,7 @@ export function SessionControls({
                                 value={newSubjectName}
                                 onChange={e => setNewSubjectName(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') handleAddSubject(); if (e.key === 'Escape') setIsAddingSubject(false); }}
-                                className="w-full bg-transparent border-b border-emerald-500 text-slate-700 dark:text-slate-300 text-sm py-1 outline-none text-center font-semibold uppercase tracking-widest"
+                                className="w-full bg-transparent border-b border-kromeAccent text-slate-700 dark:text-slate-300 text-sm py-1 outline-none text-center font-semibold uppercase tracking-widest"
                             />
                         </div>
                     )}
@@ -105,7 +105,7 @@ export function SessionControls({
                             maxLength={140}
                             value={intent}
                             onChange={e => setIntent(e.target.value)}
-                            className="w-full bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-emerald-500 text-slate-600 dark:text-slate-300 text-sm py-1 outline-none text-center sm:text-left transition-colors placeholder:text-slate-400 placeholder:italic"
+                            className="w-full bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-kromeAccent text-slate-600 dark:text-slate-300 text-sm py-1 outline-none text-center sm:text-left transition-colors placeholder:text-slate-400 placeholder:italic"
                         />
                     </div>
                 </div>

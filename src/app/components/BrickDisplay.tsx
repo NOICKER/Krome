@@ -17,7 +17,7 @@ export function BrickDisplay({
   elapsedMs,
   isActive,
   blindMode,
-  subjectColor = '#10b981',
+  subjectColor = '#62699D',
 }: BrickDisplayProps) {
 
   const totalBlocks = Math.ceil(totalDurationMinutes / intervalMinutes);
@@ -31,7 +31,7 @@ export function BrickDisplay({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
-          className="text-emerald-500/50 text-6xl md:text-8xl lg:text-9xl font-thin tracking-widest"
+          className="text-kromeAccent/50 text-6xl md:text-8xl lg:text-9xl font-thin tracking-widest"
         >
           FOCUS
         </motion.div>

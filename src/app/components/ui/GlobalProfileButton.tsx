@@ -41,7 +41,7 @@ export function GlobalProfileButton() {
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             className="flex items-center space-x-2 rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-800 px-3 py-1.5 text-sm transition-colors hover:bg-slate-800/80 shadow-lg"
                         >
-                            <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 uppercase">
+                            <div className="h-6 w-6 rounded-full bg-kromeAccent/20 flex items-center justify-center text-xs font-bold text-kromeAccent uppercase">
                                 {user.email ? user.email[0] : '?'}
                             </div>
                             <span className="text-slate-300 text-xs font-medium truncate max-w-[120px] hidden md:inline">

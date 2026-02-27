@@ -41,7 +41,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                        <Shield size={12} className={state.streak.current > 0 ? "text-emerald-500" : "text-slate-400"} />
+                        <Shield size={12} className={state.streak.current > 0 ? "text-kromeAccent" : "text-slate-400"} />
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{state.streak.current}</span>
                     </div>
                 </div>
@@ -96,8 +96,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
                                 key={cat}
                                 onClick={() => onCategorySwitch && onCategorySwitch(cat)}
                                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${state.session.currentCategory === cat
-                                        ? 'bg-slate-800 dark:bg-emerald-900 border-slate-900 dark:border-emerald-700 text-white dark:text-emerald-100'
-                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                    ? 'bg-slate-800 dark:bg-kromeAccent/20 border-slate-900 dark:border-kromeAccent/40 text-white dark:text-slate-100'
+                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                                     }`}
                                 aria-pressed={state.session.currentCategory === cat}
                             >

@@ -99,7 +99,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#080C18]/60 backdrop-blur-sm p-4">
                 {/* Click outside trigger */}
                 <div className="absolute inset-0 z-0" onClick={onClose} />
 
@@ -114,8 +114,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 >
                     {status === "success" ? (
                         <div className="flex flex-col items-center justify-center space-y-6 text-center py-4">
-                            <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+                            <div className="w-12 h-12 rounded-full bg-kromeAccent/10 flex items-center justify-center mb-2">
+                                <div className="w-2 h-2 rounded-full bg-kromeAccent shadow-[0_0_10px_rgba(98,105,157,0.8)]" />
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold tracking-widest uppercase text-slate-200 mb-2">Login Link Sent</h3>
@@ -155,7 +155,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         disabled={status === "loading"}
-                                        className="w-full h-12 bg-slate-900 border border-slate-700 rounded-xl px-4 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all disabled:opacity-50"
+                                        className="w-full h-12 bg-slate-900 border border-slate-700 rounded-xl px-4 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-kromeAccent/50 focus:ring-1 focus:ring-kromeAccent/50 transition-all disabled:opacity-50"
                                         required
                                     />
                                 </div>
@@ -168,7 +168,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                     <button
                                         type="submit"
                                         disabled={status === "loading" || !email}
-                                        className="w-full h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center"
+                                        className="w-full h-[48px] rounded-xl bg-kromeAccent hover:bg-kromeAccent/85 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center"
                                     >
                                         {status === "loading" ? "Sending..." : "Send Magic Link"}
                                     </button>

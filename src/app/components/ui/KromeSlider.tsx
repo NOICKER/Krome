@@ -48,7 +48,7 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
                     onChange={(e) => setLocalVal(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-16 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-sm text-emerald-500 font-mono font-bold focus:outline-none focus:border-emerald-500/50 text-right hide-arrows transition-colors"
+                    className="w-16 bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-kromeAccent py-1 focus:outline-none focus:border-kromeAccent/50 focus:ring-1 focus:ring-kromeAccent/50 hide-arrows transition-colors"
                 />
             </div>
             <input
@@ -58,7 +58,7 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
                 value={value}
                 disabled={disabled}
                 onChange={(e) => onValueChange(parseInt(e.target.value))}
-                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 disabled:cursor-not-allowed"
+                className="flex-1 h-2 appearance-none bg-slate-700 rounded-full cursor-pointer accent-kromeAccent disabled:cursor-not-allowed"
             />
         </div>
     );

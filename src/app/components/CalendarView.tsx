@@ -51,7 +51,7 @@ export function CalendarView({
         <button onClick={prevMonth} className="p-1 text-slate-400 hover:text-slate-200 transition-colors">
           <ChevronLeft size={18} />
         </button>
-        <span className="text-sm font-bold text-slate-200 uppercase tracking-widest">
+        <span className="text-sm font-display font-bold text-slate-200 uppercase tracking-widest">
           {format(currentMonth, "MMMM yyyy")}
         </span>
         <button onClick={nextMonth} className="p-1 text-slate-400 hover:text-slate-200 transition-colors">
@@ -86,9 +86,9 @@ export function CalendarView({
               className={cn(
                 "relative w-full aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-mono transition-all",
                 isSelected
-                  ? "bg-emerald-500 text-white font-bold shadow-[0_0_12px_rgba(16,185,129,0.5)]"
+                  ? "bg-kromeAccent text-white font-bold shadow-[0_0_12px_rgba(98,105,157,0.5)]"
                   : isToday
-                    ? "bg-slate-800 text-emerald-400 font-bold"
+                    ? "bg-slate-800 text-kromeAccent font-bold"
                     : "text-slate-400 hover:bg-slate-800/80"
               )}
             >
@@ -97,7 +97,7 @@ export function CalendarView({
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute bottom-1 w-1 h-1 bg-emerald-500 rounded-full shadow-[0_0_4px_rgba(16,185,129,0.8)]"
+                  className="absolute bottom-1 w-1 h-1 bg-kromeAccent rounded-full shadow-[0_0_4px_rgba(98,105,157,0.8)]"
                 />
               )}
             </button>

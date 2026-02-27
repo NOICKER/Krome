@@ -45,7 +45,7 @@ export function DashboardLayout() {
 
                 {/* Left: Subjects */}
                 <div className="md:col-span-3 flex flex-col space-y-4">
-                    <h3 className="text-slate-300 font-bold uppercase tracking-widest text-sm mb-2">Subjects</h3>
+                    <h3 className="text-slate-300 font-display font-bold uppercase tracking-widest text-sm mb-2">Subjects</h3>
                     {subjects.length === 0 ? (
                         <p className="text-slate-500 text-sm">Create a subject to begin organizing sessions.</p>
                     ) : (

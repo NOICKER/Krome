@@ -8,7 +8,7 @@ const DEFAULT_SUBJECT: Subject = {
     id: 'general',
     name: 'General',
     createdAt: Date.now(),
-    color: '#10b981',
+    color: '#62699D',
 };
 
 export const getSubjects = (): Subject[] => {

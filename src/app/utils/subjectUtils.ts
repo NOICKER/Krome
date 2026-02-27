@@ -2,7 +2,7 @@ import { Subject } from '../types';
 
 // 12-color curated palette — clinical, distinct, low saturation
 export const SUBJECT_PALETTE: string[] = [
-    '#10b981', // emerald
+    '#62699D', // accent
     '#3b82f6', // blue
     '#a855f7', // purple
     '#f59e0b', // amber

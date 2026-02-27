@@ -105,7 +105,7 @@ export const BrickDisplay: React.FC<BrickDisplayProps> = ({
   const getBrickColor = () => {
     if (isAbandoned) return 'bg-slate-400 dark:bg-slate-600 grayscale';
     // Single accent color per UI redesign specs
-    return 'bg-emerald-600';
+    return 'bg-kromeAccent';
   };
 
   return (

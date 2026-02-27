@@ -67,7 +67,7 @@ export function HistoryList({ entries }: HistoryListProps) {
                                 )}
 
                                 <div className="flex items-center gap-2 mt-2">
-                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${entry.completed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${entry.completed ? 'bg-kromeAccent/15 text-kromeAccent dark:bg-kromeAccent/15 dark:text-kromeAccent' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                                         {entry.completed ? 'Completed' : 'Abandoned'}
                                     </span>
 

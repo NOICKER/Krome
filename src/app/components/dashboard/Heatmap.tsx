@@ -19,18 +19,18 @@ export function Heatmap({ data }: HeatmapProps) {
     const monthName = firstDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="bg-slate-900 border border-slate-800/50 p-6 rounded-2xl w-full flex flex-col h-full">
+        <div className="bg-slate-900 border border-slate-800/50 p-6 rounded-2xl w-full flex flex-col h-full shadow-lg shadow-black/30">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-100 tracking-tight">Activity Heatmap</h2>
+                <h2 className="text-lg font-display font-bold text-slate-100 tracking-tight">Activity Heatmap</h2>
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-500">{monthName}</span>
             </div>
 
             <div className="flex flex-wrap gap-2 flex-1 content-start">
                 {data.map((day) => {
                     let bgColor = "bg-slate-800";
-                    if (day.status === 'retained') bgColor = "bg-emerald-500/80";
+                    if (day.status === 'retained') bgColor = "bg-kromeAccent/80 shadow-[0_0_10px_rgba(111,120,181,0.18)]";
                     if (day.status === 'spilled') bgColor = "bg-amber-500/80 hover:bg-amber-400"; // Changed to Amber per prompt
-                    if (day.status === 'mixed') bgColor = "bg-gradient-to-br from-emerald-500/80 to-amber-500/80"; // Mixed visual
+                    if (day.status === 'mixed') bgColor = "bg-gradient-to-br from-kromeAccent/80 to-amber-500/80"; // Mixed visual
                     if (day.status === 'observed') bgColor = "bg-blue-500/80";
 
                     return (
@@ -52,7 +52,7 @@ export function Heatmap({ data }: HeatmapProps) {
                                         <span>Pot Result:</span>
                                         <span className={cn(
                                             "font-bold",
-                                            day.status === 'retained' ? "text-emerald-400" : day.status === 'spilled' ? "text-amber-500" : "text-slate-300"
+                                            day.status === 'retained' ? "text-kromeAccent" : day.status === 'spilled' ? "text-amber-500" : "text-slate-300"
                                         )}>
                                             {day.potResult}
                                         </span>
@@ -67,10 +67,10 @@ export function Heatmap({ data }: HeatmapProps) {
             {/* Legend */}
             <div className="mt-6 border-t border-slate-800/50 pt-4 flex flex-wrap gap-x-4 gap-y-2">
                 <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-slate-800" /><span className="text-[10px] text-slate-500 uppercase font-bold">No session</span></div>
-                <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Retained</span></div>
+                <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-kromeAccent/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Retained</span></div>
                 <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-amber-500/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Spilled</span></div>
                 <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-blue-500/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Observed</span></div>
-                <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gradient-to-br from-emerald-500/80 to-amber-500/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Mixed</span></div>
+                <div className="flex items-center space-x-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gradient-to-br from-kromeAccent/80 to-amber-500/80" /><span className="text-[10px] text-slate-500 uppercase font-bold">Mixed</span></div>
             </div>
         </div>
     );

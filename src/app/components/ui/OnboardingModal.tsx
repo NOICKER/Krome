@@ -26,7 +26,7 @@ export function OnboardingModal() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+                        className="absolute inset-0 bg-[#080C18]/80 backdrop-blur-sm"
                     />
 
                     <motion.div
@@ -36,7 +36,7 @@ export function OnboardingModal() {
                         className="relative bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
                     >
                         {/* Decoration */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-kromeAccent/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
                         <div className="relative z-10 flex flex-col space-y-6">
                             <div className="flex justify-between items-start">
@@ -54,7 +54,7 @@ export function OnboardingModal() {
 
                             <div className="space-y-6">
                                 <div className="flex space-x-4">
-                                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0 text-emerald-500 mt-1">
+                                    <div className="w-10 h-10 rounded-full bg-kromeAccent/10 flex items-center justify-center flex-shrink-0 text-kromeAccent mt-1">
                                         <Timer size={20} />
                                     </div>
                                     <div>
@@ -93,7 +93,7 @@ export function OnboardingModal() {
                             <div className="pt-4 mt-2 border-t border-slate-800">
                                 <button
                                     onClick={handleClose}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-widest uppercase py-3 rounded-xl transition-colors"
+                                    className="w-full bg-kromeAccent hover:bg-kromeAccent/85 text-white font-bold tracking-widest uppercase py-3 rounded-xl transition-colors"
                                 >
                                     Start Your First Block
                                 </button>

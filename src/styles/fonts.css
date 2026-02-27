@@ -1,0 +1,17 @@
+/* Krome Typography System */
+
+/* Display: Barlow Condensed 700 — page titles, major section headers */
+.font-display {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+}
+
+/* UI: Inter 400/500 — labels, buttons, body, inputs (default) */
+.font-ui {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Mono: JetBrains Mono — metrics, time, durations, chart axes, numeric readouts */
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}

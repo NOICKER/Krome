@@ -19,7 +19,7 @@ export function Modal({ isOpen, onClose, title, children, allowClose = true }: M
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+                        className="absolute inset-0 bg-[#080C18]/80 backdrop-blur-sm"
                         onClick={allowClose ? onClose : undefined}
                     />
                     <motion.div

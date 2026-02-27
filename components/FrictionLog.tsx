@@ -29,12 +29,12 @@ export const FrictionLog: React.FC<FrictionLogProps> = ({ entries }) => {
       .map(e => {
         // Format: 2026-02-19 17:03 - Confused / Stuck - "no solved example" - abandoned 3/6
         const d = new Date(e.date);
-        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
         return `${dateStr} - ${e.reason}${e.note ? ` - "${e.note}"` : ''} - abandoned ${e.bricksLost || '?'}`;
       })
       .join('\n');
-    
+
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -52,12 +52,12 @@ export const FrictionLog: React.FC<FrictionLogProps> = ({ entries }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <button 
+        <button
           onClick={handleExport}
           className="flex items-center space-x-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
         >
-            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-            <span>{copied ? 'Copied' : 'Export Friction Log'}</span>
+          {copied ? <Check size={14} className="text-kromeAccent" /> : <Copy size={14} />}
+          <span>{copied ? 'Copied' : 'Export Friction Log'}</span>
         </button>
       </div>
 
@@ -79,7 +79,7 @@ export const FrictionLog: React.FC<FrictionLogProps> = ({ entries }) => {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
               ))}
             </Pie>
-            <RechartsTooltip 
+            <RechartsTooltip
               contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
             />
             <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -98,15 +98,15 @@ export const FrictionLog: React.FC<FrictionLogProps> = ({ entries }) => {
                 <span className="text-xs text-slate-400">{new Date(entry.date).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between mt-1 text-xs text-slate-500 dark:text-slate-400">
-                 {entry.note ? (
-                    <div className="flex items-center flex-1 mr-2">
-                      <FileText className="w-3 h-3 mr-1" />
-                      <p className="truncate">{entry.note}</p>
-                    </div>
-                 ) : <span></span>}
-                 {entry.bricksLost && (
-                     <span className="text-slate-400">{entry.bricksLost} bricks</span>
-                 )}
+                {entry.note ? (
+                  <div className="flex items-center flex-1 mr-2">
+                    <FileText className="w-3 h-3 mr-1" />
+                    <p className="truncate">{entry.note}</p>
+                  </div>
+                ) : <span></span>}
+                {entry.bricksLost && (
+                  <span className="text-slate-400">{entry.bricksLost} bricks</span>
+                )}
               </div>
             </div>
           </div>
