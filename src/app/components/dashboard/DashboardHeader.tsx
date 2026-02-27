@@ -28,8 +28,8 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-5 flex-shrink-0 flex-nowrap overflow-hidden">
-                <div className="hidden md:flex items-center gap-5 flex-shrink-0">
+            <div className="flex items-center gap-4 md:gap-6 flex-shrink-0 flex-nowrap overflow-hidden">
+                <div className="hidden md:flex items-center gap-6 flex-shrink-0">
                     <div className="flex flex-col items-center">
                         <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Streak</span>
                         <span className="text-lg font-mono text-kromeAccent leading-none">{streak}</span>
@@ -50,13 +50,13 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                     </div>
 
                     {/* Divider */}
-                    <div className="h-6 w-px bg-slate-800" />
+                    <div className="h-6 w-px bg-slate-800 mx-1" />
                 </div>
 
                 {/* Pot pill */}
-                <div className="flex items-center space-x-1 border-slate-800 md:space-x-1.5 rounded-full bg-slate-900 border px-2 py-1 md:px-3 md:py-1.5 flex-shrink-0">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:inline">Pot</span>
-                    <span className={`text-xs font-bold font-mono ${potValue > 0 ? 'text-kromeAccent' : potValue < 0 ? 'text-red-400' : 'text-amber-500'}`}>
+                <div className="flex items-center space-x-1 border-slate-800 md:space-x-2 rounded-full bg-slate-900 border px-2 py-1 md:px-4 md:py-1.5 flex-shrink-0">
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-500 hidden md:inline">Pot</span>
+                    <span className={`text-xs md:text-sm font-bold font-mono ${potValue > 0 ? 'text-kromeAccent' : potValue < 0 ? 'text-red-400' : 'text-amber-500'}`}>
                         {potValue > 0 ? `+${potValue}` : potValue}
                     </span>
                 </div>
