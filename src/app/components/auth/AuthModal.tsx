@@ -108,7 +108,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="relative z-10 w-full max-w-[420px] bg-slate-900/95 backdrop-blur-md rounded-2xl p-8 border border-slate-800 shadow-2xl overflow-hidden"
+                    className="relative z-10 w-full max-w-[420px] max-h-[90vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-slate-800 shadow-2xl"
                     role="dialog"
                     aria-modal="true"
                 >
