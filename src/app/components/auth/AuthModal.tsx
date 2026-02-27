@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { supabase, isSupabaseConfigured } from "../../services/supabaseClient";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
@@ -97,9 +98,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#080C18]/60 backdrop-blur-sm p-4">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
                 {/* Click outside trigger */}
                 <div className="absolute inset-0 z-0" onClick={onClose} />
 
@@ -202,6 +203,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     )}
                 </motion.div>
             </div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
