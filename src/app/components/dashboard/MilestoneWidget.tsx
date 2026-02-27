@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Flag, Trash2, Edit2, Plus, X, Check } from "lucide-react";
+import Flag from "lucide-react/dist/esm/icons/flag";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import Edit2 from "lucide-react/dist/esm/icons/edit-2";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import X from "lucide-react/dist/esm/icons/x";
+import Check from "lucide-react/dist/esm/icons/check";
 import { Milestone } from "../../types";
 import { getMilestones, saveMilestone, updateMilestone, deleteMilestone } from "../../services/milestoneService";
 import { getDaysRemaining } from "../../services/analyticsService";

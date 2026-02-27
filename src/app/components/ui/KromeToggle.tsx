@@ -15,7 +15,7 @@ export function KromeToggle({ label, description, checked, onCheckedChange, disa
         <div className={cn("flex items-center justify-between py-3 px-1", disabled && "opacity-50")}>
             <div className="flex flex-col">
                 <span className="text-sm font-medium text-slate-200">{label}</span>
-                {description && <span className="text-xs text-slate-500">{description}</span>}
+                {description ? <span className="text-xs text-slate-500">{description}</span> : null}
             </div>
             <button
                 onClick={() => !disabled && onCheckedChange(!checked)}

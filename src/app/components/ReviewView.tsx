@@ -61,7 +61,7 @@ export function ReviewView({ day, history }: ReviewViewProps) {
           <div className="flex flex-wrap justify-between items-center gap-3 px-2 pb-2 border-b border-slate-800">
             <h3 className="text-xs uppercase tracking-widest text-slate-500 font-bold flex flex-wrap items-center gap-2">
               <span>Session History</span>
-              {selectedDate && <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300">{format(selectedDate, "MMM d, yyyy")}</span>}
+              {selectedDate ? <span className="px-2 py-0.5 bg-slate-800 rounded text-slate-300">{format(selectedDate, "MMM d, yyyy")}</span> : null}
             </h3>
             <button className="text-xs text-kromeAccent hover:text-kromeAccent/80 transition-colors uppercase tracking-widest font-bold flex items-center gap-1 bg-kromeAccent/10 hover:bg-kromeAccent/20 px-3 py-1.5 rounded-lg flex-shrink-0">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>

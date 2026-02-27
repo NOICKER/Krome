@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Timer, Layers, ClipboardList, X } from "lucide-react";
+import Timer from "lucide-react/dist/esm/icons/timer";
+import Layers from "lucide-react/dist/esm/icons/layers";
+import ClipboardList from "lucide-react/dist/esm/icons/clipboard-list";
+import X from "lucide-react/dist/esm/icons/x";
 import { getItem, setItem } from "../../services/storageService";
 
 export function OnboardingModal() {

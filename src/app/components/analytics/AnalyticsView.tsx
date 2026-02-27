@@ -8,7 +8,7 @@ import {
     getStreakTrend, getSessionDurationDistribution, getAbandonFrequency
 } from "../../services/analyticsService";
 import { useKromeStore } from "../../hooks/useKrome";
-import { BarChart3 } from "lucide-react";
+import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
 
 // Colors requested in Phase 3
 const COLORS = {

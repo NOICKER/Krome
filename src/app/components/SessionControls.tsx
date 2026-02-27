@@ -1,5 +1,8 @@
 import { motion } from "motion/react";
-import { Play, Pause, XCircle, RotateCcw } from "lucide-react";
+import Play from "lucide-react/dist/esm/icons/play";
+import Pause from "lucide-react/dist/esm/icons/pause";
+import XCircle from "lucide-react/dist/esm/icons/x-circle";
+import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { KromeSession, KromeSubject, KromeSettings, Task } from "../types";

@@ -36,7 +36,7 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
     };
 
     return (
-        <div className={cn("space-y-2", disabled && "opacity-50")}>
+        <div className={cn("space-y-2", disabled ? "opacity-50" : "")}>
             <div className="flex justify-between items-center h-8">
                 <label className="text-sm font-medium text-slate-300">{label}</label>
                 <input

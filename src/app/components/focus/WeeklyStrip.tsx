@@ -49,7 +49,7 @@ export function WeeklyStrip({ onSetView }: WeeklyStripProps) {
                     return (
                         <button
                             key={i}
-                            onClick={() => onSetView && onSetView('review')} // Routing to Review on click
+                            onClick={() => { if (onSetView) onSetView('review'); }} // Routing to Review on click
                             className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 border rounded-xl transition-colors hover:border-slate-500 ${bgClass}`}
                             title={format(day.date, 'MMM do')}
                         >

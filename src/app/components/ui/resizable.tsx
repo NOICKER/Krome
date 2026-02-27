@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { GripVerticalIcon } from "lucide-react";
+import GripVerticalIcon from "lucide-react/dist/esm/icons/grip-vertical";
 import * as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "./utils";

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import { AuthModal } from "../auth/AuthModal";
-import { User } from "lucide-react";
+import User from "lucide-react/dist/esm/icons/user";
 
 interface DashboardHeaderProps {
     date: string;
@@ -35,12 +35,12 @@ export function DashboardHeader({ date, streak, potValue, strictMode, isActive }
                         <span className="text-lg font-mono text-kromeAccent leading-none">{streak}</span>
                     </div>
 
-                    {strictMode && potValue !== 0 && (
+                    {strictMode && potValue !== 0 ? (
                         <div className="flex flex-col items-center">
                             <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest leading-none mb-1">Pot</span>
                             <span className="text-lg font-mono text-amber-500 leading-none">{potValue}</span>
                         </div>
-                    )}
+                    ) : null}
 
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] uppercase text-slate-500 font-bold tracking-widest">Status</span>

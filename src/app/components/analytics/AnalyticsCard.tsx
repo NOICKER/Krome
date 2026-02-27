@@ -12,7 +12,7 @@ export function AnalyticsCard({ title, children, icon: Icon, isEmpty = false }: 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col h-80">
             <div className="flex items-center space-x-2 mb-6 text-slate-300">
-                {Icon && <Icon size={18} className="text-slate-500" />}
+                {Icon ? <Icon size={18} className="text-slate-500" /> : null}
                 <h3 className="font-bold uppercase tracking-widest text-sm">{title}</h3>
             </div>
 

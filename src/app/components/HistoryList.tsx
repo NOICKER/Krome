@@ -2,7 +2,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
 import { HistoryEntry } from "../types";
 import { Card } from "./ui/card";
-import { AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import AlertCircle from "lucide-react/dist/esm/icons/alert-circle";
+import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import XCircle from "lucide-react/dist/esm/icons/x-circle";
 import { cn } from "./ui/utils";
 
 interface HistoryListProps {

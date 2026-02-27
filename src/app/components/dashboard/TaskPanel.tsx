@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Check, Trash2, ChevronDown, ChevronRight, Hash } from "lucide-react";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import Check from "lucide-react/dist/esm/icons/check";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Hash from "lucide-react/dist/esm/icons/hash";
+import { useMemo } from "react";
 import { Task, Subject } from "../../types";
 import { getTasks, saveTask, updateTask } from "../../services/taskService";
 import { getSubjects } from "../../services/subjectService";
@@ -61,10 +67,18 @@ export function TaskPanel() {
         setTasks(updated);
     };
 
+    // Build a Map for O(1) lookups during render
+    const subjectMap = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const s of subjects) {
+            map.set(s.id, s.name);
+        }
+        return map;
+    }, [subjects]);
+
     const getSubjectName = (subjectId?: string) => {
         if (!subjectId) return null;
-        const sub = subjects.find(s => s.id === subjectId);
-        return sub ? sub.name : "Unknown Subject";
+        return subjectMap.get(subjectId) || "Unknown Subject";
     };
 
     return (

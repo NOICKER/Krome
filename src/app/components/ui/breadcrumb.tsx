@@ -1,7 +1,8 @@
 // @ts-nocheck
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { ChevronRight, MoreHorizontal } from "lucide-react";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import MoreHorizontal from "lucide-react/dist/esm/icons/more-horizontal";
 
 import { cn } from "./utils";
 

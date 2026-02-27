@@ -9,7 +9,14 @@ import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import { AnalyticsView } from "./components/analytics/AnalyticsView";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { MobileHeader } from "./components/MobileHeader";
-import { Settings, CheckSquare, Target, Undo, LayoutDashboard, BarChart3, Menu, X } from "lucide-react";
+import Settings from "lucide-react/dist/esm/icons/settings";
+import CheckSquare from "lucide-react/dist/esm/icons/check-square";
+import Target from "lucide-react/dist/esm/icons/target";
+import Undo from "lucide-react/dist/esm/icons/undo";
+import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard";
+import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
+import Menu from "lucide-react/dist/esm/icons/menu";
+import X from "lucide-react/dist/esm/icons/x";
 import { motion, AnimatePresence } from "motion/react";
 import { Toaster } from "sonner";
 import { cn } from "./components/ui/utils";
@@ -59,12 +66,20 @@ export default function App() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const cards = document.getElementsByClassName("spotlight-card");
+      // Batch all reads first to avoid layout thrashing (Rule 7.1)
+      const rects: { el: HTMLElement; x: number; y: number }[] = [];
       for (const card of cards) {
         const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        (card as HTMLElement).style.setProperty("--mouse-x", `${x}px`);
-        (card as HTMLElement).style.setProperty("--mouse-y", `${y}px`);
+        rects.push({
+          el: card as HTMLElement,
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+      }
+      // Then batch all writes
+      for (const { el, x, y } of rects) {
+        el.style.setProperty("--mouse-x", `${x}px`);
+        el.style.setProperty("--mouse-y", `${y}px`);
       }
     };
 
@@ -98,7 +113,7 @@ export default function App() {
 
       {/* Undo Snackbar Overlay */}
       <AnimatePresence>
-        {session.status === 'abandoned' && (
+        {session.status === 'abandoned' ? (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -113,11 +128,11 @@ export default function App() {
               <Undo size={16} className="mr-1" /> Undo
             </button>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
 
       {/* Break Suggester Overlay */}
-      {showBreakSuggester && settings.wrapperEnabled && (
+      {showBreakSuggester && settings.wrapperEnabled ? (
         <BreakSuggester
           onStartBreak={() => {
             setShowBreakSuggester(false);
@@ -126,7 +141,7 @@ export default function App() {
           }}
           onDismiss={() => setShowBreakSuggester(false)}
         />
-      )}
+      ) : null}
 
       {/* Mobile Top Header removed as per new architecture (headers handled per-page) */}
 
@@ -173,11 +188,11 @@ export default function App() {
       </nav>
 
       {/* Mobile Top Header */}
-      {view === "focus" && <MobileHeader title="Focus" potValue={day.potValue} />}
-      {view === "dashboard" && <MobileHeader title="Dashboard" potValue={day.potValue} />}
-      {view === "analytics" && <MobileHeader title="Analytics" />}
-      {view === "review" && <MobileHeader title="Review" />}
-      {view === "settings" && <MobileHeader title="Settings" />}
+      {view === "focus" ? <MobileHeader title="Focus" potValue={day.potValue} /> : null}
+      {view === "dashboard" ? <MobileHeader title="Dashboard" potValue={day.potValue} /> : null}
+      {view === "analytics" ? <MobileHeader title="Analytics" /> : null}
+      {view === "review" ? <MobileHeader title="Review" /> : null}
+      {view === "settings" ? <MobileHeader title="Settings" /> : null}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">

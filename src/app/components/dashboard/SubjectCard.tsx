@@ -13,7 +13,7 @@ export function SubjectCard({ subject, blocksToday, minutesToday, lastSessionTim
             <h3 className="text-slate-100 font-bold tracking-tight">{subject.name}</h3>
             <div className="text-slate-400 text-sm">
                 <p>{blocksToday} blocks today ({minutesToday}m)</p>
-                {lastSessionTime && <p className="text-xs mt-1 text-slate-500">Last focus: {lastSessionTime}</p>}
+                {lastSessionTime ? <p className="text-xs mt-1 text-slate-500">Last focus: {lastSessionTime}</p> : null}
             </div>
         </div>
     );

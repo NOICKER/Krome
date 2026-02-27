@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { motion, AnimatePresence } from "motion/react";
-import { X } from "lucide-react";
+import X from "lucide-react/dist/esm/icons/x";
 
 interface ModalProps {
     isOpen: boolean;

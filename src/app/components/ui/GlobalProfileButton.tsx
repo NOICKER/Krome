@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import { AuthModal } from "../auth/AuthModal";
-import { User } from "lucide-react";
+import User from "lucide-react/dist/esm/icons/user";
 
 export function GlobalProfileButton() {
     const { user } = useAuth();

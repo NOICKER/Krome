@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Coffee, X } from "lucide-react";
+import Coffee from "lucide-react/dist/esm/icons/coffee";
+import X from "lucide-react/dist/esm/icons/x";
 
 interface BreakSuggesterProps {
     onStartBreak: () => void;

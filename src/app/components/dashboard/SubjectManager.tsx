@@ -3,7 +3,13 @@ import { Subject } from "../../types";
 import { getHistory } from "../../services/storageService";
 import { getTasks } from "../../services/taskService";
 import { useKromeStore } from "../../hooks/useKrome";
-import { Folder, Plus, Trash2, Edit2, AlertTriangle, X, Check } from "lucide-react";
+import Folder from "lucide-react/dist/esm/icons/folder";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import Edit2 from "lucide-react/dist/esm/icons/edit-2";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
+import X from "lucide-react/dist/esm/icons/x";
+import Check from "lucide-react/dist/esm/icons/check";
 import { v4 as uuidv4 } from "uuid";
 
 const COLORS = ["emerald", "blue", "amber", "red", "purple", "slate"];
@@ -99,7 +105,7 @@ export function SubjectManager() {
                 </button>
             </div>
 
-            {error && <p className="text-red-400 text-xs mb-4">{error}</p>}
+            {error ? <p className="text-red-400 text-xs mb-4">{error}</p> : null}
 
             {isAdding && (
                 <div className="mb-4 bg-[#080C18]/50 p-4 rounded-xl border border-slate-800 space-y-3">
@@ -151,8 +157,8 @@ export function SubjectManager() {
                                     <div className="text-sm">
                                         <p className="font-bold">Delete "{sub.name}"?</p>
                                         <p className="text-amber-500/70 text-xs mt-1">
-                                            {stats.historyCount > 0 && `${stats.historyCount} history items will keep this name as text. `}
-                                            {stats.linkedTasks > 0 && `${stats.linkedTasks} active tasks will lose their subject link.`}
+                                            {stats.historyCount > 0 ? `${stats.historyCount} history items will keep this name as text. ` : null}
+                                            {stats.linkedTasks > 0 ? `${stats.linkedTasks} active tasks will lose their subject link.` : null}
                                         </p>
                                     </div>
                                 </div>
