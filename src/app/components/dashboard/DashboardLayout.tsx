@@ -32,57 +32,63 @@ export function DashboardLayout() {
     }, [history]);
 
     return (
-        <div className="w-full h-full flex flex-col p-4 md:p-8 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800">
-            <DashboardHeader
-                date={dateStr}
-                streak={streak.current}
-                potValue={day.potValue || 0}
-                strictMode={settings.strictMode || false}
-                isActive={session.isActive}
-            />
+        <div className="w-full h-full flex flex-col overflow-hidden">
+            {/* Header sits outside the scrolling container so it never scrolls away */}
+            <div className="hidden md:block flex-shrink-0 px-8 pt-8 bg-[#080C18]">
+                <DashboardHeader
+                    date={dateStr}
+                    streak={streak.current}
+                    potValue={day.potValue || 0}
+                    strictMode={settings.strictMode || false}
+                    isActive={session.isActive}
+                />
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto">
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 p-4 md:px-8 md:pb-8">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto">
 
-                {/* Left: Subjects */}
-                <div className="md:col-span-3 flex flex-col space-y-4">
-                    <h3 className="text-slate-300 font-display font-bold uppercase tracking-widest text-sm mb-2">Subjects</h3>
-                    {subjects.length === 0 ? (
-                        <p className="text-slate-500 text-sm">Create a subject to begin organizing sessions.</p>
-                    ) : (
-                        subjects.map(sub => {
-                            const subHistory = history.filter(h => h.dateISO === todayISO && h.subject === sub.name);
-                            const blocks = subHistory.filter(h => h.completed).length;
-                            const mins = subHistory.reduce((acc, h) => acc + (h.durationMs / 60000), 0);
-                            const last = subHistory.length > 0 ? format(subHistory[0].startedAt, "HH:mm") : null;
+                    {/* Left: Subjects */}
+                    <div className="md:col-span-3 flex flex-col space-y-4">
+                        <h3 className="text-slate-300 font-display font-bold uppercase tracking-widest text-sm mb-2">Subjects</h3>
+                        {subjects.length === 0 ? (
+                            <p className="text-slate-500 text-sm">Create a subject to begin organizing sessions.</p>
+                        ) : (
+                            subjects.map(sub => {
+                                const subHistory = history.filter(h => h.dateISO === todayISO && h.subject === sub.name);
+                                const blocks = subHistory.filter(h => h.completed).length;
+                                const mins = subHistory.reduce((acc, h) => acc + (h.durationMs / 60000), 0);
+                                const last = subHistory.length > 0 ? format(subHistory[0].startedAt, "HH:mm") : null;
 
-                            return <SubjectCard
-                                key={sub.id}
-                                subject={sub as any}
-                                blocksToday={blocks}
-                                minutesToday={Math.floor(mins)}
-                                lastSessionTime={last}
-                            />;
-                        })
-                    )}
+                                return <SubjectCard
+                                    key={sub.id}
+                                    subject={sub as any}
+                                    blocksToday={blocks}
+                                    minutesToday={Math.floor(mins)}
+                                    lastSessionTime={last}
+                                />;
+                            })
+                        )}
 
-                    <div className="pt-4 border-t border-slate-800/50">
-                        <SubjectManager />
+                        <div className="pt-4 border-t border-slate-800/50">
+                            <SubjectManager />
+                        </div>
                     </div>
-                </div>
 
-                {/* Center: Main Analytics */}
-                <div className="md:col-span-5 flex flex-col space-y-6">
-                    <DailySummary summary={summary} />
-                    <Heatmap data={heatmap} />
-                </div>
+                    {/* Center: Main Analytics */}
+                    <div className="md:col-span-5 flex flex-col space-y-6">
+                        <DailySummary summary={summary} />
+                        <Heatmap data={heatmap} />
+                    </div>
 
-                {/* Right: Observations, Milestones & Tasks */}
-                <div className="md:col-span-4 flex flex-col space-y-6">
-                    <ObservationPanel observations={observations} />
-                    <MilestoneWidget />
-                    <TaskPanel />
-                </div>
+                    {/* Right: Observations, Milestones & Tasks */}
+                    <div className="md:col-span-4 flex flex-col space-y-6">
+                        <ObservationPanel observations={observations} />
+                        <MilestoneWidget />
+                        <TaskPanel />
+                    </div>
 
+                </div>
             </div>
         </div>
     );
