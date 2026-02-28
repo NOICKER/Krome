@@ -13,7 +13,7 @@ import { useKromeStore } from "../../hooks/useKrome";
 import { getTodaySummary, getHeatmapData, getAdvancedObservations } from "../../services/analyticsService";
 
 export function DashboardLayout() {
-    const { state } = useKromeStore();
+    const { state, actions } = useKromeStore();
     const { streak, day, settings, session, history, subjects } = state;
     const todayISO = format(new Date(), "yyyy-MM-dd");
     const dateStr = format(new Date(), "EEEE, MMMM do");
@@ -66,6 +66,7 @@ export function DashboardLayout() {
                                     blocksToday={blocks}
                                     minutesToday={Math.floor(mins)}
                                     lastSessionTime={last}
+                                    onDelete={actions.deleteSubjectDeep}
                                 />;
                             })
                         )}

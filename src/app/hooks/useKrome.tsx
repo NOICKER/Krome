@@ -80,6 +80,7 @@ interface KromeStoreStructure {
     addSubject: (name: string) => string;
     editSubject: (id: string, name: string, color: string) => void;
     deleteSubject: (id: string) => void;
+    deleteSubjectDeep: (id: string, name: string) => void;
     refreshSubjects: () => void;
     exportHistory: () => void;
   };
@@ -411,6 +412,21 @@ export function useKromeLogic() {
     });
   };
 
+  const deleteSubjectDeep = (id: string, name: string) => {
+    // Delete subject
+    setSubjects(prev => {
+      const filtered = prev.filter(s => s.id !== id);
+      setItem(STORAGE_KEYS.SUBJECTS, filtered);
+      return filtered;
+    });
+    // Delete history
+    setHistory(prev => {
+      const filtered = prev.filter(h => h.subjectId !== id && h.subject !== name);
+      setItem(STORAGE_KEYS.HISTORY, filtered);
+      return filtered;
+    });
+  };
+
   return {
     state: {
       view,
@@ -435,6 +451,7 @@ export function useKromeLogic() {
       refreshSubjects,
       editSubject,
       deleteSubject,
+      deleteSubjectDeep,
       exportHistory: () => console.log('Exporting...', history),
     }
   };
