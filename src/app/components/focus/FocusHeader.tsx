@@ -20,7 +20,7 @@ export function FocusHeader({ potValue }: FocusHeaderProps) {
     const dateString = format(now, 'EEEE, MMMM do');
 
     return (
-        <div className="hidden md:flex flex-row items-center justify-between w-full max-w-[980px] mx-auto px-4 md:px-8 py-3 md:py-4 border-b border-slate-900 mb-4 md:mb-6 h-16 md:h-auto overflow-hidden flex-nowrap min-w-0 max-w-full">
+        <div className="hidden md:flex flex-row items-center justify-between w-full max-w-[980px] mx-auto px-4 md:px-8 py-3 md:py-4 border-b border-slate-900 mb-4 md:mb-6 h-16 md:h-auto flex-nowrap min-w-0 max-w-full">
             {/* Left: Time & Date */}
             <div className="flex items-center min-w-0 md:min-w-[220px] flex-shrink flex-nowrap overflow-hidden pr-2 space-x-2 md:space-x-4">
                 <img src="/k-icon.png" alt="Krome" className="h-5 md:h-8 w-auto object-contain flex-shrink-0" />
