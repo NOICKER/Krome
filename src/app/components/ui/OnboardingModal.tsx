@@ -10,21 +10,28 @@ export function OnboardingModal() {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        const hasSeen = getItem<boolean>('krome_intro_v3_seen', false);
+        const hasSeen = getItem<boolean>("krome_intro_v3_seen", false);
         if (!hasSeen) {
             setIsOpen(true);
         }
     }, []);
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        document.body.classList.add("krome-modal-open");
+        return () => document.body.classList.remove("krome-modal-open");
+    }, [isOpen]);
+
     const handleClose = () => {
         setIsOpen(false);
-        setItem('krome_intro_v3_seen', true);
+        setItem("krome_intro_v3_seen", true);
     };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -38,7 +45,6 @@ export function OnboardingModal() {
                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
                         className="relative bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
                     >
-                        {/* Decoration */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-kromeAccent/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
                         <div className="relative z-10 flex flex-col space-y-6">
@@ -61,8 +67,9 @@ export function OnboardingModal() {
                                         <Timer size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Blocks</h3>
-                                        <p className="text-sm text-slate-400">You work in timed blocks (default: 25 minutes).<br />Finish the block → it counts.<br />Quit early → it counts against you.</p>
+                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 1</p>
+                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Pick a subject</h3>
+                                        <p className="text-sm text-slate-400">Choose what you&apos;re working on before starting a block.</p>
                                     </div>
                                 </div>
 
@@ -71,8 +78,9 @@ export function OnboardingModal() {
                                         <Layers size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Sessions</h3>
-                                        <p className="text-sm text-slate-400">Multiple blocks form a session.<br />Sessions build your daily record.</p>
+                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 2</p>
+                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Declare your intent</h3>
+                                        <p className="text-sm text-slate-400">Write the exact thing you plan to complete.</p>
                                     </div>
                                 </div>
 
@@ -81,14 +89,10 @@ export function OnboardingModal() {
                                         <ClipboardList size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">The Ledger</h3>
-                                        <p className="text-sm text-slate-400">
-                                            Krome tracks:<br />
-                                            • What subject you worked on<br />
-                                            • How many blocks you finished<br />
-                                            • How often you quit
-                                        </p>
-                                        <p className="text-sm text-slate-500 mt-2">No streaks. No badges.<br />Just proof of whether you showed up.</p>
+                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 3</p>
+                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Run the block</h3>
+                                        <p className="text-sm text-slate-400">Work until the timer fills.</p>
+                                        <p className="text-sm text-slate-500 mt-2">If you quit early, it gets recorded.</p>
                                     </div>
                                 </div>
                             </div>

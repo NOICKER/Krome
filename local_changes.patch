@@ -1,0 +1,909 @@
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index 40211bf..fd270b6 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -26,7 +26,7 @@ import { FrictionModal } from "./components/FrictionModal";
+ 
+ export default function App() {
+   const { state, actions } = useKromeStore();
+-  const { view, settings, day, session, streak, history, subjects, elapsed } = state;
++  const { view, settings, day, session, streak, history, subjects, elapsed, isSessionActive } = state;
+   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
+   const [showQuitModal, setShowQuitModal] = useState(false);
+   const { loading: authLoading } = useAuth();
+@@ -214,9 +214,11 @@ export default function App() {
+                   streak={streak}
+                   subjects={subjects}
+                   elapsed={elapsed}
++                  isSessionActive={isSessionActive}
++                  onAbandonRequest={handleAbandonTrigger}
+                   actions={{
+                     startSession: actions.startSession,
+-                    requestAbandon: handleAbandonTrigger,
++                    setIsSessionActive: actions.setIsSessionActive,
+                     undoAbandon: actions.undoAbandon,
+                     updateSubject: actions.updateSubject,
+                     updateIntent: actions.updateIntent,
+diff --git a/src/app/components/FocusView.tsx b/src/app/components/FocusView.tsx
+index 54310eb..a433f9b 100644
+--- a/src/app/components/FocusView.tsx
++++ b/src/app/components/FocusView.tsx
+@@ -17,14 +17,16 @@ interface FocusViewProps {
+   streak: KromeStreak;
+   subjects: KromeSubject[];
+   elapsed: number;
++  isSessionActive: boolean;
++  onAbandonRequest: () => void;
+   actions: {
+     startSession: () => void;
+-    requestAbandon: (reason?: string, note?: string) => void;
++    setIsSessionActive: (isActive: boolean) => void;
+     undoAbandon: () => void;
+-    updateSubject: (val: string) => void;
++    updateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
+     updateIntent: (val: string) => void;
+     updateTaskId: (val: string | undefined) => void;
+-    addSubject: (val: string) => void;
++    addSubject: (subject: string | { name: string; color?: string }) => string;
+     setView?: (view: ViewState) => void;
+   }
+ }
+@@ -36,6 +38,8 @@ export function FocusView({
+   streak,
+   subjects,
+   elapsed,
++  isSessionActive,
++  onAbandonRequest,
+   actions
+ }: FocusViewProps) {
+   const [insights, setInsights] = useState<string[]>([]);
+@@ -50,6 +54,7 @@ export function FocusView({
+ 
+   const handleStart = () => {
+     warmUpAudio();
++    actions.setIsSessionActive(true);
+     actions.startSession();
+   };
+ 
+@@ -59,7 +64,7 @@ export function FocusView({
+       <FocusHeader potValue={day.potValue} />
+ 
+       {/* 2. Central Mirror Frame - Only show when running */}
+-      {session.isActive && (
++      {isSessionActive && (
+         <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start items-center">
+           <MirrorFrame>
+             <BrickDisplay
+@@ -87,8 +92,9 @@ export function FocusView({
+             session={session}
+             settings={settings}
+             subjects={subjects}
++            isSessionActive={isSessionActive}
+             onStart={handleStart}
+-            onAbandon={actions.requestAbandon}
++            onAbandon={onAbandonRequest}
+             onUndoAbandon={actions.undoAbandon}
+             onUpdateSubject={actions.updateSubject}
+             onUpdateIntent={actions.updateIntent}
+diff --git a/src/app/components/SessionControls.tsx b/src/app/components/SessionControls.tsx
+index d7f15bf..26deb9a 100644
+--- a/src/app/components/SessionControls.tsx
++++ b/src/app/components/SessionControls.tsx
+@@ -14,19 +14,21 @@ interface SessionControlsProps {
+   session: KromeSession;
+   settings: KromeSettings;
+   subjects: KromeSubject[];
++  isSessionActive: boolean;
+   onStart: () => void;
+   onAbandon: () => void;
+   onUndoAbandon: () => void;
+-  onUpdateSubject: (val: string) => void;
++  onUpdateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
+   onUpdateIntent: (val: string) => void;
+   onUpdateTaskId: (val: string | undefined) => void;
+-  onAddSubject: (val: string) => void;
++  onAddSubject: (subject: string | { name: string; color?: string }) => string;
+ }
+ 
+ export function SessionControls({
+   session,
+   settings,
+   subjects,
++  isSessionActive,
+   onStart,
+   onAbandon,
+   onUndoAbandon,
+@@ -75,6 +77,10 @@ export function SessionControls({
+       );
+     }
+ 
++    if (!isSessionActive) {
++      return null;
++    }
++
+     return (
+       <motion.div
+         initial={{ opacity: 0, y: 20 }}
+@@ -108,11 +114,13 @@ export function SessionControls({
+               <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
+               <div className="flex flex-wrap gap-2">
+                 {subjects.map(sub => {
+-                  const isSelected = session.subject === sub.name;
++                  const isSelected = session.subjectId
++                    ? session.subjectId === sub.id
++                    : session.subject === sub.name;
+                   return (
+                     <button
+                       key={sub.id}
+-                      onClick={() => onUpdateSubject(sub.name)}
++                      onClick={() => onUpdateSubject({ id: sub.id, name: sub.name })}
+                       className={cn(
+                         "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
+                         isSelected
+diff --git a/src/app/components/auth/AuthModal.tsx b/src/app/components/auth/AuthModal.tsx
+index 5666505..676de68 100644
+--- a/src/app/components/auth/AuthModal.tsx
++++ b/src/app/components/auth/AuthModal.tsx
+@@ -34,6 +34,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+         return () => window.removeEventListener('keydown', handleKeyDown);
+     }, [isOpen, onClose]);
+ 
++    useEffect(() => {
++        if (!isOpen) return;
++
++        document.body.classList.add("krome-modal-open");
++        return () => document.body.classList.remove("krome-modal-open");
++    }, [isOpen]);
++
+     const handleSubmit = async (e: React.FormEvent) => {
+         e.preventDefault();
+         if (!email || status === "loading") return;
+@@ -49,7 +56,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+         }
+ 
+         try {
+-            const { error } = await supabase.auth.signInWithOtp({ email });
++            const { error } = await supabase.auth.signInWithOtp({
++                email,
++                options: {
++                    emailRedirectTo: window.location.origin,
++                },
++            });
+ 
+             if (error) {
+                 console.error("Magic Link Failed:", error, "\nStatus:", error.status);
+@@ -98,9 +110,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+ 
+     if (!isOpen) return null;
+ 
++    if (!isSupabaseConfigured) {
++        return createPortal(
++            <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
++                <div className="w-full max-w-[420px] bg-slate-900/95 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-slate-800 shadow-2xl text-center">
++                    <h2 className="text-xl font-bold tracking-tight text-slate-100 mb-3">Authentication temporarily unavailable</h2>
++                    <p className="text-sm text-slate-400 mb-6">Authentication is disabled until the Supabase environment variables are configured.</p>
++                    <button
++                        type="button"
++                        onClick={onClose}
++                        className="w-full h-10 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold uppercase tracking-widest transition-colors hover:bg-slate-700"
++                    >
++                        Close
++                    </button>
++                </div>
++            </div>,
++            document.body
++        );
++    }
++
+     return createPortal(
+         <AnimatePresence>
+-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
++            <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
+                 {/* Click outside trigger */}
+                 <div className="absolute inset-0 z-0" onClick={onClose} />
+ 
+diff --git a/src/app/components/dashboard/DashboardLayout.tsx b/src/app/components/dashboard/DashboardLayout.tsx
+index 459f2c1..63d303f 100644
+--- a/src/app/components/dashboard/DashboardLayout.tsx
++++ b/src/app/components/dashboard/DashboardLayout.tsx
+@@ -55,7 +55,10 @@ export function DashboardLayout() {
+                             <p className="text-slate-500 text-sm">Create a subject to begin organizing sessions.</p>
+                         ) : (
+                             subjects.map(sub => {
+-                                const subHistory = history.filter(h => h.dateISO === todayISO && h.subject === sub.name);
++                                const subHistory = history.filter(entry => (
++                                    entry.dateISO === todayISO &&
++                                    (entry.subjectId === sub.id || (!entry.subjectId && entry.subject === sub.name))
++                                ));
+                                 const blocks = subHistory.filter(h => h.completed).length;
+                                 const mins = subHistory.reduce((acc, h) => acc + (h.durationMs / 60000), 0);
+                                 const last = subHistory.length > 0 ? format(subHistory[0].startedAt, "HH:mm") : null;
+diff --git a/src/app/components/dashboard/SubjectManager.tsx b/src/app/components/dashboard/SubjectManager.tsx
+index 79bf9d4..ece332e 100644
+--- a/src/app/components/dashboard/SubjectManager.tsx
++++ b/src/app/components/dashboard/SubjectManager.tsx
+@@ -10,9 +10,16 @@ import Edit2 from "lucide-react/dist/esm/icons/edit-2";
+ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
+ import X from "lucide-react/dist/esm/icons/x";
+ import Check from "lucide-react/dist/esm/icons/check";
+-import { v4 as uuidv4 } from "uuid";
+ 
+ const COLORS = ["emerald", "blue", "amber", "red", "purple", "slate"];
++const COLOR_VALUES: Record<string, string> = {
++    emerald: "#62699D",
++    blue: "#3b82f6",
++    amber: "#f59e0b",
++    red: "#ef4444",
++    purple: "#a855f7",
++    slate: "#64748b",
++};
+ 
+ export function SubjectManager() {
+     const { state, actions } = useKromeStore();
+@@ -39,14 +46,7 @@ export function SubjectManager() {
+             return;
+         }
+ 
+-        const subj: Subject = {
+-            id: uuidv4(),
+-            name: trimmed,
+-            color: newColor as any,
+-            createdAt: Date.now()
+-        };
+-
+-        addSubject(trimmed);
++        addSubject({ name: trimmed, color: COLOR_VALUES[newColor] ?? newColor });
+         setIsAdding(false);
+         setNewName("");
+         setError("");
+@@ -64,7 +64,7 @@ export function SubjectManager() {
+ 
+         const subj = subjects.find(s => s.id === id);
+         if (subj) {
+-            editSubject(id, trimmed, editColor);
++            editSubject(id, { name: trimmed, color: COLOR_VALUES[editColor] ?? editColor });
+         }
+ 
+         setEditingId(null);
+@@ -84,7 +84,7 @@ export function SubjectManager() {
+     const getUsageStats = (id: string, name: string) => {
+         const history = getHistory();
+         const tasks = getTasks();
+-        const historyCount = history.filter(h => h.subject === name).length; // Or subjectId if migrated
++        const historyCount = history.filter(h => h.subjectId === id || (!h.subjectId && h.subject === name)).length;
+         const linkedTasks = tasks.filter(t => t.subjectId === id && !t.completed).length;
+         return { historyCount, linkedTasks };
+     };
+diff --git a/src/app/components/dashboard/TaskPanel.tsx b/src/app/components/dashboard/TaskPanel.tsx
+index 16ca4e8..80d4cb8 100644
+--- a/src/app/components/dashboard/TaskPanel.tsx
++++ b/src/app/components/dashboard/TaskPanel.tsx
+@@ -8,13 +8,14 @@ import Hash from "lucide-react/dist/esm/icons/hash";
+ import { useMemo } from "react";
+ import { Task, Subject } from "../../types";
+ import { getTasks, saveTask, updateTask } from "../../services/taskService";
+-import { getSubjects } from "../../services/subjectService";
+ import { v4 as uuidv4 } from "uuid";
+ import { cn } from "../ui/utils";
++import { useKromeStore } from "../../hooks/useKrome";
+ 
+ export function TaskPanel() {
++    const { state } = useKromeStore();
++    const subjects = state.subjects as Subject[];
+     const [tasks, setTasks] = useState<Task[]>([]);
+-    const [subjects, setSubjects] = useState<Subject[]>([]);
+     const [showCompleted, setShowCompleted] = useState(false);
+ 
+     // New task inputs
+@@ -24,9 +25,14 @@ export function TaskPanel() {
+ 
+     useEffect(() => {
+         setTasks(getTasks());
+-        setSubjects(getSubjects());
+     }, []);
+ 
++    useEffect(() => {
++        if (newTaskSubjectId !== "none" && !subjects.some(subject => subject.id === newTaskSubjectId)) {
++            setNewTaskSubjectId("none");
++        }
++    }, [newTaskSubjectId, subjects]);
++
+     const activeTasks = tasks.filter((t) => !t.completed);
+     const completedTasks = tasks.filter((t) => t.completed);
+ 
+diff --git a/src/app/components/ui/KromeSlider.tsx b/src/app/components/ui/KromeSlider.tsx
+index 1776884..533ab28 100644
+--- a/src/app/components/ui/KromeSlider.tsx
++++ b/src/app/components/ui/KromeSlider.tsx
+@@ -12,21 +12,21 @@ interface KromeSliderProps {
+ 
+ export function KromeSlider({ label, value, min, max, onValueChange, disabled = false }: KromeSliderProps) {
+     const [localVal, setLocalVal] = useState(value.toString());
++    const clampValue = (nextValue: number) => Math.min(max, Math.max(min, nextValue));
+ 
+     useEffect(() => {
+         setLocalVal(value.toString());
+     }, [value]);
+ 
+     const handleBlur = () => {
+-        let numeric = parseInt(localVal);
++        const numeric = parseInt(localVal, 10);
+         if (isNaN(numeric)) {
+             setLocalVal(value.toString());
+             return;
+         }
+-        if (numeric < min) numeric = min;
+-        if (numeric > max) numeric = max;
+-        setLocalVal(numeric.toString());
+-        onValueChange(numeric);
++        const clampedValue = clampValue(numeric);
++        setLocalVal(clampedValue.toString());
++        onValueChange(clampedValue);
+     };
+ 
+     const handleKeyDown = (e: React.KeyboardEvent) => {
+@@ -43,6 +43,7 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled =
+                     type="number"
+                     min={min}
+                     max={max}
++                    step={1}
+                     disabled={disabled}
+                     value={localVal}
+                     onChange={(e) => setLocalVal(e.target.value)}
+@@ -55,9 +56,14 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled =
+                 type="range"
+                 min={min}
+                 max={max}
++                step={1}
+                 value={value}
+                 disabled={disabled}
+-                onChange={(e) => onValueChange(parseInt(e.target.value))}
++                onChange={(e) => {
++                    const nextValue = clampValue(parseInt(e.target.value, 10));
++                    setLocalVal(nextValue.toString());
++                    onValueChange(nextValue);
++                }}
+                 className="flex-1 h-2 appearance-none bg-slate-700 rounded-full cursor-pointer accent-kromeAccent disabled:cursor-not-allowed"
+             />
+         </div>
+diff --git a/src/app/components/ui/Modal.tsx b/src/app/components/ui/Modal.tsx
+index 3de8699..d165160 100644
+--- a/src/app/components/ui/Modal.tsx
++++ b/src/app/components/ui/Modal.tsx
+@@ -1,4 +1,6 @@
+ // @ts-nocheck
++import { useEffect } from "react";
++import { createPortal } from "react-dom";
+ import { motion, AnimatePresence } from "motion/react";
+ import X from "lucide-react/dist/esm/icons/x";
+ 
+@@ -11,40 +13,49 @@ interface ModalProps {
+ }
+ 
+ export function Modal({ isOpen, onClose, title, children, allowClose = true }: ModalProps) {
+-    return (
++    useEffect(() => {
++        if (!isOpen) return;
++
++        document.body.classList.add("krome-modal-open");
++        return () => document.body.classList.remove("krome-modal-open");
++    }, [isOpen]);
++
++    if (!isOpen) return null;
++
++    return createPortal(
+         <AnimatePresence>
+-            {isOpen && (
+-                <div className="fixed inset-0 z-50 flex items-center justify-center px-4 overflow-hidden">
+-                    <motion.div
+-                        initial={{ opacity: 0 }}
+-                        animate={{ opacity: 1 }}
+-                        exit={{ opacity: 0 }}
+-                        className="absolute inset-0 bg-[#080C18]/80 backdrop-blur-sm"
+-                        onClick={allowClose ? onClose : undefined}
+-                    />
+-                    <motion.div
+-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+-                        animate={{ opacity: 1, scale: 1, y: 0 }}
+-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+-                        className="relative w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+-                    >
+-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+-                            <h2 className="text-lg font-bold text-slate-100">{title}</h2>
+-                            {allowClose && (
+-                                <button
+-                                    onClick={onClose}
+-                                    className="p-1 text-slate-400 hover:text-slate-200 transition-colors"
+-                                >
+-                                    <X size={20} />
+-                                </button>
+-                            )}
+-                        </div>
+-                        <div className="p-6 overflow-y-auto custom-scrollbar">
+-                            {children}
+-                        </div>
+-                    </motion.div>
++            <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center px-4 overflow-hidden">
++                <motion.div
++                    initial={{ opacity: 0 }}
++                    animate={{ opacity: 1 }}
++                    exit={{ opacity: 0 }}
++                    className="absolute inset-0 bg-[#080C18]/80 backdrop-blur-sm"
++                    onClick={allowClose ? onClose : undefined}
++                />
++                <motion.div
++                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
++                    animate={{ opacity: 1, scale: 1, y: 0 }}
++                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
++                    className="relative w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
++                >
++                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
++                        <h2 className="text-lg font-bold text-slate-100">{title}</h2>
++                        {allowClose && (
++                            <button
++                                onClick={onClose}
++                                className="p-1 text-slate-400 hover:text-slate-200 transition-colors"
++                            >
++                                <X size={20} />
++                            </button>
++                        )}
++                    </div>
++                    <div className="p-6 overflow-y-auto custom-scrollbar">
++                        {children}
++                    </div>
++                </motion.div>
+                 </div>
+-            )}
+         </AnimatePresence>
++        ,
++        document.body
+     );
+ }
+diff --git a/src/app/components/ui/OnboardingModal.tsx b/src/app/components/ui/OnboardingModal.tsx
+index b7744e2..b7502ba 100644
+--- a/src/app/components/ui/OnboardingModal.tsx
++++ b/src/app/components/ui/OnboardingModal.tsx
+@@ -10,21 +10,28 @@ export function OnboardingModal() {
+     const [isOpen, setIsOpen] = useState(false);
+ 
+     useEffect(() => {
+-        const hasSeen = getItem<boolean>('krome_intro_v3_seen', false);
++        const hasSeen = getItem<boolean>("krome_intro_v3_seen", false);
+         if (!hasSeen) {
+             setIsOpen(true);
+         }
+     }, []);
+ 
++    useEffect(() => {
++        if (!isOpen) return;
++
++        document.body.classList.add("krome-modal-open");
++        return () => document.body.classList.remove("krome-modal-open");
++    }, [isOpen]);
++
+     const handleClose = () => {
+         setIsOpen(false);
+-        setItem('krome_intro_v3_seen', true);
++        setItem("krome_intro_v3_seen", true);
+     };
+ 
+     return (
+         <AnimatePresence>
+             {isOpen && (
+-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
++                <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                     <motion.div
+                         initial={{ opacity: 0 }}
+                         animate={{ opacity: 1 }}
+@@ -38,7 +45,6 @@ export function OnboardingModal() {
+                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                         className="relative bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+                     >
+-                        {/* Decoration */}
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-kromeAccent/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+ 
+                         <div className="relative z-10 flex flex-col space-y-6">
+@@ -61,8 +67,9 @@ export function OnboardingModal() {
+                                         <Timer size={20} />
+                                     </div>
+                                     <div>
+-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Blocks</h3>
+-                                        <p className="text-sm text-slate-400">You work in timed blocks (default: 25 minutes).<br />Finish the block → it counts.<br />Quit early → it counts against you.</p>
++                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 1</p>
++                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Pick a subject</h3>
++                                        <p className="text-sm text-slate-400">Choose what you&apos;re working on before starting a block.</p>
+                                     </div>
+                                 </div>
+ 
+@@ -71,8 +78,9 @@ export function OnboardingModal() {
+                                         <Layers size={20} />
+                                     </div>
+                                     <div>
+-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">Sessions</h3>
+-                                        <p className="text-sm text-slate-400">Multiple blocks form a session.<br />Sessions build your daily record.</p>
++                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 2</p>
++                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Declare your intent</h3>
++                                        <p className="text-sm text-slate-400">Write the exact thing you plan to complete.</p>
+                                     </div>
+                                 </div>
+ 
+@@ -81,14 +89,10 @@ export function OnboardingModal() {
+                                         <ClipboardList size={20} />
+                                     </div>
+                                     <div>
+-                                        <h3 className="font-bold text-slate-200 uppercase tracking-widest text-xs mb-1">The Ledger</h3>
+-                                        <p className="text-sm text-slate-400">
+-                                            Krome tracks:<br />
+-                                            • What subject you worked on<br />
+-                                            • How many blocks you finished<br />
+-                                            • How often you quit
+-                                        </p>
+-                                        <p className="text-sm text-slate-500 mt-2">No streaks. No badges.<br />Just proof of whether you showed up.</p>
++                                        <p className="font-bold text-slate-500 uppercase tracking-widest text-[11px] mb-1">Step 3</p>
++                                        <h3 className="font-bold text-slate-200 text-sm mb-1">Run the block</h3>
++                                        <p className="text-sm text-slate-400">Work until the timer fills.</p>
++                                        <p className="text-sm text-slate-500 mt-2">If you quit early, it gets recorded.</p>
+                                     </div>
+                                 </div>
+                             </div>
+diff --git a/src/app/context/AuthContext.tsx b/src/app/context/AuthContext.tsx
+index 8cae9de..77bc8ed 100644
+--- a/src/app/context/AuthContext.tsx
++++ b/src/app/context/AuthContext.tsx
+@@ -1,6 +1,6 @@
+ import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+ import { User, Session } from '@supabase/supabase-js';
+-import { supabase } from '../services/supabaseClient';
++import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+ import { toast } from 'sonner';
+ 
+ interface AuthContextType {
+@@ -24,6 +24,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+     const initialLoadDoneRef = useRef(false);
+ 
+     useEffect(() => {
++        if (!isSupabaseConfigured) {
++            initialLoadDoneRef.current = true;
++            setLoading(false);
++            return;
++        }
++
+         // Initial session fetch
+         supabase.auth.getSession().then(({ data: { session }, error }) => {
+             if (error) {
+diff --git a/src/app/hooks/useKrome.tsx b/src/app/hooks/useKrome.tsx
+index 7afc1a1..967f2b8 100644
+--- a/src/app/hooks/useKrome.tsx
++++ b/src/app/hooks/useKrome.tsx
+@@ -1,4 +1,4 @@
+-import { useState, useEffect, useCallback, useRef } from 'react';
++import { useState, useEffect, useRef } from 'react';
+ import { playEndSound, playFillSound } from '../utils/sound';
+ import { getTasks, updateTask } from '../services/taskService';
+ import { STORAGE_KEYS, getItem, setItem } from '../services/storageService';
+@@ -7,6 +7,7 @@ import { createNewSession, evaluateBlockCompletion } from '../core/sessionEngine
+ import { validateStreak, incrementStreak } from '../core/streakEngine';
+ import { evaluatePotResult } from '../core/potEngine';
+ import { v4 as uuidv4 } from 'uuid';
++import { assignSubjectColor } from '../utils/subjectUtils';
+ import {
+   KromeSession,
+   KromeSettings,
+@@ -16,7 +17,7 @@ import {
+   KromeSubject,
+   ViewState
+ } from '../types';
+-import { format, isSameDay, subDays, parseISO } from 'date-fns';
++import { format } from 'date-fns';
+ 
+ 
+ const DEFAULT_SETTINGS: KromeSettings = {
+@@ -55,8 +56,29 @@ const DEFAULT_SESSION: KromeSession = {
+ 
+ const getTodayDate = () => format(new Date(), 'yyyy-MM-dd');
+ 
++function getPotDelta(entry: Pick<HistoryEntry, 'potResult' | 'potSpilled'>): number {
++  if (entry.potResult === 'retained') return 10;
++  if (entry.potResult === 'spilled' || entry.potSpilled) return -20;
++  return 0;
++}
++
++function recalculateDailyPot(day: KromeDay, entries: HistoryEntry[]): KromeDay {
++  let total = 0;
++
++  for (const entry of entries) {
++    if (entry.dateISO !== day.date) continue;
++    total += getPotDelta(entry);
++  }
++
++  return day.potValue === total ? day : { ...day, potValue: total };
++}
++
+ import { toast } from "sonner";
+ 
++type SubjectSelection = Pick<KromeSubject, 'id' | 'name'>;
++type SubjectInput = string | { name: string; color?: string };
++type SubjectUpdates = Partial<Pick<KromeSubject, 'name' | 'color'>>;
++
+ interface KromeStoreStructure {
+   state: {
+     view: ViewState;
+@@ -67,18 +89,20 @@ interface KromeStoreStructure {
+     history: HistoryEntry[];
+     subjects: KromeSubject[];
+     elapsed: number;
++    isSessionActive: boolean;
+   };
+   actions: {
+     setView: (view: ViewState) => void;
+     setSettings: (settings: KromeSettings) => void;
++    setIsSessionActive: (isActive: boolean) => void;
+     startSession: () => void;
+     requestAbandon: (reason?: string, note?: string) => void;
+     undoAbandon: () => void;
+-    updateSubject: (val: string) => void;
++    updateSubject: (subject: SubjectSelection) => void;
+     updateIntent: (val: string) => void;
+     updateTaskId: (val: string | undefined) => void;
+-    addSubject: (name: string) => string;
+-    editSubject: (id: string, name: string, color: string) => void;
++    addSubject: (subject: SubjectInput) => string;
++    editSubject: (id: string, updates: SubjectUpdates) => void;
+     deleteSubject: (id: string) => void;
+     deleteSubjectDeep: (id: string, name: string) => void;
+     refreshSubjects: () => void;
+@@ -137,10 +161,11 @@ export function useKromeLogic() {
+   });
+ 
+   const [subjects, setSubjects] = useState<KromeSubject[]>(() => {
+-    return getItem(STORAGE_KEYS.SUBJECTS, [{ id: 'default', name: 'General' }]);
++    return getSubjects() as KromeSubject[];
+   });
+ 
+   const [elapsed, setElapsed] = useState(0);
++  const [isSessionActive, setIsSessionActive] = useState(false);
+   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+ 
+   // --- Persistence Effects ---
+@@ -151,6 +176,32 @@ export function useKromeLogic() {
+   useEffect(() => setItem(STORAGE_KEYS.HISTORY, history), [history]);
+   useEffect(() => setItem(STORAGE_KEYS.SUBJECTS, subjects), [subjects]);
+ 
++  useEffect(() => {
++    setDay(prev => recalculateDailyPot(prev, history));
++  }, [history, day.date]);
++
++  useEffect(() => {
++    if (session.isActive && !isSessionActive) {
++      setIsSessionActive(true);
++    }
++    if (!session.isActive && isSessionActive) {
++      setIsSessionActive(false);
++    }
++  }, [session.isActive, isSessionActive]);
++
++  useEffect(() => {
++    if (!session.subject || session.subjectId) return;
++
++    const matchedSubject = subjects.find(subject => subject.name === session.subject);
++    if (!matchedSubject) return;
++
++    setSession(prev => (
++      prev.subjectId
++        ? prev
++        : { ...prev, subjectId: matchedSubject.id }
++    ));
++  }, [session.subject, session.subjectId, subjects]);
++
+   // --- Day Reset Logic ---
+   useEffect(() => {
+     const today = getTodayDate();
+@@ -178,6 +229,10 @@ export function useKromeLogic() {
+       return;
+     }
+ 
++    if (session.status !== 'running') {
++      return;
++    }
++
+     let lastFilled = Math.floor((Date.now() - session.startTime) / (session.intervalMinutes * 60 * 1000));
+ 
+     const tick = () => {
+@@ -202,7 +257,7 @@ export function useKromeLogic() {
+     tick(); // Immediate tick
+ 
+     return () => clearInterval(interval);
+-  }, [session.isActive, session.startTime, session.totalDurationMinutes, session.claimedEndTime]);
++  }, [session.isActive, session.startTime, session.totalDurationMinutes, session.claimedEndTime, session.status]);
+ 
+ 
+   // --- Actions ---
+@@ -210,6 +265,8 @@ export function useKromeLogic() {
+   const startSession = () => {
+     if (session.isActive) return;
+ 
++    setIsSessionActive(true);
++    setView('focus');
+     setSession(createNewSession(settings));
+ 
+     // Lock day on first start
+@@ -276,7 +333,10 @@ export function useKromeLogic() {
+ 
+   const handleSessionEnd = (completed: boolean) => {
+     // Phase 1/2: Determine potResult
+-    const potResult = evaluatePotResult(settings.strictMode !== undefined ? settings.strictMode : false, day.potSpilled !== undefined ? day.potSpilled : false);
++    const potResult = evaluatePotResult(
++      settings.strictMode !== undefined ? settings.strictMode : false,
++      !completed
++    );
+ 
+     // Phase 1: Task Progress Hook (Infrastructure Only)
+     if (completed && session.taskId) {
+@@ -314,11 +374,9 @@ export function useKromeLogic() {
+       potResult,
+     };
+ 
+-    setHistory(prev => {
+-      const newHistory = [entry, ...prev];
+-      if (newHistory.length > 500) newHistory.pop(); // Cap at 500
+-      return newHistory;
+-    });
++    const nextHistory = [entry, ...history].slice(0, 500);
++    setHistory(nextHistory);
++    setDay(prev => recalculateDailyPot(prev, nextHistory));
+ 
+     // Save friction log if abandoned
+     if (!completed && session.abandonReason) {
+@@ -333,15 +391,6 @@ export function useKromeLogic() {
+       // For now, Krome v2 stores it in a generic frictionlog key if needed, but history handles most of it.
+     }
+ 
+-    // Deterministic Pot Update (Only for strict mode & standard blocks)
+-    if (settings.strictMode && session.type === 'standard') {
+-      const delta = completed ? 10 : -20;
+-      setDay(prev => ({
+-        ...prev,
+-        potValue: Math.max(0, (prev.potValue || 0) + delta)
+-      }));
+-    }
+-
+     // Reset session
+     setSession({
+       ...DEFAULT_SESSION,
+@@ -350,6 +399,7 @@ export function useKromeLogic() {
+       status: 'idle', // or completed if we want a modal state? Spec says "Show CompleteModal" then reset.
+       // We'll reset to idle but maybe trigger a toast/modal via state in UI
+     });
++    setIsSessionActive(false);
+ 
+     // Trigger sound/vibrate if enabled
+     if (completed) {
+@@ -376,17 +426,28 @@ export function useKromeLogic() {
+     }
+   };
+ 
+-  const updateSubject = (val: string) => setSession(prev => ({ ...prev, subject: val }));
++  const updateSubject = (subject: SubjectSelection) => setSession(prev => ({
++    ...prev,
++    subject: subject.name,
++    subjectId: subject.id,
++  }));
+   const updateIntent = (val: string) => setSession(prev => ({ ...prev, intent: val }));
+   const updateTaskId = (val: string | undefined) => setSession(prev => ({ ...prev, taskId: val }));
+ 
+-  const addSubject = (name: string) => {
+-    const newSub = { id: uuidv4(), name, color: 'kromeAccent' };
+-    setSubjects(prev => {
+-      const updated = [...prev, newSub];
+-      setItem(STORAGE_KEYS.SUBJECTS, updated);
+-      return updated;
+-    });
++  const addSubject = (subjectInput: SubjectInput) => {
++    const nextName = typeof subjectInput === 'string' ? subjectInput.trim() : subjectInput.name.trim();
++    const requestedColor = typeof subjectInput === 'string' ? undefined : subjectInput.color;
++
++    if (!nextName) return '';
++
++    const existingColors = subjects.map(subject => subject.color).filter(Boolean) as string[];
++    const newSub = {
++      id: uuidv4(),
++      name: nextName,
++      color: requestedColor ?? assignSubjectColor(existingColors),
++    };
++
++    setSubjects(prev => [...prev, newSub]);
+     return newSub.id;
+   };
+ 
+@@ -396,33 +457,45 @@ export function useKromeLogic() {
+     setSubjects(getSubjects() as any);
+   };
+ 
+-  const editSubject = (id: string, name: string, color: string) => {
++  const editSubject = (id: string, updates: SubjectUpdates) => {
+     setSubjects(prev => {
+-      const updated = prev.map(s => s.id === id ? { ...s, name, color } : s);
+-      setItem(STORAGE_KEYS.SUBJECTS, updated);
++      const updated = prev.map(subject => (
++        subject.id === id
++          ? { ...subject, ...updates }
++          : subject
++      ));
+       return updated;
+     });
++
++    setSession(prev => {
++      if (prev.subjectId !== id) return prev;
++      return {
++        ...prev,
++        subject: updates.name ?? prev.subject,
++      };
++    });
+   };
+ 
+   const deleteSubject = (id: string) => {
+-    setSubjects(prev => {
+-      const filtered = prev.filter(s => s.id !== id);
+-      setItem(STORAGE_KEYS.SUBJECTS, filtered);
+-      return filtered;
+-    });
++    setSubjects(prev => prev.filter(subject => subject.id !== id));
++    setSession(prev => (
++      prev.subjectId === id
++        ? { ...prev, subject: '', subjectId: undefined }
++        : prev
++    ));
+   };
+ 
+   const deleteSubjectDeep = (id: string, name: string) => {
+     // Delete subject
+-    setSubjects(prev => {
+-      const filtered = prev.filter(s => s.id !== id);
+-      setItem(STORAGE_KEYS.SUBJECTS, filtered);
+-      return filtered;
+-    });
++    setSubjects(prev => prev.filter(subject => subject.id !== id));
++    setSession(prev => (
++      prev.subjectId === id
++        ? { ...prev, subject: '', subjectId: undefined }
++        : prev
++    ));
+     // Delete history
+     setHistory(prev => {
+-      const filtered = prev.filter(h => h.subjectId !== id && h.subject !== name);
+-      setItem(STORAGE_KEYS.HISTORY, filtered);
++      const filtered = prev.filter(entry => entry.subjectId !== id && entry.subject !== name);
+       return filtered;
+     });
+   };
+@@ -437,10 +510,12 @@ export function useKromeLogic() {
+       history,
+       subjects,
+       elapsed,
++      isSessionActive,
+     },
+     actions: {
+       setView,
+       setSettings,
++      setIsSessionActive,
+       startSession,
+       requestAbandon,
+       undoAbandon,
+diff --git a/src/styles/index.css b/src/styles/index.css
+index 01e7b25..b705c32 100644
+--- a/src/styles/index.css
++++ b/src/styles/index.css
+@@ -1,3 +1,13 @@
+ @import './fonts.css';
+ @import './tailwind.css';
+ @import './theme.css';
++
++body.krome-modal-open {
++  overflow: hidden;
++}
++
++[data-krome-overlay="true"] {
++  position: fixed;
++  inset: 0;
++  z-index: 9999;
++}

@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Subject } from "../../types";
+import { GoalProgress, KromeSettings, Subject, SubjectSettings } from "../../types";
 import { getHistory } from "../../services/storageService";
 import { getTasks } from "../../services/taskService";
 import { useKromeStore } from "../../hooks/useKrome";
+import { SubjectSettingsForm } from "./SubjectSettingsForm";
+import { normalizeGoalProgress } from "../../utils/goalUtils";
 import Folder from "lucide-react/dist/esm/icons/folder";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -10,23 +12,59 @@ import Edit2 from "lucide-react/dist/esm/icons/edit-2";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
 import X from "lucide-react/dist/esm/icons/x";
 import Check from "lucide-react/dist/esm/icons/check";
-import { v4 as uuidv4 } from "uuid";
 
 const COLORS = ["emerald", "blue", "amber", "red", "purple", "slate"];
+const COLOR_VALUES: Record<string, string> = {
+    emerald: "#62699D",
+    blue: "#3b82f6",
+    amber: "#f59e0b",
+    red: "#ef4444",
+    purple: "#a855f7",
+    slate: "#64748b",
+};
+
+function buildEditableSettings(settings: SubjectSettings | undefined, defaults: KromeSettings) {
+    return {
+        blockMinutes: settings?.blockMinutes ?? defaults.blockMinutes,
+        intervalMinutes: settings?.intervalMinutes ?? defaults.intervalMinutes,
+        dailyGoal: normalizeGoalProgress(settings?.dailyGoal, defaults.dailyGoalProgress),
+        weeklyGoal: normalizeGoalProgress(settings?.weeklyGoal, defaults.weeklyGoalProgress),
+        strictMode: settings?.strictMode ?? defaults.strictMode,
+    };
+}
+
+function buildSubjectSettingsOverrides(settings: ReturnType<typeof buildEditableSettings>, defaults: KromeSettings): SubjectSettings {
+    const overrides: SubjectSettings = {};
+
+    if (settings.blockMinutes !== defaults.blockMinutes) overrides.blockMinutes = settings.blockMinutes;
+    if (settings.intervalMinutes !== defaults.intervalMinutes) overrides.intervalMinutes = settings.intervalMinutes;
+    if (settings.dailyGoal.type !== defaults.dailyGoalProgress.type || settings.dailyGoal.target !== defaults.dailyGoalProgress.target) {
+        overrides.dailyGoal = settings.dailyGoal;
+    }
+    if (settings.weeklyGoal.type !== defaults.weeklyGoalProgress.type || settings.weeklyGoal.target !== defaults.weeklyGoalProgress.target) {
+        overrides.weeklyGoal = settings.weeklyGoal;
+    }
+    if (settings.strictMode !== defaults.strictMode) overrides.strictMode = settings.strictMode;
+
+    return overrides;
+}
 
 export function SubjectManager() {
     const { state, actions } = useKromeStore();
     const subjects = state.subjects as unknown as Subject[];
+    const globalSettings = state.settings;
     const { addSubject, editSubject, deleteSubject } = actions;
 
     const [isAdding, setIsAdding] = useState(false);
     const [newName, setNewName] = useState("");
     const [newColor, setNewColor] = useState("emerald");
+    const [newSettings, setNewSettings] = useState(() => buildEditableSettings(undefined, globalSettings));
     const [error, setError] = useState("");
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState("");
     const [editColor, setEditColor] = useState("");
+    const [editSettings, setEditSettings] = useState(() => buildEditableSettings(undefined, globalSettings));
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -39,16 +77,14 @@ export function SubjectManager() {
             return;
         }
 
-        const subj: Subject = {
-            id: uuidv4(),
+        addSubject({
             name: trimmed,
-            color: newColor as any,
-            createdAt: Date.now()
-        };
-
-        addSubject(trimmed);
+            color: COLOR_VALUES[newColor] ?? newColor,
+            settings: buildSubjectSettingsOverrides(newSettings, globalSettings),
+        });
         setIsAdding(false);
         setNewName("");
+        setNewSettings(buildEditableSettings(undefined, globalSettings));
         setError("");
     };
 
@@ -64,7 +100,11 @@ export function SubjectManager() {
 
         const subj = subjects.find(s => s.id === id);
         if (subj) {
-            editSubject(id, trimmed, editColor);
+            editSubject(id, {
+                name: trimmed,
+                color: COLOR_VALUES[editColor] ?? editColor,
+                settings: buildSubjectSettingsOverrides(editSettings, globalSettings),
+            });
         }
 
         setEditingId(null);
@@ -84,7 +124,7 @@ export function SubjectManager() {
     const getUsageStats = (id: string, name: string) => {
         const history = getHistory();
         const tasks = getTasks();
-        const historyCount = history.filter(h => h.subject === name).length; // Or subjectId if migrated
+        const historyCount = history.filter(h => h.subjectId === id || (!h.subjectId && h.subject === name)).length;
         const linkedTasks = tasks.filter(t => t.subjectId === id && !t.completed).length;
         return { historyCount, linkedTasks };
     };
@@ -128,6 +168,11 @@ export function SubjectManager() {
                                 />
                             ))}
                         </div>
+                        <SubjectSettingsForm
+                            settings={newSettings}
+                            defaults={globalSettings}
+                            onChange={setNewSettings}
+                        />
                         <div className="flex items-center justify-between pt-1">
                             {(!newName.trim()) ? (
                                 <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Requires Name</span>
@@ -135,7 +180,7 @@ export function SubjectManager() {
                                 <span />
                             )}
                             <div className="flex space-x-2">
-                                <button onClick={() => setIsAdding(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 uppercase tracking-widest font-bold transition-colors">Cancel</button>
+                                <button onClick={() => { setIsAdding(false); setNewSettings(buildEditableSettings(undefined, globalSettings)); }} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 uppercase tracking-widest font-bold transition-colors">Cancel</button>
                                 <button disabled={!newName.trim()} onClick={handleAdd} className="px-5 py-1.5 text-xs bg-kromeAccent hover:bg-kromeAccent/85 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold tracking-widest uppercase transition-colors">Add</button>
                             </div>
                         </div>
@@ -196,6 +241,11 @@ export function SubjectManager() {
                                         <button onClick={() => handleSaveEdit(sub.id)} className="p-1.5 bg-kromeAccent/20 text-kromeAccent hover:bg-kromeAccent/30 rounded-lg"><Check size={16} /></button>
                                     </div>
                                 </div>
+                                <SubjectSettingsForm
+                                    settings={editSettings}
+                                    defaults={globalSettings}
+                                    onChange={setEditSettings}
+                                />
                             </div>
                         );
                     }
@@ -208,7 +258,15 @@ export function SubjectManager() {
                             </div>
                             <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
-                                    onClick={() => { setEditingId(sub.id); setEditName(sub.name); setEditColor(sub.color || 'emerald'); setError(""); }}
+                                    onClick={() => {
+                                        setEditingId(sub.id);
+                                        setEditName(sub.name);
+                                        setEditColor(
+                                            Object.entries(COLOR_VALUES).find(([, value]) => value === sub.color)?.[0] ?? sub.color ?? 'emerald'
+                                        );
+                                        setEditSettings(buildEditableSettings(sub.settings, globalSettings));
+                                        setError("");
+                                    }}
                                     className="p-1.5 text-slate-500 hover:text-slate-300 rounded-lg transition-colors"
                                 >
                                     <Edit2 size={14} />

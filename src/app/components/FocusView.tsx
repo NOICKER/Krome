@@ -1,48 +1,69 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { BrickDisplay } from "./BrickDisplay";
 import { MirrorFrame } from "./MirrorFrame";
 import { SessionControls } from "./SessionControls";
-import { KromeSession, KromeSettings, KromeDay, KromeStreak, KromeSubject, ViewState } from "../types";
+import { KromeDay, KromeSession, KromeSettings, KromeStreak, KromeSubject, ViewState } from "../types";
 import { FocusHeader } from "./focus/FocusHeader";
+import { InterruptTracker } from "./focus/InterruptTracker";
 import { MicroInsight } from "./focus/MicroInsight";
+import { SessionSummaryModal } from "./focus/SessionSummaryModal";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
-import { buildSubjectMap, getSubjectColor } from "../utils/subjectUtils";
 import { warmUpAudio } from "../utils/sound";
 
 interface FocusViewProps {
   session: KromeSession;
   settings: KromeSettings;
+  currentSubject: KromeSubject | null;
   day: KromeDay;
   streak: KromeStreak;
   subjects: KromeSubject[];
   elapsed: number;
+  isSessionActive: boolean;
+  latestSessionSummary: {
+    id: string;
+    subject?: string;
+    completed: boolean;
+    actualFocusDurationMs: number;
+    interruptDurationMs: number;
+    protectionRatio: number;
+    plannedDurationMs?: number;
+  } | null;
+  onAbandonRequest: () => void;
   actions: {
-    startSession: () => void;
-    requestAbandon: (reason?: string, note?: string) => void;
+    startSession: (
+      subject?: Pick<KromeSubject, "id" | "name">,
+      options?: { lockSubject?: boolean; type?: KromeSession["type"]; totalDurationMinutes?: number; intervalMinutes?: number }
+    ) => void;
     undoAbandon: () => void;
-    updateSubject: (val: string) => void;
+    updateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
     updateIntent: (val: string) => void;
     updateTaskId: (val: string | undefined) => void;
-    addSubject: (val: string) => void;
+    addSubject: (subject: string | { name: string; color?: string; settings?: KromeSubject["settings"] }) => string;
+    pauseForInterrupt: (reason: string, type: "external" | "internal", notes?: string) => void;
+    resumeFromInterrupt: () => void;
+    clearSessionSummary: () => void;
     setView?: (view: ViewState) => void;
-  }
+  };
 }
 
 export function FocusView({
   session,
   settings,
+  currentSubject,
   day,
   streak,
   subjects,
   elapsed,
-  actions
+  isSessionActive,
+  latestSessionSummary,
+  onAbandonRequest,
+  actions,
 }: FocusViewProps) {
   const [insights, setInsights] = useState<string[]>([]);
-
-  // Memoize subject map for O(1) color lookup
-  const subjectMap = useMemo(() => buildSubjectMap(subjects as any), [subjects]);
-  const activeSubjectColor = getSubjectColor(subjectMap, session.subjectId);
+  const [isInterruptTrackerOpen, setIsInterruptTrackerOpen] = useState(false);
+  const activeSubjectColor = currentSubject?.color ?? "#64748b";
+  const focusTitle = session.subjectLocked && currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
 
   useEffect(() => {
     setInsights(getAdvancedObservations());
@@ -55,11 +76,9 @@ export function FocusView({
 
   return (
     <div className="flex flex-col h-full relative p-4 md:p-8 overflow-y-auto overflow-x-hidden pb-32">
-      {/* 1. Header (Time + Pot) */}
-      <FocusHeader potValue={day.potValue} />
+      <FocusHeader potValue={day.potValue} title={focusTitle} />
 
-      {/* 2. Central Mirror Frame - Only show when running */}
-      {session.isActive && (
+      {isSessionActive && (
         <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start items-center">
           <MirrorFrame>
             <BrickDisplay
@@ -74,21 +93,18 @@ export function FocusView({
         </div>
       )}
 
-      {/* 4. Micro Insight Whisper */}
       <MicroInsight insights={insights} />
-
-      {/* 5. Weekly Strip */}
       <WeeklyStrip onSetView={actions.setView} />
 
-      {/* 6. Control Panel */}
       <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start pt-8">
         <div className="bg-slate-900/60 border border-slate-800 rounded-[20px] p-7 shadow-sm">
           <SessionControls
             session={session}
             settings={settings}
             subjects={subjects}
+            isSessionActive={isSessionActive}
             onStart={handleStart}
-            onAbandon={actions.requestAbandon}
+            onAbandon={onAbandonRequest}
             onUndoAbandon={actions.undoAbandon}
             onUpdateSubject={actions.updateSubject}
             onUpdateIntent={actions.updateIntent}
@@ -96,7 +112,17 @@ export function FocusView({
             onAddSubject={actions.addSubject}
           />
         </div>
+        <InterruptTracker
+          isOpen={isInterruptTrackerOpen}
+          session={session}
+          onOpen={() => setIsInterruptTrackerOpen(true)}
+          onClose={() => setIsInterruptTrackerOpen(false)}
+          onPauseForInterrupt={actions.pauseForInterrupt}
+          onResumeFromInterrupt={actions.resumeFromInterrupt}
+        />
       </div>
+
+      <SessionSummaryModal summary={latestSessionSummary} onClose={actions.clearSessionSummary} />
     </div>
   );
 }

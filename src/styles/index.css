@@ -1,3 +1,66 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+body.krome-modal-open {
+  overflow: hidden;
+}
+
+[data-krome-overlay="true"] {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+/* Hide number input arrows */
+.hide-arrows::-webkit-outer-spin-button,
+.hide-arrows::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.hide-arrows {
+  -moz-appearance: textfield;
+}
+
+/* Krome Range Slider */
+.krome-range-slider {
+  outline: none;
+  border: none;
+  border-radius: 9999px;
+}
+
+.krome-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6F78B5;
+  border: 2px solid #8B93CC;
+  box-shadow: 0 0 6px rgba(111, 120, 181, 0.5);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.krome-range-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 10px rgba(111, 120, 181, 0.7);
+  transform: scale(1.15);
+}
+
+.krome-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #6F78B5;
+  border: 2px solid #8B93CC;
+  box-shadow: 0 0 6px rgba(111, 120, 181, 0.5);
+  cursor: pointer;
+}
+
+.krome-range-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}

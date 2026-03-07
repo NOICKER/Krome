@@ -5,6 +5,7 @@ interface FrictionModalProps {
     isEscalated: boolean; // Progressive escalation active
     totalBlocks: number;
     currentFilledBricks: number;
+    isInfiniteSession?: boolean;
     onConfirm: (reason: string, note: string) => void;
     onCancel: () => void;
 }
@@ -20,7 +21,7 @@ export const FRICTION_REASONS = [
     "Other"
 ];
 
-export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, onConfirm, onCancel }: FrictionModalProps) {
+export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, isInfiniteSession = false, onConfirm, onCancel }: FrictionModalProps) {
     const [selectedReason, setSelectedReason] = useState("");
     const [customNote, setCustomNote] = useState("");
 
@@ -51,7 +52,9 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, o
                     You will lose these bricks.
                 </p>
                 <p className="text-xs text-slate-500 font-mono">
-                    {currentFilledBricks} completed. {totalBlocks - currentFilledBricks} remaining.
+                    {isInfiniteSession
+                        ? `${currentFilledBricks} bricks already filled in this open-ended session.`
+                        : `${currentFilledBricks} completed. ${totalBlocks - currentFilledBricks} remaining.`}
                 </p>
             </div>
 

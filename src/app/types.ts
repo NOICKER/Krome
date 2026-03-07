@@ -2,6 +2,40 @@ export type SessionStatus = 'idle' | 'running' | 'abandoned' | 'completed';
 
 export type SessionType = 'standard' | 'helper' | 'claimed';
 
+export interface GoalProgress {
+  type: 'blocks' | 'minutes';
+  target: number;
+  current: number;
+}
+
+export interface SubjectSettings {
+  plipInterval?: number;
+  sessionDuration?: number;
+  blockMinutes?: number;
+  intervalMinutes?: number;
+  dailyGoal?: GoalProgress | number;
+  weeklyGoal?: GoalProgress | number;
+  strictMode?: boolean;
+}
+
+export enum SeverityLevel {
+  Neutral = 0,
+  Advisory = 1,
+  Concern = 2,
+  Direct = 3,
+  Accountability = 4,
+}
+
+export interface InterruptEntry {
+  id: string;
+  sessionId: string;
+  timestamp: number;
+  durationMs: number;
+  reason: string;
+  type: 'external' | 'internal';
+  notes?: string;
+}
+
 export interface KromeSession {
   isActive: boolean;
   startTime: number | null; // Epoch MS
@@ -20,6 +54,15 @@ export interface KromeSession {
   subjectId?: string;
   taskId?: string;
   potResult?: 'retained' | 'spilled' | null;
+  subjectLocked?: boolean;
+  interrupts?: InterruptEntry[];
+  activeInterruptStartTime?: number;
+  activeInterruptReason?: string;
+  activeInterruptType?: 'external' | 'internal';
+  activeInterruptNotes?: string;
+  interruptCount?: number;
+  isInterrupted?: boolean;
+  interruptDuration?: number;
 }
 
 export interface KromeSettings {
@@ -37,12 +80,17 @@ export interface KromeSettings {
   notifications: boolean;
   densityMode: 'comfortable' | 'compact';
   volume: number;
+  weeklyGoal: number;
+  dailyGoalProgress: GoalProgress;
+  weeklyGoalProgress: GoalProgress;
 }
 
 export interface KromeDay {
   date: string; // YYYY-MM-DD
   blocksCompleted: number;
   goal: number;
+  minutesFocused: number;
+  goalProgress: GoalProgress;
   isDaySecured: boolean;
   locked: boolean;
   potValue: number;
@@ -62,6 +110,15 @@ export interface HistoryEntry {
   subjectId?: string;
   taskId?: string;
   potResult?: 'retained' | 'spilled' | null;
+  interrupts?: InterruptEntry[];
+  plannedDurationMs?: number;
+  actualFocusDurationMs?: number;
+  interruptDurationMs?: number;
+  protectionRatio?: number;
+  completionStatus?: 'completed' | 'abandoned';
+  abandonReason?: string;
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  severityImpact?: number;
 }
 
 export interface KromeStreak {
@@ -72,16 +129,44 @@ export interface KromeStreak {
 export interface KromeSubject {
   id: string;
   name: string;
+  createdAt: number;
   color?: string;
+  settings?: SubjectSettings;
+  archived?: boolean;
 }
 
-export type ViewState = 'focus' | 'dashboard' | 'review' | 'analytics' | 'settings';
+export interface KromeWeek {
+  weekStartDate: string; // YYYY-MM-DD
+  blocksCompleted: number;
+  goal: number;
+  minutesFocused: number;
+  goalProgress: GoalProgress;
+}
+
+export interface WeeklyPlan {
+  id: string;
+  weekStartDate: string;
+  allocations: Record<string, number>;
+  strategyNotes?: string;
+}
+
+export interface NotificationEntry {
+  id: string;
+  message: string;
+  type: 'reminder' | 'reflection' | 'warning';
+  timestamp: number;
+  read: boolean;
+}
+
+export type ViewState = 'focus' | 'dashboard' | 'review' | 'analytics' | 'settings' | 'subjectDetail';
 
 export interface Subject {
   id: string;
   name: string;
   createdAt: number;
   color?: string;
+  settings?: SubjectSettings;
+  archived?: boolean;
 }
 
 export interface Task {
@@ -99,4 +184,26 @@ export interface Milestone {
   title: string;
   targetDate: number;
   createdAt?: number;
+}
+
+export interface InsightFlashcard {
+  id: string;
+  title: string;
+  description: string;
+  metric?: string;
+  dataMirror?: string;
+  guidance?: string;
+  severityLevel: SeverityLevel;
+  dateGenerated: number;
+  relevantSubjectId?: string;
+}
+
+export interface SessionSummary {
+  id: string;
+  subject?: string;
+  completed: boolean;
+  actualFocusDurationMs: number;
+  interruptDurationMs: number;
+  protectionRatio: number;
+  plannedDurationMs?: number;
 }

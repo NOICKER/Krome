@@ -35,52 +35,71 @@ export function HistoryList({ entries }: HistoryListProps) {
           >
             <Card className="flex items-center justify-between p-4 group hover:bg-slate-800/80 transition-colors border-l-4 border-l-transparent hover:border-l-kromeAccent">
               <div className="flex items-start space-x-4">
-                <div className={cn(
-                  "p-2 rounded-full mt-1",
-                  entry.completed ? "bg-kromeAccent/10 text-kromeAccent" : "bg-red-500/10 text-red-500"
-                )}>
+                <div
+                  className={cn(
+                    "p-2 rounded-full mt-1",
+                    entry.completed ? "bg-kromeAccent/10 text-kromeAccent" : "bg-red-500/10 text-red-500"
+                  )}
+                >
                   {entry.completed ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
-                    <span className="text-slate-200 font-medium">
-                      {entry.subject || "General"}
-                    </span>
-                    {!entry.completed && (
+                    <span className="text-slate-200 font-medium">{entry.subject || "General"}</span>
+                    {!entry.completed ? (
                       <span className="text-[10px] uppercase font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded tracking-wider">
                         Abandoned
                       </span>
-                    )}
-                    {entry.potSpilled && (
+                    ) : null}
+                    {entry.potSpilled ? (
                       <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded tracking-wider flex items-center space-x-1">
                         <AlertCircle size={10} />
                         <span>Spilled</span>
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
-                  {entry.intent && (
-                    <p className="text-slate-500 text-sm line-clamp-1 italic">
-                      "{entry.intent}"
-                    </p>
-                  )}
+                  {entry.intent ? (
+                    <p className="text-slate-500 text-sm line-clamp-1 italic">"{entry.intent}"</p>
+                  ) : null}
 
-                  <div className="flex items-center text-xs text-slate-600 space-x-3 pt-1 font-mono">
+                  <div className="flex items-center text-xs text-slate-600 space-x-3 pt-1 font-mono flex-wrap">
                     <span>{format(entry.startedAt, "MMM d, h:mm a")}</span>
                     <span>•</span>
                     <span>{Math.floor(entry.durationMs / 60000)}m</span>
+                    {typeof entry.protectionRatio === "number" ? (
+                      <>
+                        <span>•</span>
+                        <span>{Math.round(entry.protectionRatio * 100)}%</span>
+                      </>
+                    ) : null}
+                    {(entry.interruptDurationMs ?? 0) > 0 ? (
+                      <>
+                        <span>•</span>
+                        <span>{Math.round((entry.interruptDurationMs ?? 0) / 60000)}m interrupt</span>
+                      </>
+                    ) : null}
+                    {entry.timeOfDay ? (
+                      <>
+                        <span>•</span>
+                        <span>{entry.timeOfDay}</span>
+                      </>
+                    ) : null}
                   </div>
+
+                  {!entry.completed && entry.abandonReason ? (
+                    <p className="text-xs text-amber-400 mt-1">Reason: {entry.abandonReason}</p>
+                  ) : null}
                 </div>
               </div>
 
-              {/* Right side duration badge (for successful ones mostly) */}
-              {entry.completed && (
+              {entry.completed ? (
                 <div className="hidden sm:block text-kromeAccent/50 font-mono text-xl font-light tracking-tighter">
                   {Math.floor(entry.durationMs / 60000)}
                   <span className="text-sm ml-0.5">m</span>
                 </div>
-              )}
+              ) : null}
             </Card>
           </motion.div>
         ))}

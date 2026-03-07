@@ -7,9 +7,10 @@ import User from "lucide-react/dist/esm/icons/user";
 
 interface FocusHeaderProps {
     potValue: number;
+    title?: string;
 }
 
-export function FocusHeader({ potValue }: FocusHeaderProps) {
+export function FocusHeader({ potValue, title }: FocusHeaderProps) {
     const { user } = useAuth();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -26,10 +27,10 @@ export function FocusHeader({ potValue }: FocusHeaderProps) {
                 <img src="/k-icon.png" alt="Krome" className="h-5 md:h-8 w-auto object-contain flex-shrink-0" />
                 <div className="flex flex-col gap-0.5 md:gap-1 min-w-0">
                     <span className="text-xl md:text-3xl font-display font-semibold text-slate-100 tracking-tight leading-none truncate">
-                        {timeString}
+                        {title ?? timeString}
                     </span>
                     <span className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-widest truncate hidden md:block">
-                        {dateString}
+                        {title ? `${timeString} • ${dateString}` : dateString}
                     </span>
                 </div>
             </div>

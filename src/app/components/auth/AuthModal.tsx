@@ -34,6 +34,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        document.body.classList.add("krome-modal-open");
+        return () => document.body.classList.remove("krome-modal-open");
+    }, [isOpen]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || status === "loading") return;
@@ -49,7 +56,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({ email });
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: window.location.origin,
+                },
+            });
 
             if (error) {
                 console.error("Magic Link Failed:", error, "\nStatus:", error.status);
@@ -98,9 +110,28 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     if (!isOpen) return null;
 
+    if (!isSupabaseConfigured) {
+        return createPortal(
+            <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
+                <div className="w-full max-w-[420px] bg-slate-900/95 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-slate-800 shadow-2xl text-center">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-100 mb-3">Authentication temporarily unavailable</h2>
+                    <p className="text-sm text-slate-400 mb-6">Authentication is disabled until the Supabase environment variables are configured.</p>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-full h-10 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold uppercase tracking-widest transition-colors hover:bg-slate-700"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>,
+            document.body
+        );
+    }
+
     return createPortal(
         <AnimatePresence>
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
+            <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
                 {/* Click outside trigger */}
                 <div className="absolute inset-0 z-0" onClick={onClose} />
 

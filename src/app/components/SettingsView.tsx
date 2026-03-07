@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { KromeSettings } from "../types";
+import { GoalProgress, KromeSettings } from "../types";
 import { KromeToggle } from "./ui/KromeToggle";
 import { KromeSlider } from "./ui/KromeSlider";
 import { Card } from "./ui/card";
@@ -13,6 +13,16 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
 
   const update = (key: keyof KromeSettings, val: any) => {
     onUpdateSettings({ ...settings, [key]: val });
+  };
+
+  const updateGoalProgress = (key: "dailyGoalProgress" | "weeklyGoalProgress", nextGoal: Partial<GoalProgress>) => {
+    onUpdateSettings({
+      ...settings,
+      [key]: {
+        ...settings[key],
+        ...nextGoal,
+      },
+    });
   };
 
   return (
@@ -64,29 +74,64 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
       </section>
 
       <section className="space-y-4">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Core Settings</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Universal Focus Defaults</h3>
         <Card className="p-4 space-y-6">
           <KromeSlider
-            label="Total Duration (min)"
+            label="Universal Duration (min)"
             value={settings.blockMinutes}
             min={1}
             max={180}
             onValueChange={(v) => update('blockMinutes', v)}
           />
           <KromeSlider
-            label="Brick Interval (min)"
+            label="Universal Brick Interval (min)"
             value={settings.intervalMinutes}
             min={1}
             max={60}
             onValueChange={(v) => update('intervalMinutes', v)}
           />
           <KromeSlider
-            label="Daily Goal"
-            value={settings.goal}
+            label={`Daily Goal (${settings.dailyGoalProgress.type})`}
+            value={settings.dailyGoalProgress.target}
             min={1}
-            max={20}
-            onValueChange={(v) => update('goal', v)}
+            max={settings.dailyGoalProgress.type === "minutes" ? 480 : 20}
+            onValueChange={(v) => updateGoalProgress('dailyGoalProgress', { target: v })}
           />
+          <div className="flex gap-2">
+            {(["blocks", "minutes"] as const).map((goalType) => (
+              <button
+                key={goalType}
+                onClick={() => updateGoalProgress("dailyGoalProgress", { type: goalType })}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${settings.dailyGoalProgress.type === goalType
+                  ? 'border-kromeAccent/50 bg-kromeAccent/10 text-kromeAccent'
+                  : 'border-slate-700 text-slate-500 hover:text-slate-300'
+                  }`}
+              >
+                Daily {goalType}
+              </button>
+            ))}
+          </div>
+          <KromeSlider
+            label={`Weekly Goal (${settings.weeklyGoalProgress.type})`}
+            value={settings.weeklyGoalProgress.target}
+            min={1}
+            max={settings.weeklyGoalProgress.type === "minutes" ? 2400 : 100}
+            onValueChange={(v) => updateGoalProgress('weeklyGoalProgress', { target: v })}
+          />
+          <div className="flex gap-2">
+            {(["blocks", "minutes"] as const).map((goalType) => (
+              <button
+                key={goalType}
+                onClick={() => updateGoalProgress("weeklyGoalProgress", { type: goalType })}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-widest border transition-all ${settings.weeklyGoalProgress.type === goalType
+                  ? 'border-kromeAccent/50 bg-kromeAccent/10 text-kromeAccent'
+                  : 'border-slate-700 text-slate-500 hover:text-slate-300'
+                  }`}
+              >
+                Weekly {goalType}
+              </button>
+            ))}
+          </div>
         </Card>
       </section>
 

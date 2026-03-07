@@ -17,12 +17,23 @@ export function BrickDisplay({
   elapsedMs,
   isActive,
   blindMode,
-  subjectColor = '#62699D',
+  subjectColor = "#62699D",
 }: BrickDisplayProps) {
-
-  const totalBlocks = Math.ceil(totalDurationMinutes / intervalMinutes);
-  const { filledBricks: filledBlocks, currentBrickProgress: progressInCurrentBlock } = calculateBricks(elapsedMs, intervalMinutes, totalBlocks);
+  const isUniversalMode = !Number.isFinite(totalDurationMinutes);
+  const intervalMs = intervalMinutes * 60 * 1000;
+  const finiteTotalBlocks = Math.ceil(totalDurationMinutes / intervalMinutes);
+  const finiteBrickState = isUniversalMode
+    ? null
+    : calculateBricks(elapsedMs, intervalMinutes, finiteTotalBlocks);
+  const filledBlocks = isUniversalMode
+    ? Math.floor(elapsedMs / intervalMs)
+    : finiteBrickState?.filledBricks ?? 0;
+  const progressInCurrentBlock = isUniversalMode
+    ? (elapsedMs % intervalMs) / intervalMs
+    : finiteBrickState?.currentBrickProgress ?? 0;
   const currentBlockIndex = filledBlocks;
+  const visibleBlockCount = isUniversalMode ? 10 : finiteTotalBlocks;
+  const visibleStartIndex = isUniversalMode ? Math.max(0, filledBlocks - 4) : 0;
 
   if (blindMode && isActive) {
     return (
@@ -42,27 +53,23 @@ export function BrickDisplay({
 
   return (
     <div className="w-full max-w-4xl mx-auto py-8 lg:py-16 px-4">
-      {/* Responsive grid: 2 cols mobile → 3-4 tablet → 5 desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
-        {Array.from({ length: totalBlocks }).map((_, index) => {
-          const isFilled = index < filledBlocks;
-          const isCurrent = index === currentBlockIndex && isActive;
-
-          // Filled color: use subject color; glow matches that color
+        {Array.from({ length: visibleBlockCount }).map((_, index) => {
+          const actualIndex = visibleStartIndex + index;
+          const isFilled = actualIndex < filledBlocks;
+          const isCurrent = actualIndex === currentBlockIndex && isActive;
           const filledBg = subjectColor;
-          const glowColor = `${subjectColor}66`; // 40% alpha for shadow
+          const glowColor = `${subjectColor}66`;
 
           return (
-            <div key={index} className="aspect-square relative group">
-              {/* Background of the brick */}
+            <div key={actualIndex} className="aspect-square relative group">
               <div className="absolute inset-0 bg-slate-800/50 rounded-lg md:rounded-xl border border-slate-700/50" />
 
-              {/* Filled State */}
               <motion.div
                 className="absolute inset-0 rounded-lg md:rounded-xl"
                 style={{
-                  backgroundColor: isFilled ? filledBg : 'transparent',
-                  boxShadow: isFilled ? `0 0 15px ${glowColor}` : 'none',
+                  backgroundColor: isFilled ? filledBg : "transparent",
+                  boxShadow: isFilled ? `0 0 15px ${glowColor}` : "none",
                 }}
                 initial={false}
                 animate={{
@@ -72,7 +79,6 @@ export function BrickDisplay({
                 transition={{ duration: 0.4 }}
               />
 
-              {/* Current Active Pulse */}
               {isCurrent && (
                 <motion.div
                   className="absolute inset-0 rounded-lg md:rounded-xl border overflow-hidden"
@@ -87,7 +93,6 @@ export function BrickDisplay({
                     ease: "easeInOut",
                   }}
                 >
-                  {/* Progress Fill for Current Block */}
                   <motion.div
                     className="absolute bottom-0 left-0 right-0"
                     style={{
@@ -103,7 +108,6 @@ export function BrickDisplay({
         })}
       </div>
 
-      {/* Timer Text / Ready Indicator */}
       <div className="mt-6 text-center">
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-800 opacity-70">
           <span
@@ -114,7 +118,7 @@ export function BrickDisplay({
             style={isActive ? { backgroundColor: subjectColor } : undefined}
           />
           <span className="text-slate-400 font-mono text-xs md:text-sm font-medium uppercase tracking-widest">
-            {isActive ? "Session Active" : "Ready"}
+            {isUniversalMode ? (isActive ? "Universal Focus" : "Universal Ready") : (isActive ? "Session Active" : "Ready")}
           </span>
         </div>
       </div>

@@ -14,19 +14,21 @@ interface SessionControlsProps {
   session: KromeSession;
   settings: KromeSettings;
   subjects: KromeSubject[];
+  isSessionActive: boolean;
   onStart: () => void;
   onAbandon: () => void;
   onUndoAbandon: () => void;
-  onUpdateSubject: (val: string) => void;
+  onUpdateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
   onUpdateIntent: (val: string) => void;
   onUpdateTaskId: (val: string | undefined) => void;
-  onAddSubject: (val: string) => void;
+  onAddSubject: (subject: string | { name: string; color?: string; settings?: KromeSubject["settings"] }) => string;
 }
 
 export function SessionControls({
   session,
   settings,
   subjects,
+  isSessionActive,
   onStart,
   onAbandon,
   onUndoAbandon,
@@ -55,6 +57,7 @@ export function SessionControls({
   }, [session.isActive, onStart]);
 
   const isAbandoned = session.status === 'abandoned';
+  const isUniversalFocus = !session.subjectId;
 
   if (session.isActive) {
     if (isAbandoned) {
@@ -73,6 +76,10 @@ export function SessionControls({
           </Button>
         </motion.div>
       );
+    }
+
+    if (!isSessionActive) {
+      return null;
     }
 
     return (
@@ -103,29 +110,40 @@ export function SessionControls({
       {settings.wrapperEnabled && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-
-            <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
-              <div className="flex flex-wrap gap-2">
-                {subjects.map(sub => {
-                  const isSelected = session.subject === sub.name;
-                  return (
-                    <button
-                      key={sub.id}
-                      onClick={() => onUpdateSubject(sub.name)}
-                      className={cn(
-                        "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
-                        isSelected
-                          ? "bg-slate-800 text-kromeAccent border-kromeAccent shadow-[0_0_10px_rgba(111,120,181,0.18)] translate-y-[-1px]"
-                          : "bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200"
-                      )}
-                    >
-                      {sub.name}
-                    </button>
-                  );
-                })}
+            {session.subjectLocked && session.subject ? (
+              <div className="space-y-1.5">
+                <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+                  <p className="text-sm font-medium text-slate-100">{session.subject}</p>
+                  <p className="text-xs text-slate-500 mt-1">Started from the dashboard. Subject is locked for this block.</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
+                <div className="flex flex-wrap gap-2">
+                  {subjects.filter((sub) => !sub.archived).map(sub => {
+                    const isSelected = session.subjectId
+                      ? session.subjectId === sub.id
+                      : session.subject === sub.name;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => onUpdateSubject({ id: sub.id, name: sub.name })}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
+                          isSelected
+                            ? "bg-slate-800 text-kromeAccent border-kromeAccent shadow-[0_0_10px_rgba(111,120,181,0.18)] translate-y-[-1px]"
+                            : "bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200"
+                        )}
+                      >
+                        {sub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Task</label>
@@ -136,7 +154,7 @@ export function SessionControls({
                   disabled={activeTasks.length === 0}
                   className="w-full h-12 bg-slate-900/30 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-300 appearance-none focus:outline-none focus:ring-1 focus:ring-kromeAccent/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="none" disabled={activeTasks.length === 0}>
+                  <option value="none">
                     {activeTasks.length === 0 ? "No active tasks" : "Attach Task (Optional)"}
                   </option>
                   {activeTasks.map(task => (
@@ -171,7 +189,7 @@ export function SessionControls({
           className="w-full h-12 text-sm font-bold tracking-widest uppercase rounded-2xl bg-kromeAccent hover:bg-kromeAccent/85 text-white shadow-[0_0_18px_rgba(111,120,181,0.25)] hover:translate-y-[-1px] active:scale-98 transition-all duration-200"
         >
           <Play fill="currentColor" size={18} className="mr-3" />
-          Start Block ({settings.blockMinutes}m)
+          {isUniversalFocus ? "Start Universal Focus" : `Start Block (${settings.blockMinutes}m)`}
         </Button>
 
         <p className="text-xs text-slate-600 font-mono tracking-widest uppercase animate-pulse">

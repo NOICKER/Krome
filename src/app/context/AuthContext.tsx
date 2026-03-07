@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../services/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -24,6 +24,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initialLoadDoneRef = useRef(false);
 
     useEffect(() => {
+        if (!isSupabaseConfigured) {
+            initialLoadDoneRef.current = true;
+            setLoading(false);
+            return;
+        }
+
         // Initial session fetch
         supabase.auth.getSession().then(({ data: { session }, error }) => {
             if (error) {

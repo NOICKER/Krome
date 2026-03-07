@@ -1,4 +1,5 @@
 import { HistoryEntry } from '../types';
+import { migrateHistoryEntry } from '../utils/migrationUtils';
 
 export const STORAGE_KEYS = {
     SETTINGS: 'krome_settings',
@@ -7,6 +8,8 @@ export const STORAGE_KEYS = {
     STREAK: 'krome_streak',
     HISTORY: 'krome_history',
     SUBJECTS: 'krome_subjects',
+    WEEKLY_PLANS: 'krome_weekly_plans',
+    NOTIFICATIONS: 'krome_notifications',
 };
 
 // --- Module-level memory cache (Rule 7.5) ---
@@ -58,5 +61,12 @@ if (typeof window !== 'undefined') {
 }
 
 export const getHistory = (): HistoryEntry[] => {
-    return getItem<HistoryEntry[]>(STORAGE_KEYS.HISTORY, []);
+    const storedHistory = getItem<HistoryEntry[]>(STORAGE_KEYS.HISTORY, []);
+    const migratedHistory = storedHistory.map(migrateHistoryEntry);
+
+    if (JSON.stringify(storedHistory) !== JSON.stringify(migratedHistory)) {
+        setItem(STORAGE_KEYS.HISTORY, migratedHistory);
+    }
+
+    return migratedHistory;
 };

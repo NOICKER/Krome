@@ -7,6 +7,7 @@ import { BreakSuggester } from "./components/BreakSuggester";
 import { OnboardingModal } from "./components/ui/OnboardingModal";
 import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import { AnalyticsView } from "./components/analytics/AnalyticsView";
+import { SubjectDetailView } from "./components/subject/SubjectDetailView";
 import { MobileBottomNav } from "./components/MobileBottomNav";
 import { MobileHeader } from "./components/MobileHeader";
 import Settings from "lucide-react/dist/esm/icons/settings";
@@ -26,10 +27,15 @@ import { FrictionModal } from "./components/FrictionModal";
 
 export default function App() {
   const { state, actions } = useKromeStore();
-  const { view, settings, day, session, streak, history, subjects, elapsed } = state;
+  const { view, settings, resolvedSettings, currentSubject, activeSubjectView, day, session, streak, history, subjects, elapsed, isSessionActive, latestSessionSummary } = state;
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
   const { loading: authLoading } = useAuth();
+  const focusHeaderTitle = session.subjectLocked && currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
+  const currentFilledBricks = Math.floor(elapsed / (session.intervalMinutes * 60 * 1000));
+  const frictionTotalBlocks = Number.isFinite(session.totalBlocks)
+    ? session.totalBlocks
+    : Math.max(currentFilledBricks + 4, 8);
 
   // Show break suggester when a standard block completes
   useEffect(() => {
@@ -136,8 +142,7 @@ export default function App() {
         <BreakSuggester
           onStartBreak={() => {
             setShowBreakSuggester(false);
-            // Starting a temporary 5-min session
-            actions.startSession(); // The real app passes args, our hook simplifies starts for now
+            actions.startSession(undefined, { type: "helper", totalDurationMinutes: 5, intervalMinutes: 5 });
           }}
           onDismiss={() => setShowBreakSuggester(false)}
         />
@@ -188,8 +193,9 @@ export default function App() {
       </nav>
 
       {/* Mobile Top Header */}
-      {view === "focus" ? <MobileHeader title="Focus" potValue={day.potValue} /> : null}
+      {view === "focus" ? <MobileHeader title={focusHeaderTitle} potValue={day.potValue} /> : null}
       {view === "dashboard" ? <MobileHeader title="Dashboard" potValue={day.potValue} /> : null}
+      {view === "subjectDetail" ? <MobileHeader title={activeSubjectView?.name ?? "Subject"} potValue={day.potValue} /> : null}
       {view === "analytics" ? <MobileHeader title="Analytics" /> : null}
       {view === "review" ? <MobileHeader title="Review" /> : null}
       {view === "settings" ? <MobileHeader title="Settings" /> : null}
@@ -209,19 +215,25 @@ export default function App() {
               >
                 <FocusView
                   session={session}
-                  settings={settings}
+                  settings={resolvedSettings}
+                  currentSubject={currentSubject}
                   day={day}
                   streak={streak}
                   subjects={subjects}
                   elapsed={elapsed}
+                  isSessionActive={isSessionActive}
+                  latestSessionSummary={latestSessionSummary}
+                  onAbandonRequest={handleAbandonTrigger}
                   actions={{
                     startSession: actions.startSession,
-                    requestAbandon: handleAbandonTrigger,
                     undoAbandon: actions.undoAbandon,
                     updateSubject: actions.updateSubject,
                     updateIntent: actions.updateIntent,
                     updateTaskId: actions.updateTaskId,
                     addSubject: actions.addSubject,
+                    pauseForInterrupt: actions.pauseForInterrupt,
+                    resumeFromInterrupt: actions.resumeFromInterrupt,
+                    clearSessionSummary: actions.clearSessionSummary,
                     setView: actions.setView,
                   }}
                 />
@@ -238,6 +250,19 @@ export default function App() {
                 className="h-full"
               >
                 <DashboardLayout />
+              </motion.div>
+            )}
+
+            {view === "subjectDetail" && (
+              <motion.div
+                key="subjectDetail"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="h-full"
+              >
+                <SubjectDetailView />
               </motion.div>
             )}
 
@@ -310,8 +335,9 @@ export default function App() {
       >
         <FrictionModal
           isEscalated={settings.progressiveEscalation && streak.current >= 3}
-          totalBlocks={session.totalBlocks}
-          currentFilledBricks={Math.floor(elapsed / (session.intervalMinutes * 60 * 1000))}
+          totalBlocks={frictionTotalBlocks}
+          currentFilledBricks={Math.min(currentFilledBricks, frictionTotalBlocks)}
+          isInfiniteSession={!Number.isFinite(session.totalBlocks)}
           onConfirm={handleConfirmQuit}
           onCancel={() => setShowQuitModal(false)}
         />

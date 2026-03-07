@@ -8,13 +8,14 @@ import Hash from "lucide-react/dist/esm/icons/hash";
 import { useMemo } from "react";
 import { Task, Subject } from "../../types";
 import { getTasks, saveTask, updateTask } from "../../services/taskService";
-import { getSubjects } from "../../services/subjectService";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "../ui/utils";
+import { useKromeStore } from "../../hooks/useKrome";
 
 export function TaskPanel() {
+    const { state } = useKromeStore();
+    const subjects = state.subjects as Subject[];
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [showCompleted, setShowCompleted] = useState(false);
 
     // New task inputs
@@ -24,8 +25,13 @@ export function TaskPanel() {
 
     useEffect(() => {
         setTasks(getTasks());
-        setSubjects(getSubjects());
     }, []);
+
+    useEffect(() => {
+        if (newTaskSubjectId !== "none" && !subjects.some(subject => subject.id === newTaskSubjectId)) {
+            setNewTaskSubjectId("none");
+        }
+    }, [newTaskSubjectId, subjects]);
 
     const activeTasks = tasks.filter((t) => !t.completed);
     const completedTasks = tasks.filter((t) => t.completed);

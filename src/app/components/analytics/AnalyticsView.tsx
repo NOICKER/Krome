@@ -8,6 +8,8 @@ import {
     getStreakTrend, getSessionDurationDistribution, getAbandonFrequency
 } from "../../services/analyticsService";
 import { useKromeStore } from "../../hooks/useKrome";
+import { InsightFlashcardCarousel } from "./InsightFlashcardCarousel";
+import { WeeklyProgressMap } from "./WeeklyProgressMap";
 import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
 
 // Colors requested in Phase 3
@@ -57,7 +59,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function AnalyticsView() {
     const { state } = useKromeStore();
-    const { history, settings } = state;
+    const { history, settings, week, weekDailyProgress, insightFlashcards, subjects } = state;
 
     // A) Time per Subject (Bar Chart)
     const [subjectData, setSubjectData] = useState<{ subject: string, minutes: number }[]>([]);
@@ -103,6 +105,9 @@ export function AnalyticsView() {
                 <h2 className="text-2xl font-display font-bold tracking-tight text-slate-100 mb-2 truncate">Analytics</h2>
                 <p className="text-slate-500 text-sm truncate">Review your historical patterns and distributions.</p>
             </div>
+
+            <WeeklyProgressMap week={week} dailyProgress={weekDailyProgress} />
+            <InsightFlashcardCarousel cards={insightFlashcards} subjects={subjects} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
 

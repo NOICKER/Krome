@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { cn } from "./utils";
 
 interface KromeSliderProps {
@@ -12,21 +12,25 @@ interface KromeSliderProps {
 
 export function KromeSlider({ label, value, min, max, onValueChange, disabled = false }: KromeSliderProps) {
     const [localVal, setLocalVal] = useState(value.toString());
+    const clampValue = (nextValue: number) => Math.min(max, Math.max(min, nextValue));
+
+    const fillPercent = useMemo(() => {
+        return ((value - min) / (max - min)) * 100;
+    }, [value, min, max]);
 
     useEffect(() => {
         setLocalVal(value.toString());
     }, [value]);
 
     const handleBlur = () => {
-        let numeric = parseInt(localVal);
+        const numeric = parseInt(localVal, 10);
         if (isNaN(numeric)) {
             setLocalVal(value.toString());
             return;
         }
-        if (numeric < min) numeric = min;
-        if (numeric > max) numeric = max;
-        setLocalVal(numeric.toString());
-        onValueChange(numeric);
+        const clampedValue = clampValue(numeric);
+        setLocalVal(clampedValue.toString());
+        onValueChange(clampedValue);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -36,30 +40,41 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
     };
 
     return (
-        <div className={cn("space-y-2", disabled ? "opacity-50" : "")}>
-            <div className="flex justify-between items-center h-8">
-                <label className="text-sm font-medium text-slate-300">{label}</label>
+        <div className={cn("space-y-3", disabled ? "opacity-50" : "")}>
+            <div className="flex justify-between items-center">
+                <label className="text-sm font-semibold text-slate-300">{label}</label>
                 <input
                     type="number"
                     min={min}
                     max={max}
+                    step={1}
                     disabled={disabled}
                     value={localVal}
                     onChange={(e) => setLocalVal(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-16 bg-slate-900 border border-slate-700 rounded-lg text-center text-sm font-mono font-bold text-kromeAccent py-1 focus:outline-none focus:border-kromeAccent/50 focus:ring-1 focus:ring-kromeAccent/50 hide-arrows transition-colors"
+                    className="w-14 h-8 bg-slate-800/60 border border-slate-600/50 rounded-lg text-center text-sm font-mono font-bold text-kromeAccent focus:outline-none focus:border-kromeAccent/60 focus:ring-1 focus:ring-kromeAccent/30 hide-arrows transition-all duration-200"
                 />
             </div>
-            <input
-                type="range"
-                min={min}
-                max={max}
-                value={value}
-                disabled={disabled}
-                onChange={(e) => onValueChange(parseInt(e.target.value))}
-                className="flex-1 h-2 appearance-none bg-slate-700 rounded-full cursor-pointer accent-kromeAccent disabled:cursor-not-allowed"
-            />
+            <div className="relative w-full h-5 flex items-center">
+                <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={value}
+                    disabled={disabled}
+                    onChange={(e) => {
+                        const nextValue = clampValue(parseInt(e.target.value, 10));
+                        setLocalVal(nextValue.toString());
+                        onValueChange(nextValue);
+                    }}
+                    style={{
+                        background: `linear-gradient(to right, #6F78B5 0%, #6F78B5 ${fillPercent}%, #334155 ${fillPercent}%, #334155 100%)`,
+                    }}
+                    className="krome-range-slider w-full h-1.5 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed transition-all duration-150"
+                />
+            </div>
         </div>
     );
 }
