@@ -6,10 +6,16 @@ import Plus from "lucide-react/dist/esm/icons/plus";
 import X from "lucide-react/dist/esm/icons/x";
 import Check from "lucide-react/dist/esm/icons/check";
 import { Milestone } from "../../types";
-import { getMilestones, saveMilestone, updateMilestone, deleteMilestone } from "../../services/milestoneService";
+import {
+    deleteMilestone,
+    getMilestones,
+    saveMilestone,
+    subscribeToMilestones,
+    updateMilestone,
+} from "../../services/milestoneService";
 import { getDaysRemaining } from "../../services/analyticsService";
 import { v4 as uuidv4 } from "uuid";
-import { format, formatISO, parseISO, startOfDay } from "date-fns";
+import { format, parseISO, startOfDay } from "date-fns";
 
 export function MilestoneWidget() {
     const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -23,6 +29,7 @@ export function MilestoneWidget() {
 
     useEffect(() => {
         setMilestones(getMilestones());
+        return subscribeToMilestones((nextMilestones) => setMilestones(nextMilestones));
     }, []);
 
     const activeMilestone = milestones.length > 0
@@ -49,13 +56,11 @@ export function MilestoneWidget() {
             });
         }
 
-        setMilestones(getMilestones());
         resetForm();
     };
 
     const handleDelete = (id: string) => {
         deleteMilestone(id);
-        setMilestones(getMilestones());
         if (editingId === id) resetForm();
     };
 

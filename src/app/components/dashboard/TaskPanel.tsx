@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Check from "lucide-react/dist/esm/icons/check";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Hash from "lucide-react/dist/esm/icons/hash";
-import { useMemo } from "react";
 import { Task, Subject } from "../../types";
-import { getTasks, saveTask, updateTask } from "../../services/taskService";
+import { deleteTask, getTasks, saveTask, subscribeToTasks, updateTask } from "../../services/taskService";
 import { v4 as uuidv4 } from "uuid";
-import { cn } from "../ui/utils";
 import { useKromeStore } from "../../hooks/useKrome";
 
 export function TaskPanel() {
@@ -25,6 +23,7 @@ export function TaskPanel() {
 
     useEffect(() => {
         setTasks(getTasks());
+        return subscribeToTasks((nextTasks) => setTasks(nextTasks));
     }, []);
 
     useEffect(() => {
@@ -53,7 +52,6 @@ export function TaskPanel() {
         };
 
         saveTask(newTask);
-        setTasks(getTasks());
 
         // Reset form
         setNewTaskTitle("");
@@ -62,15 +60,10 @@ export function TaskPanel() {
 
     const toggleTaskCompletion = (task: Task) => {
         updateTask({ ...task, completed: !task.completed });
-        setTasks(getTasks());
     };
 
-    const deleteTask = (taskId: string) => {
-        // We update tasks locally and rewrite to storage - need a delete operation
-        // taskService.ts doesn't have deleteTask expose. Since it's quick:
-        const updated = tasks.filter((t) => t.id !== taskId);
-        localStorage.setItem('krome_tasks', JSON.stringify(updated)); // Fallback, we'll implement later or just use this
-        setTasks(updated);
+    const handleDeleteTask = (taskId: string) => {
+        deleteTask(taskId);
     };
 
     // Build a Map for O(1) lookups during render
@@ -165,7 +158,7 @@ export function TaskPanel() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => deleteTask(task.id)}
+                                        onClick={() => handleDeleteTask(task.id)}
                                         className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all"
                                     >
                                         <Trash2 size={14} />

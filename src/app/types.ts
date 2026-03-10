@@ -186,6 +186,13 @@ export interface Milestone {
   createdAt?: number;
 }
 
+export interface Observation {
+  id: string;
+  content: string;
+  sessionId?: string;
+  createdAt: number;
+}
+
 export interface InsightFlashcard {
   id: string;
   title: string;

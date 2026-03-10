@@ -7,15 +7,24 @@ import { toast } from "sonner";
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
+    forceSignup?: boolean;
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, forceSignup }: AuthModalProps) {
     const [email, setEmail] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const hasAccount = typeof window !== 'undefined' && localStorage.getItem('krome_has_account') === 'true';
+    const hasAccount = !forceSignup && typeof window !== 'undefined' && localStorage.getItem('krome_has_account') === 'true';
+
+    const handleCancel = () => {
+        if (window.location.search.includes('auth=signup')) {
+            window.location.href = '/krome-landing.html';
+        } else {
+            onClose();
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -28,7 +37,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) onClose();
+            if (e.key === 'Escape' && isOpen) handleCancel();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
@@ -118,7 +127,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <p className="text-sm text-slate-400 mb-6">Authentication is disabled until the Supabase environment variables are configured.</p>
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleCancel}
                         className="w-full h-10 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold uppercase tracking-widest transition-colors hover:bg-slate-700"
                     >
                         Close
@@ -133,7 +142,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <AnimatePresence>
             <div data-krome-overlay="true" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#080C18]/70 backdrop-blur-sm p-4">
                 {/* Click outside trigger */}
-                <div className="absolute inset-0 z-0" onClick={onClose} />
+                <div className="absolute inset-0 z-0" onClick={handleCancel} />
 
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -161,7 +170,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                     Resend
                                 </button>
                                 <button
-                                    onClick={onClose}
+                                    onClick={handleCancel}
                                     className="flex-1 py-3 rounded-xl bg-slate-800 text-xs font-bold uppercase tracking-widest text-slate-200 hover:bg-slate-700 transition-colors"
                                 >
                                     Close
@@ -224,7 +233,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                             <button
                                 type="button"
-                                onClick={onClose}
+                                onClick={handleCancel}
                                 disabled={status === "loading"}
                                 className="w-full h-10 rounded-xl text-slate-400 hover:text-slate-200 text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
                             >

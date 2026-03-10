@@ -1,29 +1,33 @@
-import { Task } from '../types';
-import { getItem, setItem } from './storageService';
-
-const TASKS_KEY = 'krome_tasks';
+import type { Task } from "../types";
+import { STORAGE_KEYS, getItem, setItem, subscribeToKey } from "./storageService";
 
 export const getTasks = (): Task[] => {
-    return getItem<Task[]>(TASKS_KEY, []);
+  return getItem<Task[]>(STORAGE_KEYS.TASKS, []);
 };
 
 export const saveTask = (task: Task): void => {
-    const tasks = getTasks();
-    tasks.push(task);
-    setItem(TASKS_KEY, tasks);
+  setItem(STORAGE_KEYS.TASKS, [...getTasks(), task]);
 };
 
 export const updateTask = (task: Task): void => {
-    const tasks = getTasks();
-    const index = tasks.findIndex(t => t.id === task.id);
-    if (index !== -1) {
-        tasks[index] = task; // ← was missing: actually replace the task in the array
-        setItem(TASKS_KEY, tasks);
-    }
+  const tasks = getTasks();
+  const index = tasks.findIndex((entry) => entry.id === task.id);
+  if (index === -1) return;
+
+  const nextTasks = [...tasks];
+  nextTasks[index] = task;
+  setItem(STORAGE_KEYS.TASKS, nextTasks);
 };
 
 export const deleteTask = (taskId: string): void => {
-    const tasks = getTasks();
-    const updated = tasks.filter(t => t.id !== taskId);
-    setItem(TASKS_KEY, updated);
+  setItem(
+    STORAGE_KEYS.TASKS,
+    getTasks().filter((task) => task.id !== taskId)
+  );
+};
+
+export const subscribeToTasks = (listener: (tasks: Task[]) => void) => {
+  return subscribeToKey<Task[]>(STORAGE_KEYS.TASKS, (tasks) => {
+    listener(tasks ?? []);
+  });
 };

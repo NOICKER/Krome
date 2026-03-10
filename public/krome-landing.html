@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Krome — Do it anyway.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://pfgtlswyioulkeqsstjo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmZ3Rsc3d5aW91bGtlcXNzdGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTQyOTYsImV4cCI6MjA4NzIzMDI5Nn0.PA9Whsa_x-ArcXLmW7basfbL-6YV7uzvyd-V92V6e50';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = '/';
+            }
+        }
+        checkSession();
+    </script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #080c16;
+            --surface: #0d1221;
+            --card: #111827;
+            --border: rgba(255, 255, 255, 0.07);
+            --text: #f1f5f9;
+            --muted: #64748b;
+            --subtle: #94a3b8;
+            --accent: #7b72f0;
+            --accent2: #9d96f5;
+            --amber: #f59e0b;
+            --green: #22c55e;
+            --red: #ef4444;
+
+            /* Harmonized Font Families */
+            --font-display: 'Barlow Condensed', sans-serif;
+            --font-ui: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-ui);
+            font-size: 16px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── NOISE OVERLAY ─── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 60px;
+            background: rgba(8, 12, 22, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-k {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-ghost {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            color: var(--subtle);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-primary {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: white;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 0 0 0 rgba(123, 114, 240, 0);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent2);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(123, 114, 240, 0.3);
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 140px 40px 100px;
+            overflow: hidden;
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(123, 114, 240, 0.12) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -60%);
+            pointer-events: none;
+        }
+
+        .hero-glow-2 {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
+            top: 30%;
+            right: 15%;
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent2);
+            background: rgba(123, 114, 240, 0.12);
+            border: 1px solid rgba(123, 114, 240, 0.25);
+            padding: 6px 16px;
+            border-radius: 100px;
+            margin-bottom: 36px;
+            display: inline-block;
+            animation: fadeUp 0.8s ease both;
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(52px, 8vw, 96px);
+            font-weight: 700;
+            line-height: 1.0;
+            letter-spacing: -2px;
+            color: var(--text);
+            margin-bottom: 8px;
+            animation: fadeUp 0.8s 0.1s ease both;
+        }
+
+        .hero-title span {
+            color: var(--accent2);
+        }
+
+        .hero-tagline {
+            font-family: var(--font-display);
+            font-size: clamp(52px, 8vw, 96px);
+            font-weight: 700;
+            line-height: 1.0;
+            letter-spacing: -2px;
+            color: var(--muted);
+            margin-bottom: 32px;
+            animation: fadeUp 0.8s 0.15s ease both;
+        }
+
+        .hero-sub {
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--subtle);
+            max-width: 520px;
+            line-height: 1.7;
+            margin-bottom: 48px;
+            animation: fadeUp 0.8s 0.2s ease both;
+        }
+
+        .hero-cta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            animation: fadeUp 0.8s 0.3s ease both;
+            margin-bottom: 80px;
+        }
+
+        .btn-large {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: white;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 16px 36px;
+            border-radius: 10px;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+
+        .btn-large:hover {
+            background: var(--accent2);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(123, 114, 240, 0.35);
+        }
+
+        .btn-outline {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: var(--subtle);
+            background: none;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            text-decoration: none;
+            padding: 16px 28px;
+            border-radius: 10px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .btn-outline:hover {
+            color: var(--text);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ─── BRICK DEMO ─── */
+        .brick-demo {
+            animation: fadeUp 0.8s 0.4s ease both;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 32px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            min-width: 380px;
+        }
+
+        .brick-demo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .brick-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .brick-timer {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--green);
+        }
+
+        .bricks {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .brick {
+            width: 28px;
+            height: 28px;
+            border-radius: 5px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brick.filled {
+            background: var(--accent);
+            border-color: var(--accent2);
+            box-shadow: 0 0 10px rgba(123, 114, 240, 0.4);
+        }
+
+        .brick.filling {
+            background: var(--card);
+            border-color: var(--accent);
+            animation: pulse-brick 1s infinite;
+        }
+
+        .brick.filling::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--accent);
+            opacity: 0.5;
+            animation: fill-brick 3s linear infinite;
+        }
+
+        @keyframes fill-brick {
+            from {
+                height: 0%;
+            }
+
+            to {
+                height: 100%;
+            }
+        }
+
+        @keyframes pulse-brick {
+
+            0%,
+            100% {
+                border-color: rgba(123, 114, 240, 0.4);
+            }
+
+            50% {
+                border-color: var(--accent);
+            }
+        }
+
+        .brick-intent {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            width: 100%;
+            text-align: left;
+        }
+
+        .brick-intent span {
+            color: var(--subtle);
+            font-family: var(--font-ui);
+        }
+
+        /* ─── PROBLEM ─── */
+        .section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-tag::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 1px;
+            background: var(--muted);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(32px, 4vw, 52px);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+
+        .section-title .dim {
+            color: var(--muted);
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            margin-top: 60px;
+        }
+
+        .problem-story {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .story-line {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 17px;
+            font-weight: 400;
+            color: var(--subtle);
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            transition: color 0.2s;
+        }
+
+        .story-line:hover {
+            color: var(--text);
+        }
+
+        .story-line .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--muted);
+            margin-top: 9px;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .story-line:hover .dot {
+            background: var(--amber);
+        }
+
+        .story-line.highlight {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .story-line.highlight .dot {
+            background: var(--amber);
+        }
+
+        .problem-right {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+            transform: translateX(4px);
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.amber {
+            background: rgba(245, 158, 11, 0.12);
+        }
+
+        .stat-icon.red {
+            background: rgba(239, 68, 68, 0.10);
+        }
+
+        .stat-icon.blue {
+            background: rgba(99, 102, 241, 0.12);
+        }
+
+        .stat-text {
+            flex: 1;
+        }
+
+        .stat-title {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 3px;
+        }
+
+        .stat-desc {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        /* ─── FEATURES ─── */
+        .features-wrap {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .features-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            margin-top: 60px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .feature-cell {
+            background: var(--card);
+            padding: 36px 32px;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-cell:nth-child(3n) {
+            border-right: none;
+        }
+
+        .feature-cell:nth-last-child(-n+3) {
+            border-bottom: none;
+        }
+
+        .feature-cell:hover {
+            background: #151f32;
+        }
+
+        .feature-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .feature-cell:hover::before {
+            opacity: 1;
+        }
+
+        .feature-num {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            color: var(--muted);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .feature-name {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 10px;
+            letter-spacing: -0.3px;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            margin-top: 16px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(123, 114, 240, 0.1);
+            color: var(--accent2);
+            border: 1px solid rgba(123, 114, 240, 0.2);
+        }
+
+        .feature-tag.amber-tag {
+            background: rgba(245, 158, 11, 0.08);
+            color: var(--amber);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .feature-tag.green-tag {
+            background: rgba(34, 197, 94, 0.08);
+            color: var(--green);
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+
+        /* ─── HOW IT WORKS ─── */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+            margin-top: 60px;
+            position: relative;
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 28px;
+            left: calc(12.5% + 16px);
+            right: calc(12.5% + 16px);
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--border) 15%, var(--border) 85%, transparent);
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .step-num {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--accent2);
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .step:hover .step-num {
+            background: rgba(123, 114, 240, 0.12);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(123, 114, 240, 0.2);
+        }
+
+        .step-title {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .step-desc {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ─── DISCIPLINE MIRROR ─── */
+        .mirror-section {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mirror-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .mirror-left {}
+
+        .compare-table {
+            margin-top: 40px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .compare-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-row:last-child {
+            border-bottom: none;
+        }
+
+        .compare-cell {
+            padding: 16px 20px;
+            font-size: 14px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .compare-cell.them {
+            color: var(--muted);
+            background: var(--card);
+            border-right: 1px solid var(--border);
+        }
+
+        .compare-cell.us {
+            color: var(--text);
+            background: rgba(123, 114, 240, 0.04);
+        }
+
+        .compare-cell .icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .compare-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .compare-head {
+            padding: 12px 20px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .compare-head.them {
+            color: var(--muted);
+            border-right: 1px solid var(--border);
+        }
+
+        .compare-head.us {
+            color: var(--accent2);
+        }
+
+        .mirror-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            transition: border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .metric-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-family: var(--font-display);
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 6px;
+        }
+
+        .metric-value.green {
+            color: var(--green);
+        }
+
+        .metric-value.amber {
+            color: var(--amber);
+        }
+
+        .metric-value.accent {
+            color: var(--accent2);
+        }
+
+        .metric-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+
+        .metric-bar-fill.green {
+            background: var(--green);
+            width: 78%;
+        }
+
+        .metric-bar-fill.amber {
+            background: var(--amber);
+            width: 45%;
+        }
+
+        .metric-bar-fill.accent {
+            background: var(--accent);
+            width: 90%;
+        }
+
+        .metric-sub {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--muted);
+            margin-top: 6px;
+            font-family: var(--font-mono);
+        }
+
+        /* ─── CTA SECTION ─── */
+        .cta-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 120px 60px;
+            text-align: center;
+            position: relative;
+        }
+
+        .cta-glow {
+            position: absolute;
+            width: 500px;
+            height: 300px;
+            background: radial-gradient(ellipse, rgba(123, 114, 240, 0.1) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .cta-title {
+            font-family: var(--font-display);
+            font-size: clamp(36px, 5vw, 64px);
+            font-weight: 700;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            color: var(--text);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .cta-sub {
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--muted);
+            max-width: 440px;
+            margin: 0 auto 40px;
+            line-height: 1.65;
+        }
+
+        /* ─── FOOTER ─── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 28px;
+        }
+
+        .footer-link {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+            color: var(--subtle);
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* ─── DIVIDER ─── */
+        .divider {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 60px;
+        }
+
+        .divider hr {
+            border: none;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ─── SCROLLBAR ─── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e2a3a;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 900px) {
+            nav {
+                padding: 16px 24px;
+            }
+
+            .section {
+                padding: 60px 24px;
+            }
+
+            .features-inner {
+                padding: 60px 24px;
+            }
+
+            .mirror-inner {
+                padding: 60px 24px;
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .cta-section {
+                padding: 80px 24px;
+            }
+
+            footer {
+                padding: 32px 24px;
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .problem-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-cell {
+                border-right: none !important;
+            }
+
+            .steps {
+                grid-template-columns: 1fr 1fr;
+                gap: 32px;
+            }
+
+            .steps::before {
+                display: none;
+            }
+
+            .brick-demo {
+                min-width: unset;
+                width: 100%;
+                max-width: 380px;
+            }
+
+            .hero {
+                padding: 120px 24px 80px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <a href="/" class="logo">
+            <img src="/logo.png" alt="Krome Logo" style="height: 32px; width: auto; object-fit: contain;">
+        </a>
+        <div class="nav-right">
+            <a href="#how" class="btn-ghost">How it works</a>
+            <a href="/?auth=signup" class="btn-primary">Get started →</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-glow-2"></div>
+
+        <div class="hero-badge">Focus mirror · Discipline tracker</div>
+
+        <h1 class="hero-title">Stop pretending<br />you worked.</h1>
+        <p class="hero-tagline">Do it anyway.</p>
+
+        <p class="hero-sub">
+            Most apps track how long you worked.<br />
+            Krome tracks how <em>honestly</em> you worked.
+        </p>
+
+        <div class="hero-cta">
+            <a href="/?auth=signup" class="btn-large">Start for free →</a>
+            <a href="#how" class="btn-outline">See how it works</a>
+        </div>
+
+        <!-- Live brick demo -->
+        <div class="brick-demo">
+            <div class="brick-demo-header">
+                <span class="brick-label">Math — Block 3 of 4</span>
+                <span class="brick-timer">● 34:12</span>
+            </div>
+            <div class="bricks" id="bricks">
+                <!-- generated by JS -->
+            </div>
+            <div class="brick-intent">
+                <span class="brick-label">Intent </span>
+                <span>Finish chapter 5 problems</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="section reveal">
+        <div class="section-tag">The problem</div>
+        <h2 class="section-title">
+            You know the feeling.<br />
+            <span class="dim">Everyone does.</span>
+        </h2>
+
+        <div class="problem-grid">
+            <div class="problem-story">
+                <div class="story-line">
+                    <div class="dot"></div>
+                    <span>You sit down to study. You open your phone "for a second."</span>
+                </div>
+                <div class="story-line">
+                    <div class="dot"></div>
+                    <span>40 minutes disappear. You don't know where they went.</span>
+                </div>
+                <div class="story-line">
+                    <div class="dot"></div>
+                    <span>You close everything, feel guilty, and call it a night.</span>
+                </div>
+                <div class="story-line">
+                    <div class="dot"></div>
+                    <span>Your timer app cheerfully shows 12 minutes of "focus time."</span>
+                </div>
+                <div class="story-line highlight">
+                    <div class="dot"></div>
+                    <span>That's not a motivation problem. That's a visibility problem. You can't fix what you can't
+                        see.</span>
+                </div>
+            </div>
+
+            <div class="problem-right">
+                <div class="stat-card">
+                    <div class="stat-icon amber">⚠️</div>
+                    <div class="stat-text">
+                        <div class="stat-title">Silent quitting</div>
+                        <div class="stat-desc">Every app lets you cancel silently. Your pattern hides. It compounds.
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">📵</div>
+                    <div class="stat-text">
+                        <div class="stat-title">Uncounted interruptions</div>
+                        <div class="stat-desc">Your phone call, your noise, your drift — none of it gets recorded
+                            anywhere.</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue">📋</div>
+                    <div class="stat-text">
+                        <div class="stat-title">Plans that never match reality</div>
+                        <div class="stat-desc">You planned 20 blocks this week. You did 6. No app noticed the gap.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider">
+        <hr />
+    </div>
+
+    <!-- FEATURES -->
+    <div class="features-wrap">
+        <div class="features-inner reveal">
+            <div class="section-tag">What Krome does</div>
+            <h2 class="section-title">
+                Every session becomes<br />
+                <span class="dim">a record of who you were.</span>
+            </h2>
+
+            <div class="features-grid">
+                <div class="feature-cell">
+                    <div class="feature-num">01</div>
+                    <span class="feature-icon">🧱</span>
+                    <div class="feature-name">Brick Sessions</div>
+                    <div class="feature-desc">Watch your session fill brick by brick every few minutes. Progress you can
+                        see, not just feel.</div>
+                    <span class="feature-tag">Visual focus</span>
+                </div>
+
+                <div class="feature-cell">
+                    <div class="feature-num">02</div>
+                    <span class="feature-icon">🔔</span>
+                    <div class="feature-name">Plip Sound System</div>
+                    <div class="feature-desc">A soft sound anchors you every time a brick fills — even when you're not
+                        watching the screen. Stay tethered.</div>
+                    <span class="feature-tag green-tag">Audio anchor</span>
+                </div>
+
+                <div class="feature-cell">
+                    <div class="feature-num">03</div>
+                    <span class="feature-icon">🛡️</span>
+                    <div class="feature-name">Protection Ratio</div>
+                    <div class="feature-desc">Focused time ÷ total session time. A single honest number that shows how
+                        well you actually guarded your work.</div>
+                    <span class="feature-tag">Discipline metric</span>
+                </div>
+
+                <div class="feature-cell">
+                    <div class="feature-num">04</div>
+                    <span class="feature-icon">🚫</span>
+                    <div class="feature-name">Abandon Tracking</div>
+                    <div class="feature-desc">You can't silently quit. When you leave early, Krome asks why. Every
+                        breakdown becomes data, not shame.</div>
+                    <span class="feature-tag amber-tag">Honesty layer</span>
+                </div>
+
+                <div class="feature-cell">
+                    <div class="feature-num">05</div>
+                    <span class="feature-icon">🎯</span>
+                    <div class="feature-name">Intent Declaration</div>
+                    <div class="feature-desc">Write what you're trying to do before you start. Come back after and
+                        compare what you actually did.</div>
+                    <span class="feature-tag">Planning vs reality</span>
+                </div>
+
+                <div class="feature-cell">
+                    <div class="feature-num">06</div>
+                    <span class="feature-icon">📊</span>
+                    <div class="feature-name">Insight Engine</div>
+                    <div class="feature-desc">Patterns in your abandon rate, momentum, execution gap — detected
+                        automatically and shown plainly.</div>
+                    <span class="feature-tag">Pattern detection</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <section class="section reveal" id="how">
+        <div class="section-tag">How it works</div>
+        <h2 class="section-title">Four steps.<br /><span class="dim">No excuses.</span></h2>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">01</div>
+                <div class="step-title">Pick a subject</div>
+                <div class="step-desc">Math. Writing. Anything. Subjects let Krome track where your time actually goes.
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">02</div>
+                <div class="step-title">Declare intent</div>
+                <div class="step-desc">Write what you plan to do before you start. One sentence. This is your
+                    commitment.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">03</div>
+                <div class="step-title">Run the block</div>
+                <div class="step-desc">Watch bricks fill. Hear the plip. Stay anchored. Log interruptions when they
+                    happen.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">04</div>
+                <div class="step-title">Face the record</div>
+                <div class="step-desc">Every session is stored. Abandoned or complete. Your dashboard doesn't lie to
+                    you.</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="divider">
+        <hr />
+    </div>
+
+    <!-- DISCIPLINE MIRROR -->
+    <div class="mirror-section">
+        <div class="mirror-inner reveal">
+            <div class="mirror-left">
+                <div class="section-tag">The difference</div>
+                <h2 class="section-title">
+                    Other apps track time.<br />
+                    <span class="dim">Krome tracks discipline.</span>
+                </h2>
+                <p style="color: var(--muted); font-weight: 400; font-size: 15px; margin-top: 16px; line-height: 1.7;">
+                    Time is easy to fake. Discipline isn't. Krome measures the things most apps pretend don't exist.
+                </p>
+
+                <div class="compare-table" style="margin-top: 36px;">
+                    <div class="compare-header">
+                        <div class="compare-head them">Other apps</div>
+                        <div class="compare-head us">Krome</div>
+                    </div>
+                    <div class="compare-row">
+                        <div class="compare-cell them"><span class="icon">⏱️</span> Time spent</div>
+                        <div class="compare-cell us"><span class="icon">🛡️</span> Focus protected</div>
+                    </div>
+                    <div class="compare-row">
+                        <div class="compare-cell them"><span class="icon">✅</span> Sessions completed</div>
+                        <div class="compare-cell us"><span class="icon">🚫</span> Sessions abandoned</div>
+                    </div>
+                    <div class="compare-row">
+                        <div class="compare-cell them"><span class="icon">📅</span> Streak (days active)</div>
+                        <div class="compare-cell us"><span class="icon">📈</span> Execution gap</div>
+                    </div>
+                    <div class="compare-row">
+                        <div class="compare-cell them"><span class="icon">🔔</span> Nothing tracked</div>
+                        <div class="compare-cell us"><span class="icon">📵</span> Interruptions logged</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mirror-right">
+                <div class="metric-card">
+                    <div class="metric-label">Protection Ratio</div>
+                    <div class="metric-value green">78%</div>
+                    <div class="metric-sub">40 min focused / 51 min session</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill green"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Execution Gap — this week</div>
+                    <div class="metric-value amber">45%</div>
+                    <div class="metric-sub">Planned 20 blocks · Completed 11</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill amber"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Weekly Consistency</div>
+                    <div class="metric-value accent">9/10</div>
+                    <div class="metric-sub">Days with at least one completed block</div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill accent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINAL CTA -->
+    <section class="cta-section reveal">
+        <div class="cta-glow"></div>
+        <h2 class="cta-title">
+            You already know<br />
+            you can do better.
+        </h2>
+        <p class="cta-sub">
+            Krome won't motivate you with streaks and badges.<br />
+            It will just show you the truth — and let you decide.
+        </p>
+        <a href="/?auth=signup" class="btn-large">Start for free →</a>
+        <p
+            style="margin-top: 20px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em;">
+            No credit card. Works offline. Your data stays yours.
+        </p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-left">
+            © 2026 Krome · Do it anyway.
+        </div>
+        <div class="footer-right">
+            <a href="#" class="footer-link">Privacy</a>
+            <a href="#" class="footer-link">Terms</a>
+            <a href="#" class="footer-link">Contact</a>
+        </div>
+    </footer>
+
+    <script>
+        // ── BRICK ANIMATION ──
+        const bricksEl = document.getElementById('bricks');
+        const total = 10;
+        let filled = 6;
+
+        for (let i = 0; i < total; i++) {
+            const b = document.createElement('div');
+            b.className = 'brick' + (i < filled ? ' filled' : i === filled ? ' filling' : '');
+            bricksEl.appendChild(b);
+        }
+
+        // Animate filling the next brick every 3s
+        setInterval(() => {
+            const bricks = bricksEl.querySelectorAll('.brick');
+            const fillingEl = bricksEl.querySelector('.brick.filling');
+            if (!fillingEl) return;
+            fillingEl.classList.remove('filling');
+            fillingEl.classList.add('filled');
+            filled++;
+            if (filled < total) {
+                bricks[filled].classList.add('filling');
+            } else {
+                // reset
+                setTimeout(() => {
+                    bricks.forEach((b, i) => {
+                        b.className = 'brick' + (i < 3 ? ' filled' : i === 3 ? ' filling' : '');
+                    });
+                    filled = 3;
+                }, 1200);
+            }
+        }, 3000);
+
+        // ── SCROLL REVEAL ──
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    e.target.classList.add('visible');
+                    observer.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        reveals.forEach(r => observer.observe(r));
+    </script>
+</body>
+
+</html>

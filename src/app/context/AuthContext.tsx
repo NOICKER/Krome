@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { clearLocalPersistence } from '../services/storageService';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -66,6 +67,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     toast('Signed out', {
                         className: 'bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase',
                         duration: 3000
+                    });
+
+                    void clearLocalPersistence().finally(() => {
+                        window.location.reload();
                     });
                 }
 

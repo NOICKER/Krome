@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { KromeSession, KromeSubject, KromeSettings, Task } from "../types";
 import { cn } from "./ui/utils";
 import { useEffect, useState } from "react";
-import { getTasks } from "../services/taskService";
+import { getTasks, subscribeToTasks } from "../services/taskService";
 
 interface SessionControlsProps {
   session: KromeSession;
@@ -42,6 +42,9 @@ export function SessionControls({
 
   useEffect(() => {
     setActiveTasks(getTasks().filter(t => !t.completed));
+    return subscribeToTasks((tasks) => {
+      setActiveTasks(tasks.filter((task) => !task.completed));
+    });
   }, []);
 
   // Handle Space key for start

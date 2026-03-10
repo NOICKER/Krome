@@ -1,29 +1,33 @@
-import { Milestone } from '../types';
-import { getItem, setItem } from './storageService';
-
-const MILESTONES_KEY = 'krome_milestones';
+import type { Milestone } from "../types";
+import { STORAGE_KEYS, getItem, setItem, subscribeToKey } from "./storageService";
 
 export const getMilestones = (): Milestone[] => {
-    return getItem<Milestone[]>(MILESTONES_KEY, []);
+  return getItem<Milestone[]>(STORAGE_KEYS.MILESTONES, []);
 };
 
 export const saveMilestone = (milestone: Milestone): void => {
-    const milestones = getMilestones();
-    milestones.push(milestone);
-    setItem(MILESTONES_KEY, milestones);
+  setItem(STORAGE_KEYS.MILESTONES, [...getMilestones(), milestone]);
 };
 
 export const updateMilestone = (milestone: Milestone): void => {
-    const milestones = getMilestones();
-    const index = milestones.findIndex(m => m.id === milestone.id);
-    if (index !== -1) {
-        milestones[index] = milestone;
-        setItem(MILESTONES_KEY, milestones);
-    }
+  const milestones = getMilestones();
+  const index = milestones.findIndex((entry) => entry.id === milestone.id);
+  if (index === -1) return;
+
+  const nextMilestones = [...milestones];
+  nextMilestones[index] = milestone;
+  setItem(STORAGE_KEYS.MILESTONES, nextMilestones);
 };
 
 export const deleteMilestone = (milestoneId: string): void => {
-    const milestones = getMilestones();
-    const updated = milestones.filter(m => m.id !== milestoneId);
-    setItem(MILESTONES_KEY, updated);
+  setItem(
+    STORAGE_KEYS.MILESTONES,
+    getMilestones().filter((milestone) => milestone.id !== milestoneId)
+  );
+};
+
+export const subscribeToMilestones = (listener: (milestones: Milestone[]) => void) => {
+  return subscribeToKey<Milestone[]>(STORAGE_KEYS.MILESTONES, (milestones) => {
+    listener(milestones ?? []);
+  });
 };

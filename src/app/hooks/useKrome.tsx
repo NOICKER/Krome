@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, startTransition, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -6,11 +6,12 @@ import { playEndSound, playFillSound } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
-import { STORAGE_KEYS, getHistory, getItem, setItem } from "../services/storageService";
+import { STORAGE_KEYS, getHistory, getItem, initializeStorage, setItem, subscribeToKey } from "../services/storageService";
 import { getSubjects, resolveSettings } from "../services/subjectService";
 import { renderInsightText } from "../services/aiService";
 import { generateInsightFlashcards, type DeterministicInsightCard } from "../services/insightService";
 import { emitNotification, evaluateNotifications } from "../services/notificationService";
+import { saveObservation } from "../services/observationService";
 import { getCurrentWeekPlan, saveWeeklyPlan as persistWeeklyPlan } from "../services/planningService";
 import { getCurrentWeekDailyCounts, getCurrentWeekProgress } from "../utils/dateUtils";
 import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../utils/goalUtils";
@@ -310,6 +311,24 @@ export function useKromeLogic() {
     () => generateInsightFlashcards(history, subjects, settings.weeklyGoalProgress, weeklyPlan),
     [history, settings.weeklyGoalProgress, subjects, weeklyPlan]
   );
+
+  useEffect(() => {
+    const unsubscribeHistory = subscribeToKey<HistoryEntry[]>(STORAGE_KEYS.HISTORY, (nextHistory) => {
+      startTransition(() => {
+        setHistory((nextHistory ?? []).map((entry) => migrateHistoryEntry(entry)));
+      });
+    });
+    const unsubscribeSubjects = subscribeToKey<KromeSubject[]>(STORAGE_KEYS.SUBJECTS, (nextSubjects) => {
+      startTransition(() => {
+        setSubjects((nextSubjects ?? []) as KromeSubject[]);
+      });
+    });
+
+    return () => {
+      unsubscribeHistory();
+      unsubscribeSubjects();
+    };
+  }, []);
 
   useEffect(() => setItem(STORAGE_KEYS.SETTINGS, settings), [settings]);
   useEffect(() => setItem(STORAGE_KEYS.DAY, day), [day]);
@@ -658,6 +677,15 @@ export function useKromeLogic() {
       severityImpact,
     };
 
+    if (session.abandonNote?.trim()) {
+      saveObservation({
+        id: uuidv4(),
+        content: session.abandonNote.trim(),
+        sessionId: entry.id,
+        createdAt: sessionEndTime,
+      });
+    }
+
     const nextHistory = [migrateHistoryEntry(entry), ...history].slice(0, 500);
     const nextDay = recalculateDayState(day, nextHistory, settings.dailyGoalProgress);
 
@@ -874,8 +902,32 @@ export function useKromeLogic() {
   };
 }
 
-export function KromeProvider({ children }: { children: React.ReactNode }) {
+function KromeProviderInner({ children }: { children: React.ReactNode }) {
   const store = useKromeLogic();
 
   return <KromeContext.Provider value={store}>{children}</KromeContext.Provider>;
+}
+
+export function KromeProvider({ children }: { children: React.ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void initializeStorage().then(() => {
+      if (!isCancelled) {
+        setIsReady(true);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  if (!isReady) {
+    return null;
+  }
+
+  return <KromeProviderInner>{children}</KromeProviderInner>;
 }
