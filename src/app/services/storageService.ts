@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   WEEKLY_PLANS: "krome_weekly_plans",
   NOTIFICATIONS: "krome_notifications",
 };
+const DATASET_OWNER_KEY = "krome_dataset_owner";
 
 type StorageListener<T> = (value: T) => void;
 
@@ -36,6 +37,7 @@ const LEGACY_KEY_VALUE_KEYS = [
 const STORAGE_BROADCAST_CHANNEL_NAME = "krome_sync";
 const ALL_LOCAL_STORAGE_KEYS = [
   ...LEGACY_KEY_VALUE_KEYS,
+  DATASET_OWNER_KEY,
   STORAGE_KEYS.HISTORY,
   STORAGE_KEYS.SUBJECTS,
   STORAGE_KEYS.TASKS,
@@ -89,6 +91,31 @@ function removeLegacyLocalStorageKey(key: string) {
   } catch (error) {
     console.warn(`Failed to clear legacy localStorage key ${key}`, error);
   }
+}
+
+export function getDatasetOwnerId() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return localStorage.getItem(DATASET_OWNER_KEY);
+  } catch (error) {
+    console.warn("Failed to read dataset owner key", error);
+    return null;
+  }
+}
+
+export function setDatasetOwnerId(userId: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(DATASET_OWNER_KEY, userId);
+  } catch (error) {
+    console.warn("Failed to persist dataset owner key", error);
+  }
+}
+
+export function clearDatasetOwnerId() {
+  removeLegacyLocalStorageKey(DATASET_OWNER_KEY);
 }
 
 function notifyListeners(key: string) {

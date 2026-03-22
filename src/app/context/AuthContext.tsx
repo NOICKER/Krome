@@ -1,100 +1,149 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
-import { clearLocalPersistence } from '../services/storageService';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { toast } from "sonner";
+import { supabase, isSupabaseConfigured } from "../services/supabaseClient";
+import {
+  clearLocalPersistence,
+  getDatasetOwnerId,
+  setDatasetOwnerId,
+} from "../services/storageService";
 
 interface AuthContextType {
-    user: User | null;
-    session: Session | null;
-    loading: boolean;
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
-    user: null,
-    session: null,
-    loading: true,
+  user: null,
+  session: null,
+  loading: true,
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
-    const [loading, setLoading] = useState(true);
-    // Track whether user was null before current event to distinguish genuine sign-ins from token refreshes
-    const previousUserRef = useRef<User | null>(null);
-    const initialLoadDoneRef = useRef(false);
+async function reconcileLocalPersistenceForUser(userId: string) {
+  const datasetOwnerId = getDatasetOwnerId();
 
-    useEffect(() => {
-        if (!isSupabaseConfigured) {
-            initialLoadDoneRef.current = true;
-            setLoading(false);
-            return;
+  if (!datasetOwnerId) {
+    setDatasetOwnerId(userId);
+    return false;
+  }
+
+  if (datasetOwnerId === userId) {
+    return false;
+  }
+
+  await clearLocalPersistence();
+  setDatasetOwnerId(userId);
+  window.location.reload();
+  return true;
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  // Track whether user was null before current event to distinguish genuine sign-ins from token refreshes.
+  const previousUserRef = useRef<User | null>(null);
+  const initialLoadDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      initialLoadDoneRef.current = true;
+      setLoading(false);
+      return;
+    }
+
+    // Initial session fetch
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session }, error }) => {
+        if (error) {
+          console.error("Supabase session error:", error);
         }
 
-        // Initial session fetch
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-            if (error) {
-                console.error("Supabase session error:", error);
-            }
-            setSession(session);
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            previousUserRef.current = currentUser;
-            initialLoadDoneRef.current = true;
-            setLoading(false);
-        }).catch((err) => {
-            console.error("Unexpected error fetching session:", err);
-            initialLoadDoneRef.current = true;
-            setLoading(false);
+        const currentUser = session?.user ?? null;
+        if (currentUser) {
+          const didReload = await reconcileLocalPersistenceForUser(currentUser.id);
+          if (didReload) {
+            return;
+          }
+        }
+
+        setSession(session);
+        setUser(currentUser);
+        previousUserRef.current = currentUser;
+        initialLoadDoneRef.current = true;
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Unexpected error fetching session:", error);
+        initialLoadDoneRef.current = true;
+        setLoading(false);
+      });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUser = session?.user ?? null;
+
+      if (event === "SIGNED_OUT") {
+        setSession(session);
+        setUser(null);
+        previousUserRef.current = null;
+        toast("Signed out", {
+          className: "bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase",
+          duration: 3000,
         });
+        return;
+      }
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                setSession(session);
-                const newUser = session?.user ?? null;
-                setUser(newUser);
+      void (async () => {
+        if (nextUser) {
+          const didReload = await reconcileLocalPersistenceForUser(nextUser.id);
+          if (didReload) {
+            return;
+          }
+        }
 
-                // Only show toast on genuine sign-in (user was null before) — not on token refresh / tab refocus
-                if (event === 'SIGNED_IN' && initialLoadDoneRef.current && previousUserRef.current === null && newUser !== null) {
-                    // Mark this device as having an account
-                    try { localStorage.setItem('krome_has_account', 'true'); } catch { }
-                    toast('Signed in', {
-                        className: 'bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase',
-                        duration: 3000
-                    });
-                } else if (event === 'SIGNED_OUT') {
-                    toast('Signed out', {
-                        className: 'bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase',
-                        duration: 3000
-                    });
+        setSession(session);
+        setUser(nextUser);
 
-                    void clearLocalPersistence().finally(() => {
-                        window.location.reload();
-                    });
-                }
+        // Only show toast on genuine sign-in (user was null before) and after ownership is reconciled.
+        if (
+          event === "SIGNED_IN" &&
+          initialLoadDoneRef.current &&
+          previousUserRef.current === null &&
+          nextUser !== null
+        ) {
+          try {
+            localStorage.setItem("krome_has_account", "true");
+          } catch {
+            // Ignore localStorage write failures.
+          }
 
-                previousUserRef.current = newUser;
-            }
-        );
+          toast("Signed in", {
+            className: "bg-slate-900 border-slate-800 text-slate-300 text-xs font-medium tracking-wide uppercase",
+            duration: 3000,
+          });
+        }
 
-        // Fail-safe: Ensure loading state is eventually released
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 2500);
+        previousUserRef.current = nextUser;
+      })();
+    });
 
-        return () => {
-            subscription.unsubscribe();
-            clearTimeout(timer);
-        };
-    }, []);
+    // Fail-safe: Ensure loading state is eventually released.
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
 
-    return (
-        <AuthContext.Provider value={{ user, session, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return <AuthContext.Provider value={{ user, session, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
-
