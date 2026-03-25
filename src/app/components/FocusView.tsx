@@ -9,7 +9,6 @@ import { MicroInsight } from "./focus/MicroInsight";
 import { SessionSummaryModal } from "./focus/SessionSummaryModal";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
-import { warmUpAudio } from "../utils/sound";
 
 interface FocusViewProps {
   session: KromeSession;
@@ -70,7 +69,6 @@ export function FocusView({
   }, [day.blocksCompleted]);
 
   const handleStart = () => {
-    warmUpAudio();
     actions.startSession();
   };
 

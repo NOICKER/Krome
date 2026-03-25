@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { playEndSound, playFillSound } from "../utils/sound";
+import { playEndSound, playFillSounds, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -93,6 +93,8 @@ const DEFAULT_SESSION: KromeSession = {
   isInterrupted: false,
   interruptDuration: 0,
 };
+
+const MAX_TIMER_SOUND_CATCH_UP = 8;
 
 const getTodayDate = () => format(new Date(), "yyyy-MM-dd");
 
@@ -425,16 +427,28 @@ export function useKromeLogic() {
       return;
     }
 
-    const isInfiniteSession = session.totalBlocks === Number.POSITIVE_INFINITY;
-    let lastFilled = Math.floor((Date.now() - session.startTime) / (session.intervalMinutes * 60 * 1000));
+    const intervalMs = session.intervalMinutes * 60 * 1000;
+    const maxAudibleFill = Number.isFinite(session.totalBlocks)
+      ? Math.max(session.totalBlocks - 1, 0)
+      : Number.POSITIVE_INFINITY;
+    let lastFilled = Math.min(
+      Math.floor((Date.now() - session.startTime) / intervalMs),
+      maxAudibleFill
+    );
 
     const tick = () => {
       const now = Date.now();
       const newElapsed = now - session.startTime!;
 
-      const newFilled = Math.floor(newElapsed / (session.intervalMinutes * 60 * 1000));
-      if (newFilled > lastFilled && (isInfiniteSession || newFilled < session.totalBlocks)) {
-        if (resolvedSettings.soundEnabled) playFillSound(resolvedSettings.volume ?? 0.5);
+      const newFilled = Math.min(Math.floor(newElapsed / intervalMs), maxAudibleFill);
+      const missedFills = newFilled - lastFilled;
+      if (missedFills > 0) {
+        if (resolvedSettings.soundEnabled) {
+          void playFillSounds(
+            Math.min(missedFills, MAX_TIMER_SOUND_CATCH_UP),
+            resolvedSettings.volume ?? 0.5
+          );
+        }
         lastFilled = newFilled;
       }
 
@@ -492,12 +506,12 @@ export function useKromeLogic() {
   const startSession = (subject?: SubjectSelection, options?: StartSessionOptions) => {
     if (session.isActive) return;
 
+    warmUpAudio();
     const selectedSubject = subject ?? (session.subjectId && session.subject ? { id: session.subjectId, name: session.subject } : undefined);
     const sessionSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : resolvedSettings;
     const nextSession = createNewSession(sessionSettings);
-    const isUniversalMode = !selectedSubject?.id && options?.type !== "helper";
-    const intervalMinutes = options?.intervalMinutes ?? (isUniversalMode ? 2 : nextSession.intervalMinutes);
-    const totalDurationMinutes = options?.totalDurationMinutes ?? (isUniversalMode ? Number.POSITIVE_INFINITY : nextSession.totalDurationMinutes);
+    const intervalMinutes = options?.intervalMinutes ?? nextSession.intervalMinutes;
+    const totalDurationMinutes = options?.totalDurationMinutes ?? nextSession.totalDurationMinutes;
     const totalBlocks = Number.isFinite(totalDurationMinutes)
       ? Math.max(1, Math.floor(totalDurationMinutes / intervalMinutes))
       : Number.POSITIVE_INFINITY;
