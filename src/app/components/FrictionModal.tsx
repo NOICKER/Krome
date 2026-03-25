@@ -24,6 +24,7 @@ export const FRICTION_REASONS = [
 export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, isInfiniteSession = false, onConfirm, onCancel }: FrictionModalProps) {
     const [selectedReason, setSelectedReason] = useState("");
     const [customNote, setCustomNote] = useState("");
+    const customNoteInputId = "friction-custom-note";
 
     // Escalation adds extra delays
     const [escalationStep, setEscalationStep] = useState(isEscalated ? 1 : 0);
@@ -60,7 +61,7 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, i
 
             {escalationStep === 0 || escalationStep === 2 ? (
                 <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block">Reason for abandoning:</label>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest block">Reason for abandoning:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {FRICTION_REASONS.map(reason => (
                             <button
@@ -77,7 +78,10 @@ export function FrictionModal({ isEscalated, totalBlocks, currentFilledBricks, i
                     </div>
 
                     <div className="pt-2">
+                        <label htmlFor={customNoteInputId} className="sr-only">Additional note</label>
                         <input
+                            id={customNoteInputId}
+                            name="frictionNote"
                             type="text"
                             placeholder="Additional note (optional)..."
                             value={customNote}

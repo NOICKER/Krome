@@ -20,6 +20,53 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+const AUTH_HASH_KEYS = new Set([
+  "access_token",
+  "expires_at",
+  "expires_in",
+  "refresh_token",
+  "token_type",
+  "type",
+]);
+
+const AUTH_QUERY_KEYS = new Set([
+  "code",
+  "error",
+  "error_code",
+  "error_description",
+  "provider_token",
+  "provider_refresh_token",
+]);
+
+function clearAuthArtifactsFromUrl() {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+  let changed = false;
+
+  for (const key of [...hashParams.keys()]) {
+    if (AUTH_HASH_KEYS.has(key)) {
+      hashParams.delete(key);
+      changed = true;
+    }
+  }
+
+  for (const key of [...url.searchParams.keys()]) {
+    if (AUTH_QUERY_KEYS.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+
+  if (!changed) return;
+
+  const nextHash = hashParams.toString();
+  const nextSearch = url.searchParams.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextHash ? `#${nextHash}` : ""}`;
+  window.history.replaceState(window.history.state, document.title, nextUrl);
+}
+
 async function reconcileLocalPersistenceForUser(userId: string) {
   const datasetOwnerId = getDatasetOwnerId();
 
@@ -67,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (didReload) {
             return;
           }
+          clearAuthArtifactsFromUrl();
         }
 
         setSession(session);
@@ -104,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (didReload) {
             return;
           }
+          clearAuthArtifactsFromUrl();
         }
 
         setSession(session);

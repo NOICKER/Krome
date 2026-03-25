@@ -39,6 +39,8 @@ export function SessionControls({
 }: SessionControlsProps) {
 
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
+  const taskFieldId = "session-task";
+  const intentFieldId = "session-intent";
 
   useEffect(() => {
     setActiveTasks(getTasks().filter(t => !t.completed));
@@ -115,7 +117,7 @@ export function SessionControls({
           <div className="grid grid-cols-1 gap-4">
             {session.subjectLocked && session.subject ? (
               <div className="space-y-1.5">
-                <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
+                <p className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</p>
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3">
                   <p className="text-sm font-medium text-slate-100">{session.subject}</p>
                   <p className="text-xs text-slate-500 mt-1">Started from the dashboard. Subject is locked for this block.</p>
@@ -123,7 +125,7 @@ export function SessionControls({
               </div>
             ) : (
               <div className="space-y-1.5">
-                <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</label>
+                <p className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</p>
                 <div className="flex flex-wrap gap-2">
                   {subjects.filter((sub) => !sub.archived).map(sub => {
                     const isSelected = session.subjectId
@@ -149,9 +151,11 @@ export function SessionControls({
             )}
 
             <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Task</label>
+              <label htmlFor={taskFieldId} className="text-slate-500 text-xs uppercase tracking-wide px-1">Task</label>
               <div className="relative">
                 <select
+                  id={taskFieldId}
+                  name="sessionTask"
                   value={session.taskId || "none"}
                   onChange={(e) => onUpdateTaskId(e.target.value === "none" ? undefined : e.target.value)}
                   disabled={activeTasks.length === 0}
@@ -171,8 +175,10 @@ export function SessionControls({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-slate-500 text-xs uppercase tracking-wide px-1">Intent</label>
+              <label htmlFor={intentFieldId} className="text-slate-500 text-xs uppercase tracking-wide px-1">Intent</label>
               <Input
+                id={intentFieldId}
+                name="sessionIntent"
                 placeholder="Optional"
                 value={session.intent}
                 onChange={(e) => onUpdateIntent(e.target.value)}

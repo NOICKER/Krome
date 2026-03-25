@@ -28,6 +28,8 @@ export function InterruptTracker({
   const [reason, setReason] = useState(DEFAULT_REASON);
   const [type, setType] = useState<"external" | "internal">("external");
   const [notes, setNotes] = useState("");
+  const reasonInputId = "interrupt-reason";
+  const notesInputId = "interrupt-notes";
 
   useEffect(() => {
     if (!isOpen) {
@@ -99,8 +101,10 @@ export function InterruptTracker({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-slate-500">Reason</label>
+            <label htmlFor={reasonInputId} className="text-xs uppercase tracking-widest text-slate-500">Reason</label>
             <input
+              id={reasonInputId}
+              name="interruptReason"
               type="text"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -110,7 +114,7 @@ export function InterruptTracker({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-slate-500">Type</label>
+            <p className="text-xs uppercase tracking-widest text-slate-500">Type</p>
             <div className="grid grid-cols-2 gap-2">
               {(["external", "internal"] as const).map((entryType) => (
                 <button
@@ -130,8 +134,10 @@ export function InterruptTracker({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-slate-500">Notes</label>
+            <label htmlFor={notesInputId} className="text-xs uppercase tracking-widest text-slate-500">Notes</label>
             <textarea
+              id={notesInputId}
+              name="interruptNotes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={3}

@@ -57,6 +57,19 @@ export function isRemoteSchemaError(error: unknown) {
   ].some((token) => text.includes(token));
 }
 
+export function isLegacyCompositeKeyConflict(tableName: SyncTableName, error: unknown) {
+  const text = getSupabaseErrorText(error).toLowerCase();
+  if (!text.includes("23505") && !text.includes("duplicate key value violates unique constraint")) {
+    return false;
+  }
+
+  return [
+    `${tableName}_pkey`,
+    `${tableName}_id_key`,
+    "key (id)=",
+  ].some((token) => text.includes(token));
+}
+
 function toIso(timestamp?: number | null) {
   if (!timestamp) return null;
   return new Date(timestamp).toISOString();

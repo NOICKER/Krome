@@ -26,6 +26,8 @@ export function MilestoneWidget() {
     const [dateStr, setDateStr] = useState("");
 
     const todayStr = format(new Date(), "yyyy-MM-dd");
+    const titleInputId = "milestone-title";
+    const dateInputId = "milestone-target-date";
 
     useEffect(() => {
         setMilestones(getMilestones());
@@ -92,8 +94,10 @@ export function MilestoneWidget() {
 
                 <div className="space-y-4">
                     <div>
-                        <label className="text-[10px] uppercase text-slate-500 font-bold tracking-widest block mb-1">Title</label>
+                        <label htmlFor={titleInputId} className="text-[10px] uppercase text-slate-500 font-bold tracking-widest block mb-1">Title</label>
                         <input
+                            id={titleInputId}
+                            name="milestoneTitle"
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
@@ -102,8 +106,10 @@ export function MilestoneWidget() {
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] uppercase text-slate-500 font-bold tracking-widest block mb-1">Target Date</label>
+                        <label htmlFor={dateInputId} className="text-[10px] uppercase text-slate-500 font-bold tracking-widest block mb-1">Target Date</label>
                         <input
+                            id={dateInputId}
+                            name="milestoneTargetDate"
                             type="date"
                             min={todayStr}
                             value={dateStr}

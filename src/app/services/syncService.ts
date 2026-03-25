@@ -7,6 +7,7 @@ import { applyRemoteTasks } from "../db/repositories/taskRepo";
 import {
   describeSupabaseError,
   fetchRemoteChanges,
+  isLegacyCompositeKeyConflict,
   isRemoteSchemaError,
   SYNC_TABLES,
   upsertRemoteRecords,
@@ -170,7 +171,7 @@ export async function processQueue(userId = activeUserId) {
         await upsertRemoteRecords(tableName, userId, payloads);
         await db.syncQueue.bulkDelete(queueIds);
       } catch (error) {
-        if (isRemoteSchemaError(error)) {
+        if (isRemoteSchemaError(error) || isLegacyCompositeKeyConflict(tableName, error)) {
           disableRemoteSyncForTable(tableName, error);
         }
         await markQueueEntriesFailed(queueIds, entries, error);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useId, useMemo } from "react";
 import { cn } from "./utils";
 
 interface KromeSliderProps {
@@ -12,7 +12,15 @@ interface KromeSliderProps {
 
 export function KromeSlider({ label, value, min, max, onValueChange, disabled = false }: KromeSliderProps) {
     const [localVal, setLocalVal] = useState(value.toString());
+    const reactId = useId();
     const clampValue = (nextValue: number) => Math.min(max, Math.max(min, nextValue));
+    const fieldBaseId = useMemo(() => {
+        const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        return `krome-slider-${slug || "value"}-${reactId.replace(/:/g, "")}`;
+    }, [label, reactId]);
+    const labelId = `${fieldBaseId}-label`;
+    const numberInputId = `${fieldBaseId}-number`;
+    const rangeInputId = `${fieldBaseId}-range`;
 
     const fillPercent = useMemo(() => {
         return ((value - min) / (max - min)) * 100;
@@ -42,8 +50,10 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
     return (
         <div className={cn("space-y-3", disabled ? "opacity-50" : "")}>
             <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-slate-300">{label}</label>
+                <label id={labelId} htmlFor={numberInputId} className="text-sm font-semibold text-slate-300">{label}</label>
                 <input
+                    id={numberInputId}
+                    name={`${fieldBaseId}-value`}
                     type="number"
                     min={min}
                     max={max}
@@ -58,12 +68,15 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
             </div>
             <div className="relative w-full h-5 flex items-center">
                 <input
+                    id={rangeInputId}
+                    name={`${fieldBaseId}-range`}
                     type="range"
                     min={min}
                     max={max}
                     step={1}
                     value={value}
                     disabled={disabled}
+                    aria-labelledby={labelId}
                     onChange={(e) => {
                         const nextValue = clampValue(parseInt(e.target.value, 10));
                         setLocalVal(nextValue.toString());

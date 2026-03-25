@@ -149,7 +149,10 @@ export function SubjectManager() {
 
             {isAdding && (
                 <div className="mb-4 bg-[#080C18]/50 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <label htmlFor="new-subject-name" className="sr-only">Subject name</label>
                     <input
+                        id="new-subject-name"
+                        name="subjectName"
                         type="text"
                         placeholder="Subject Name"
                         value={newName}
@@ -218,7 +221,10 @@ export function SubjectManager() {
                     if (isEditing) {
                         return (
                             <div key={sub.id} className="bg-[#080C18]/50 p-4 rounded-xl border border-slate-700 space-y-3">
+                                <label htmlFor={`edit-subject-name-${sub.id}`} className="sr-only">Edit subject name</label>
                                 <input
+                                    id={`edit-subject-name-${sub.id}`}
+                                    name={`editSubjectName-${sub.id}`}
                                     type="text"
                                     value={editName}
                                     onChange={(e) => { setEditName(e.target.value); setError(""); }}

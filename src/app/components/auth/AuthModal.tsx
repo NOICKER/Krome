@@ -191,7 +191,9 @@ export function AuthModal({ isOpen, onClose, forceSignup }: AuthModalProps) {
                                     <input
                                         ref={inputRef}
                                         id="auth-email"
+                                        name="email"
                                         type="email"
+                                        autoComplete="email"
                                         placeholder="Enter your email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}

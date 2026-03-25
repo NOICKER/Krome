@@ -86,7 +86,10 @@ export function TaskPanel() {
 
             {/* Internal Form */}
             <form onSubmit={handleAddTask} className="flex flex-col space-y-2 mb-6">
+                <label htmlFor="new-task-title" className="sr-only">Task title</label>
                 <input
+                    id="new-task-title"
+                    name="taskTitle"
                     type="text"
                     placeholder="New task..."
                     value={newTaskTitle}
@@ -94,7 +97,10 @@ export function TaskPanel() {
                     className="bg-[#080C18] border border-slate-800 flex-1 px-3 py-2 text-sm rounded-lg text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-kromeAccent/50"
                 />
                 <div className="flex space-x-2">
+                    <label htmlFor="new-task-subject" className="sr-only">Task subject</label>
                     <select
+                        id="new-task-subject"
+                        name="taskSubject"
                         value={newTaskSubjectId}
                         onChange={(e) => setNewTaskSubjectId(e.target.value)}
                         className="flex-1 bg-[#080C18] border border-slate-800 px-3 py-1.5 text-xs rounded-lg text-slate-400 focus:outline-none focus:border-kromeAccent/50"
@@ -104,7 +110,10 @@ export function TaskPanel() {
                             <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                     </select>
+                    <label htmlFor="new-task-estimate" className="sr-only">Estimated blocks</label>
                     <input
+                        id="new-task-estimate"
+                        name="taskEstimateBlocks"
                         type="number"
                         placeholder="Est. blocks"
                         value={newTaskEstimates}

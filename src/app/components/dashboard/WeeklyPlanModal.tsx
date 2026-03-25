@@ -57,9 +57,16 @@ export function WeeklyPlanModal({
           {subjects.map((subject) => (
             <div key={subject.id} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-slate-100">{subject.name}</p>
+                <label
+                  htmlFor={`weekly-plan-allocation-${subject.id}`}
+                  className="text-sm font-medium text-slate-100"
+                >
+                  {subject.name}
+                </label>
               </div>
               <input
+                id={`weekly-plan-allocation-${subject.id}`}
+                name={`weeklyPlanAllocation-${subject.id}`}
                 type="number"
                 min={0}
                 value={allocations[subject.id] ?? 0}
@@ -77,8 +84,10 @@ export function WeeklyPlanModal({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-slate-500">Strategy Notes</label>
+          <label htmlFor="weekly-plan-strategy-notes" className="text-xs uppercase tracking-widest text-slate-500">Strategy Notes</label>
           <textarea
+            id="weekly-plan-strategy-notes"
+            name="weeklyPlanStrategyNotes"
             rows={4}
             value={strategyNotes}
             onChange={(event) => setStrategyNotes(event.target.value)}
