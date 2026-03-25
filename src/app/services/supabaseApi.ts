@@ -20,6 +20,43 @@ export const SYNC_TABLES: SyncTableName[] = [
 ];
 const REMOTE_PULL_PAGE_SIZE = 1000;
 
+function getSupabaseErrorText(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return String(error ?? "");
+  }
+
+  const maybeError = error as Record<string, unknown>;
+  return [
+    maybeError.code,
+    maybeError.message,
+    maybeError.details,
+    maybeError.hint,
+  ]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ");
+}
+
+export function describeSupabaseError(error: unknown) {
+  const description = getSupabaseErrorText(error).trim();
+  return description.length > 0 ? description : "Unknown Supabase error";
+}
+
+export function isRemoteSchemaError(error: unknown) {
+  const text = getSupabaseErrorText(error).toLowerCase();
+  if (!text) return false;
+
+  return [
+    "pgrst204",
+    "pgrst205",
+    "42p01",
+    "42703",
+    "schema cache",
+    "could not find the table",
+    "could not find the '",
+    "does not exist",
+  ].some((token) => text.includes(token));
+}
+
 function toIso(timestamp?: number | null) {
   if (!timestamp) return null;
   return new Date(timestamp).toISOString();
@@ -226,7 +263,7 @@ export async function upsertRemoteRecords(tableName: SyncTableName, userId: stri
   const { error } = await supabase
     .from(tableName)
     .upsert(records.map((record) => mapRecordToRemote(tableName, userId, record)), {
-      onConflict: "id",
+      onConflict: "user_id,id",
     });
 
   if (error) {

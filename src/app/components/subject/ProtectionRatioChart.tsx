@@ -9,7 +9,7 @@ interface ProtectionRatioChartProps {
 export function ProtectionRatioChart({ data }: ProtectionRatioChartProps) {
   return (
     <AnalyticsCard title="Protection Ratio" icon={Shield} isEmpty={data.length === 0}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
           <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />

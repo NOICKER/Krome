@@ -24,7 +24,7 @@ function ChartCard({ title, children }: { title: string, children: React.ReactNo
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full h-[300px] flex flex-col shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
             <h3 className="text-slate-300 font-display font-bold uppercase tracking-widest text-sm mb-4">{title}</h3>
-            <div className="flex-1 w-full relative">
+            <div className="relative w-full min-h-[220px] flex-1">
                 {children}
             </div>
         </div>
@@ -114,7 +114,7 @@ export function AnalyticsView() {
                 {/* A) Time per Subject */}
                 <ChartCard title="Time per Subject (Last 30 Days)">
                     {!hasData || subjectData.length === 0 ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <BarChart data={subjectData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis dataKey="subject" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
@@ -133,7 +133,7 @@ export function AnalyticsView() {
                             <p className="text-slate-500 text-sm">Requires Strict Mode.</p>
                         </div>
                     ) : !hasData || categoryData.length === 0 ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                                 <Pie
                                     data={categoryData}
@@ -158,7 +158,7 @@ export function AnalyticsView() {
                 {/* C) Pot Trend */}
                 <ChartCard title="Pot Trend (14 Days)">
                     {!hasData ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <LineChart data={potData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
@@ -178,7 +178,7 @@ export function AnalyticsView() {
                 {/* D) Streak Trend */}
                 <ChartCard title="Streak Trend (14 Days)">
                     {!hasData ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <LineChart data={streakData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
@@ -193,7 +193,7 @@ export function AnalyticsView() {
                 {/* E) Session Duration Histogram */}
                 <ChartCard title="Session Duration Distribution">
                     {!hasData || durationData.every(d => d.count === 0) ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <BarChart data={durationData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
@@ -208,7 +208,7 @@ export function AnalyticsView() {
                 {/* F) Abandon Frequency */}
                 <ChartCard title="Abandon Frequency (Last 7 Days)">
                     {!hasData ? <EmptyState /> : (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
                             <BarChart data={abandonData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />

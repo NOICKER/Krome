@@ -9,7 +9,7 @@ interface TimeDistributionChartProps {
 export function TimeDistributionChart({ data }: TimeDistributionChartProps) {
   return (
     <AnalyticsCard title="Time Distribution" icon={Clock3} isEmpty={data.length === 0}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
           <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />

@@ -16,7 +16,7 @@ export function AnalyticsCard({ title, children, icon: Icon, isEmpty = false }: 
                 <h3 className="font-bold uppercase tracking-widest text-sm">{title}</h3>
             </div>
 
-            <div className="flex-1 w-full h-full min-h-0 relative">
+            <div className="relative h-full min-h-[220px] w-full flex-1">
                 {isEmpty ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
                         <span className="text-sm font-medium">Not enough data yet.</span>

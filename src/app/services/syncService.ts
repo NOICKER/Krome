@@ -4,7 +4,13 @@ import { applyRemoteMilestones } from "../db/repositories/milestoneRepo";
 import { applyRemoteObservations } from "../db/repositories/observationRepo";
 import { applyRemoteSubjects } from "../db/repositories/subjectRepo";
 import { applyRemoteTasks } from "../db/repositories/taskRepo";
-import { fetchRemoteChanges, SYNC_TABLES, upsertRemoteRecords } from "./supabaseApi";
+import {
+  describeSupabaseError,
+  fetchRemoteChanges,
+  isRemoteSchemaError,
+  SYNC_TABLES,
+  upsertRemoteRecords,
+} from "./supabaseApi";
 import { STORAGE_KEYS, getItem, refreshStorageKey, setItem } from "./storageService";
 import { SYNC_REQUEST_EVENT } from "./syncEvents";
 import { isSupabaseConfigured } from "./supabaseClient";
@@ -22,6 +28,27 @@ let syncTimer: number | null = null;
 let queueRunInFlight = false;
 let pullRunInFlight = false;
 let activeUserId: string | null = null;
+const disabledRemoteTables = new Set<SyncTableName>();
+const surfacedWarnings = new Set<string>();
+
+function warnSyncOnce(key: string, message: string, error?: unknown) {
+  if (surfacedWarnings.has(key)) return;
+  surfacedWarnings.add(key);
+  console.warn(message, error);
+}
+
+function isRemoteSyncEnabled(tableName: SyncTableName) {
+  return !disabledRemoteTables.has(tableName);
+}
+
+function disableRemoteSyncForTable(tableName: SyncTableName, error: unknown) {
+  disabledRemoteTables.add(tableName);
+  warnSyncOnce(
+    `disabled-table:${tableName}`,
+    `[sync] Remote '${tableName}' sync is disabled for this session because the Supabase schema is missing or outdated. Local data will continue to work.`,
+    error
+  );
+}
 
 function getSyncCursorKey(tableName: SyncTableName) {
   return `krome_sync_cursor_${tableName}`;
@@ -83,7 +110,7 @@ async function markQueueEntriesFailed(queueIds: number[], entries: SyncQueueEntr
       status: "failed" as const,
       retryCount: (entry.retryCount ?? 0) + 1,
       lastAttemptAt: Date.now(),
-      error: error instanceof Error ? error.message : String(error),
+      error: describeSupabaseError(error),
     }));
 
   if (nextEntries.length === 0) return;
@@ -131,6 +158,8 @@ export async function processQueue(userId = activeUserId) {
     const groupedEntries = collapseQueueEntries(entries);
 
     for (const tableName of SYNC_TABLES) {
+      if (!isRemoteSyncEnabled(tableName)) continue;
+
       const recordEntries = groupedEntries.get(tableName);
       if (!recordEntries || recordEntries.size === 0) continue;
 
@@ -141,6 +170,9 @@ export async function processQueue(userId = activeUserId) {
         await upsertRemoteRecords(tableName, userId, payloads);
         await db.syncQueue.bulkDelete(queueIds);
       } catch (error) {
+        if (isRemoteSchemaError(error)) {
+          disableRemoteSyncForTable(tableName, error);
+        }
         await markQueueEntriesFailed(queueIds, entries, error);
       }
     }
@@ -157,21 +189,32 @@ export async function pullChanges(userId = activeUserId) {
 
   try {
     for (const tableName of PULL_ORDER) {
-      const since = getItem<string | null>(getSyncCursorKey(tableName), null);
-      const queuedRecordIds = await getQueuedRecordIds(tableName);
-      const remoteRecords = await fetchRemoteChanges(tableName, userId, since);
+      if (!isRemoteSyncEnabled(tableName)) continue;
 
-      if (remoteRecords.length > 0) {
-        const filteredRecords = remoteRecords.filter((record) => !queuedRecordIds.has(record.id));
-        if (filteredRecords.length > 0) {
-          await applyRemoteRecords(tableName, filteredRecords);
-          await refreshStorageKey(getStorageKeyForTable(tableName));
+      try {
+        const since = getItem<string | null>(getSyncCursorKey(tableName), null);
+        const queuedRecordIds = await getQueuedRecordIds(tableName);
+        const remoteRecords = await fetchRemoteChanges(tableName, userId, since);
+
+        if (remoteRecords.length > 0) {
+          const filteredRecords = remoteRecords.filter((record) => !queuedRecordIds.has(record.id));
+          if (filteredRecords.length > 0) {
+            await applyRemoteRecords(tableName, filteredRecords);
+            await refreshStorageKey(getStorageKeyForTable(tableName));
+          }
+
+          const latestRecord = remoteRecords[remoteRecords.length - 1];
+          if (latestRecord?.updatedAt) {
+            setItem(getSyncCursorKey(tableName), new Date(latestRecord.updatedAt).toISOString());
+          }
+        }
+      } catch (error) {
+        if (isRemoteSchemaError(error)) {
+          disableRemoteSyncForTable(tableName, error);
+          continue;
         }
 
-        const latestRecord = remoteRecords[remoteRecords.length - 1];
-        if (latestRecord?.updatedAt) {
-          setItem(getSyncCursorKey(tableName), new Date(latestRecord.updatedAt).toISOString());
-        }
+        throw error;
       }
     }
   } finally {
@@ -197,7 +240,13 @@ export function startSyncService(userId: string | null) {
   }
 
   const run = () => {
-    void runBackgroundSync(userId);
+    void runBackgroundSync(userId).catch((error) => {
+      warnSyncOnce(
+        `background-sync:${describeSupabaseError(error)}`,
+        "[sync] Background sync paused due to an unexpected error.",
+        error
+      );
+    });
   };
 
   window.addEventListener(SYNC_REQUEST_EVENT, run);
