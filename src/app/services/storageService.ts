@@ -299,7 +299,13 @@ export async function initializeStorage() {
     if (!storageCache.has(STORAGE_KEYS.MILESTONES)) applyCacheValue(STORAGE_KEYS.MILESTONES, [], false);
   })();
 
-  return initializationPromise;
+  try {
+    await initializationPromise;
+    return initializationPromise;
+  } catch (error) {
+    initializationPromise = null;
+    throw error;
+  }
 }
 
 export async function clearLocalPersistence() {

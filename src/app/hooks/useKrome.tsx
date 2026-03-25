@@ -922,25 +922,110 @@ function KromeProviderInner({ children }: { children: React.ReactNode }) {
   return <KromeContext.Provider value={store}>{children}</KromeContext.Provider>;
 }
 
+const STORAGE_INIT_SLOW_THRESHOLD_MS = 4000;
+
+function getStorageInitErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Browser storage failed to initialize.";
+}
+
 export function KromeProvider({ children }: { children: React.ReactNode }) {
-  const [isReady, setIsReady] = useState(false);
+  const [initState, setInitState] = useState<"loading" | "ready" | "error">("loading");
+  const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
+    const slowTimer = window.setTimeout(() => {
+      if (isCancelled) return;
+      setShowSlowMessage(true);
+      console.warn(
+        "[storage] Initialization is taking longer than expected. This usually points to browser storage startup, not Vercel hosting."
+      );
+    }, STORAGE_INIT_SLOW_THRESHOLD_MS);
 
-    void initializeStorage().then(() => {
-      if (!isCancelled) {
-        setIsReady(true);
-      }
-    });
+    setInitState("loading");
+    setInitError(null);
+    setShowSlowMessage(false);
+
+    void initializeStorage()
+      .then(() => {
+        if (!isCancelled) {
+          setInitState("ready");
+        }
+      })
+      .catch((error) => {
+        console.error("[storage] Failed to initialize local storage.", error);
+        if (!isCancelled) {
+          setInitError(getStorageInitErrorMessage(error));
+          setInitState("error");
+        }
+      })
+      .finally(() => {
+        window.clearTimeout(slowTimer);
+      });
 
     return () => {
       isCancelled = true;
+      window.clearTimeout(slowTimer);
     };
-  }, []);
+  }, [retryKey]);
 
-  if (!isReady) {
-    return null;
+  if (initState === "error") {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#080C18] px-6 text-slate-200">
+        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center shadow-2xl">
+          <h1 className="text-sm font-bold uppercase tracking-[0.3em] text-slate-200">Krome</h1>
+          <p className="mt-4 text-sm text-slate-300">Local workspace startup failed.</p>
+          <p className="mt-2 text-xs text-slate-500">{initError}</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryKey((current) => current + 1)}
+              className="rounded-xl bg-kromeAccent px-4 py-2 text-sm font-semibold text-white hover:bg-kromeAccent/85"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (initState !== "ready") {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#080C18] px-6 text-slate-200">
+        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center shadow-2xl">
+          <h1 className="text-sm font-bold uppercase tracking-[0.3em] text-slate-200">Krome</h1>
+          <p className="mt-4 text-sm text-slate-300">Preparing your local workspace…</p>
+          <p className="mt-2 text-xs text-slate-500">
+            {showSlowMessage
+              ? "This is taking longer than expected. The likely bottleneck is browser storage startup, not Vercel hosting."
+              : "Restoring your session, history, and settings."}
+          </p>
+          {showSlowMessage ? (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-600 hover:text-slate-100"
+            >
+              Reload App
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   return <KromeProviderInner>{children}</KromeProviderInner>;
