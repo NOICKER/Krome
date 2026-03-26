@@ -14,6 +14,7 @@ import { WeeklyPlanModal } from "./WeeklyPlanModal";
 
 import { useKromeStore } from "../../hooks/useKrome";
 import { getTodaySummary, getHeatmapData, getAdvancedObservations } from "../../services/analyticsService";
+import { resolveSettings } from "../../services/subjectService";
 import { getGoalMetricValue, getGoalUnitLabel, normalizeGoalProgress } from "../../utils/goalUtils";
 
 export function DashboardLayout() {
@@ -89,6 +90,7 @@ export function DashboardLayout() {
                                 const last = allSubjectHistory.length > 0 ? format(allSubjectHistory[0].startedAt, "HH:mm") : null;
                                 const goalProgress = normalizeGoalProgress(sub.settings?.dailyGoal, settings.dailyGoalProgress);
                                 const goalCurrent = getGoalMetricValue(goalProgress, { blocks, minutes: Math.floor(mins) });
+                                const subjectResolvedSettings = resolveSettings(settings, sub.id, visibleSubjects);
 
                                 return <SubjectCard
                                     key={sub.id}
@@ -98,8 +100,8 @@ export function DashboardLayout() {
                                     lastSessionTime={last}
                                     goalProgress={goalProgress}
                                     goalCurrent={goalCurrent}
-                                    blockMinutes={sub.settings?.blockMinutes ?? settings.blockMinutes}
-                                    strictMode={sub.settings?.strictMode ?? settings.strictMode}
+                                    blockMinutes={subjectResolvedSettings.blockMinutes}
+                                    strictMode={subjectResolvedSettings.strictMode}
                                     startDisabled={session.isActive}
                                     onOpenDetails={(subject) => actions.setSubjectView(subject.id)}
                                     onStart={(subject) => actions.startSession({ id: subject.id, name: subject.name }, { lockSubject: true })}

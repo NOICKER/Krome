@@ -123,6 +123,37 @@ function normalizeSession(session: Partial<KromeSession> | null): KromeSession {
   };
 }
 
+function getTotalBlocks(totalDurationMinutes: number, intervalMinutes: number) {
+  return Number.isFinite(totalDurationMinutes)
+    ? Math.max(1, Math.floor(totalDurationMinutes / intervalMinutes))
+    : Number.POSITIVE_INFINITY;
+}
+
+function getSessionSubjectSelection(session: Pick<KromeSession, "subject" | "subjectId">): SubjectSelection | undefined {
+  return session.subjectId && session.subject
+    ? { id: session.subjectId, name: session.subject }
+    : undefined;
+}
+
+function buildIdleSessionPreview(
+  globalSettings: KromeSettings,
+  subjects: KromeSubject[],
+  subject?: SubjectSelection
+): KromeSession {
+  const previewSettings = subject ? resolveSettings(globalSettings, subject.id, subjects) : globalSettings;
+
+  return {
+    ...DEFAULT_SESSION,
+    totalDurationMinutes: previewSettings.blockMinutes,
+    intervalMinutes: previewSettings.intervalMinutes,
+    totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
+    subject: subject?.name ?? "",
+    subjectId: subject?.id,
+    subjectLocked: false,
+    status: "idle",
+  };
+}
+
 function getPotDelta(entry: Pick<HistoryEntry, "potResult" | "potSpilled">): number {
   if (entry.potResult === "retained") return 10;
   if (entry.potResult === "spilled" || entry.potSpilled) return -20;
@@ -219,7 +250,7 @@ interface KromeStoreStructure {
     startSession: (subject?: SubjectSelection, options?: StartSessionOptions) => void;
     requestAbandon: (reason?: string, note?: string) => void;
     undoAbandon: () => void;
-    updateSubject: (subject: SubjectSelection) => void;
+    updateSubject: (subject?: SubjectSelection) => void;
     updateIntent: (val: string) => void;
     updateTaskId: (val: string | undefined) => void;
     addSubject: (subject: SubjectInput) => string;
@@ -391,6 +422,41 @@ export function useKromeLogic() {
   }, [session.subject, session.subjectId, subjects]);
 
   useEffect(() => {
+    if (session.isActive) {
+      return;
+    }
+
+    const selectedSubject = getSessionSubjectSelection(session);
+    const previewSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : settings;
+    const nextTotalDurationMinutes = previewSettings.blockMinutes;
+    const nextIntervalMinutes = previewSettings.intervalMinutes;
+    const nextTotalBlocks = getTotalBlocks(nextTotalDurationMinutes, nextIntervalMinutes);
+
+    if (
+      session.totalDurationMinutes === nextTotalDurationMinutes &&
+      session.intervalMinutes === nextIntervalMinutes &&
+      session.totalBlocks === nextTotalBlocks
+    ) {
+      return;
+    }
+
+    setSession((prev) =>
+      prev.isActive
+        ? prev
+        : {
+            ...prev,
+            totalDurationMinutes: nextTotalDurationMinutes,
+            intervalMinutes: nextIntervalMinutes,
+            totalBlocks: nextTotalBlocks,
+          }
+    );
+  }, [
+    session,
+    settings,
+    subjects,
+  ]);
+
+  useEffect(() => {
     setWeeklyPlan(getCurrentWeekPlan());
   }, [week.weekStartDate]);
 
@@ -536,14 +602,12 @@ export function useKromeLogic() {
     if (session.isActive) return;
 
     warmUpAudio();
-    const selectedSubject = subject ?? (session.subjectId && session.subject ? { id: session.subjectId, name: session.subject } : undefined);
-    const sessionSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : resolvedSettings;
+    const selectedSubject = subject ?? getSessionSubjectSelection(session);
+    const sessionSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : settings;
     const nextSession = createNewSession(sessionSettings);
     const intervalMinutes = options?.intervalMinutes ?? nextSession.intervalMinutes;
     const totalDurationMinutes = options?.totalDurationMinutes ?? nextSession.totalDurationMinutes;
-    const totalBlocks = Number.isFinite(totalDurationMinutes)
-      ? Math.max(1, Math.floor(totalDurationMinutes / intervalMinutes))
-      : Number.POSITIVE_INFINITY;
+    const totalBlocks = getTotalBlocks(totalDurationMinutes, intervalMinutes);
 
     setIsSessionActive(true);
     setLatestSessionSummary(null);
@@ -751,12 +815,7 @@ export function useKromeLogic() {
       });
     }
 
-    setSession({
-      ...DEFAULT_SESSION,
-      totalDurationMinutes: settings.blockMinutes,
-      intervalMinutes: settings.intervalMinutes,
-      status: "idle",
-    });
+    setSession(buildIdleSessionPreview(settings, subjects, getSessionSubjectSelection(session)));
     setIsSessionActive(false);
 
     if (completed) {
@@ -783,12 +842,20 @@ export function useKromeLogic() {
     }
   };
 
-  const updateSubject = (subject: SubjectSelection) =>
-    setSession((prev) => ({
-      ...prev,
-      subject: subject.name,
-      subjectId: subject.id,
-    }));
+  const updateSubject = (subject?: SubjectSelection) =>
+    setSession((prev) => {
+      const previewSettings = subject ? resolveSettings(settings, subject.id, subjects) : settings;
+
+      return {
+        ...prev,
+        subject: subject?.name ?? "",
+        subjectId: subject?.id,
+        subjectLocked: false,
+        totalDurationMinutes: previewSettings.blockMinutes,
+        intervalMinutes: previewSettings.intervalMinutes,
+        totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
+      };
+    });
 
   const updateIntent = (val: string) => setSession((prev) => ({ ...prev, intent: val }));
   const updateTaskId = (val: string | undefined) => setSession((prev) => ({ ...prev, taskId: val }));

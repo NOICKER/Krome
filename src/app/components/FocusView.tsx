@@ -35,7 +35,7 @@ interface FocusViewProps {
       options?: { lockSubject?: boolean; type?: KromeSession["type"]; totalDurationMinutes?: number; intervalMinutes?: number }
     ) => void;
     undoAbandon: () => void;
-    updateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
+    updateSubject: (subject?: Pick<KromeSubject, "id" | "name">) => void;
     updateIntent: (val: string) => void;
     updateTaskId: (val: string | undefined) => void;
     addSubject: (subject: string | { name: string; color?: string; settings?: KromeSubject["settings"] }) => string;
@@ -62,7 +62,7 @@ export function FocusView({
   const [insights, setInsights] = useState<string[]>([]);
   const [isInterruptTrackerOpen, setIsInterruptTrackerOpen] = useState(false);
   const activeSubjectColor = currentSubject?.color ?? "#64748b";
-  const focusTitle = session.subjectLocked && currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
+  const focusTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
 
   useEffect(() => {
     setInsights(getAdvancedObservations());

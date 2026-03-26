@@ -34,7 +34,7 @@ export default function App() {
   const [showQuitModal, setShowQuitModal] = useState(false);
   const { loading: authLoading, user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const focusHeaderTitle = session.subjectLocked && currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
+  const focusHeaderTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
   const currentFilledBricks = Math.floor(elapsed / (session.intervalMinutes * 60 * 1000));
   const frictionTotalBlocks = Number.isFinite(session.totalBlocks)
     ? session.totalBlocks

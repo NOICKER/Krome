@@ -18,7 +18,7 @@ interface SessionControlsProps {
   onStart: () => void;
   onAbandon: () => void;
   onUndoAbandon: () => void;
-  onUpdateSubject: (subject: Pick<KromeSubject, "id" | "name">) => void;
+  onUpdateSubject: (subject?: Pick<KromeSubject, "id" | "name">) => void;
   onUpdateIntent: (val: string) => void;
   onUpdateTaskId: (val: string | undefined) => void;
   onAddSubject: (subject: string | { name: string; color?: string; settings?: KromeSubject["settings"] }) => string;
@@ -127,6 +127,18 @@ export function SessionControls({
               <div className="space-y-1.5">
                 <p className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</p>
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateSubject(undefined)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
+                      isUniversalFocus
+                        ? "bg-slate-800 text-kromeAccent border-kromeAccent shadow-[0_0_10px_rgba(111,120,181,0.18)] translate-y-[-1px]"
+                        : "bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200"
+                    )}
+                  >
+                    Universal
+                  </button>
                   {subjects.filter((sub) => !sub.archived).map(sub => {
                     const isSelected = session.subjectId
                       ? session.subjectId === sub.id
@@ -200,6 +212,12 @@ export function SessionControls({
           <Play fill="currentColor" size={18} className="mr-3" />
           {isUniversalFocus ? "Start Universal Focus" : `Start Block (${settings.blockMinutes}m)`}
         </Button>
+
+        <p className="text-[11px] text-slate-500 uppercase tracking-[0.18em]">
+          {isUniversalFocus
+            ? `Universal defaults: ${settings.blockMinutes}m block, ${settings.intervalMinutes}m plip`
+            : `${session.subject} settings: ${settings.blockMinutes}m block, ${settings.intervalMinutes}m plip`}
+        </p>
 
         <p className="text-xs text-slate-600 font-mono tracking-widest uppercase animate-pulse">
           Press Space to Start
