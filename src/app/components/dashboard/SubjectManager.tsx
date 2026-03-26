@@ -27,6 +27,8 @@ function buildEditableSettings(settings: SubjectSettings | undefined, defaults: 
     return {
         blockMinutes: settings?.blockMinutes ?? defaults.blockMinutes,
         intervalMinutes: settings?.intervalMinutes ?? defaults.intervalMinutes,
+        soundEnabled: settings?.soundEnabled ?? defaults.soundEnabled,
+        volume: settings?.volume ?? defaults.volume,
         dailyGoal: normalizeGoalProgress(settings?.dailyGoal, defaults.dailyGoalProgress),
         weeklyGoal: normalizeGoalProgress(settings?.weeklyGoal, defaults.weeklyGoalProgress),
         strictMode: settings?.strictMode ?? defaults.strictMode,
@@ -38,6 +40,8 @@ function buildSubjectSettingsOverrides(settings: ReturnType<typeof buildEditable
 
     if (settings.blockMinutes !== defaults.blockMinutes) overrides.blockMinutes = settings.blockMinutes;
     if (settings.intervalMinutes !== defaults.intervalMinutes) overrides.intervalMinutes = settings.intervalMinutes;
+    if (settings.soundEnabled !== defaults.soundEnabled) overrides.soundEnabled = settings.soundEnabled;
+    if (Math.abs(settings.volume - defaults.volume) > 0.001) overrides.volume = settings.volume;
     if (settings.dailyGoal.type !== defaults.dailyGoalProgress.type || settings.dailyGoal.target !== defaults.dailyGoalProgress.target) {
         overrides.dailyGoal = settings.dailyGoal;
     }

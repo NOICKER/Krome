@@ -7,6 +7,8 @@ interface SubjectSettingsFormProps {
   settings: {
     blockMinutes: number;
     intervalMinutes: number;
+    soundEnabled: boolean;
+    volume: number;
     dailyGoal: GoalProgress;
     weeklyGoal: GoalProgress;
     strictMode: boolean;
@@ -15,6 +17,8 @@ interface SubjectSettingsFormProps {
   onChange: (settings: {
     blockMinutes: number;
     intervalMinutes: number;
+    soundEnabled: boolean;
+    volume: number;
     dailyGoal: GoalProgress;
     weeklyGoal: GoalProgress;
     strictMode: boolean;
@@ -58,6 +62,23 @@ export function SubjectSettingsForm({ settings, defaults, onChange }: SubjectSet
         max={60}
         onValueChange={(value) => update("intervalMinutes", value)}
       />
+
+      <KromeToggle
+        label="Sound Feedback Override"
+        description={`Global default is ${defaults.soundEnabled ? "on" : "off"}.`}
+        checked={settings.soundEnabled}
+        onCheckedChange={(value) => update("soundEnabled", value)}
+      />
+
+      {settings.soundEnabled ? (
+        <KromeSlider
+          label={`Plip Volume (${Math.round(defaults.volume * 100)}% global)`}
+          value={Math.round(settings.volume * 100)}
+          min={1}
+          max={100}
+          onValueChange={(value) => update("volume", value / 100)}
+        />
+      ) : null}
 
       <KromeSlider
         label={`Daily Goal (${defaults.dailyGoalProgress.target} ${getGoalUnitLabel(defaults.dailyGoalProgress.type)} global)`}

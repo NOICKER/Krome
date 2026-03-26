@@ -13,6 +13,8 @@ export interface SubjectSettings {
   sessionDuration?: number;
   blockMinutes?: number;
   intervalMinutes?: number;
+  soundEnabled?: boolean;
+  volume?: number;
   dailyGoal?: GoalProgress | number;
   weeklyGoal?: GoalProgress | number;
   strictMode?: boolean;

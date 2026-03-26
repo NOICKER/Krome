@@ -98,6 +98,19 @@ const MAX_TIMER_SOUND_CATCH_UP = 8;
 
 const getTodayDate = () => format(new Date(), "yyyy-MM-dd");
 
+type LegacyStoredSettings = Partial<KromeSettings> & {
+  muteFillSound?: boolean;
+  soundVolume?: number;
+};
+
+function normalizeStoredVolume(value: number | undefined, fallback: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(1, Math.max(0, value));
+}
+
 function normalizeSession(session: Partial<KromeSession> | null): KromeSession {
   return {
     ...DEFAULT_SESSION,
@@ -240,12 +253,28 @@ export function useKromeLogic() {
   });
 
   const [settings, setSettings] = useState<KromeSettings>(() => {
-    const stored = getItem<Partial<KromeSettings>>(STORAGE_KEYS.SETTINGS, {});
+    const stored = getItem<LegacyStoredSettings>(STORAGE_KEYS.SETTINGS, {});
+    const {
+      muteFillSound,
+      soundVolume,
+      ...storedSettings
+    } = stored;
+
     return syncGlobalGoalProgress({
       ...DEFAULT_SETTINGS,
-      ...stored,
-      goal: typeof stored.goal === "number" ? stored.goal : DEFAULT_SETTINGS.goal,
-      weeklyGoal: typeof stored.weeklyGoal === "number" ? stored.weeklyGoal : DEFAULT_SETTINGS.weeklyGoal,
+      ...storedSettings,
+      goal: typeof storedSettings.goal === "number" ? storedSettings.goal : DEFAULT_SETTINGS.goal,
+      weeklyGoal: typeof storedSettings.weeklyGoal === "number" ? storedSettings.weeklyGoal : DEFAULT_SETTINGS.weeklyGoal,
+      soundEnabled:
+        typeof storedSettings.soundEnabled === "boolean"
+          ? storedSettings.soundEnabled
+          : muteFillSound !== undefined
+            ? !muteFillSound
+            : DEFAULT_SETTINGS.soundEnabled,
+      volume: normalizeStoredVolume(
+        storedSettings.volume ?? soundVolume,
+        DEFAULT_SETTINGS.volume
+      ),
     } as KromeSettings);
   });
 

@@ -14,12 +14,38 @@ const DEFAULT_SUBJECT: Subject = {
     archived: false,
 };
 
+type LegacySubjectSettings = SubjectSettings & {
+    muteFillSound?: boolean;
+    soundVolume?: number;
+};
+
+function normalizeVolume(value: number | undefined) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return undefined;
+    }
+
+    return Math.min(1, Math.max(0, value));
+}
+
 function normalizeSubject(subject: Subject, fallbackColor?: string): Subject {
-    const normalizedSettings = subject.settings
+    const rawSettings = subject.settings as LegacySubjectSettings | undefined;
+    const {
+        muteFillSound,
+        soundVolume,
+        ...settingsWithoutLegacyKeys
+    } = rawSettings ?? {};
+    const normalizedSettings = rawSettings
         ? {
-            ...subject.settings,
-            plipInterval: subject.settings.plipInterval ?? subject.settings.intervalMinutes,
-            sessionDuration: subject.settings.sessionDuration ?? subject.settings.blockMinutes,
+            ...settingsWithoutLegacyKeys,
+            plipInterval: settingsWithoutLegacyKeys.plipInterval ?? settingsWithoutLegacyKeys.intervalMinutes,
+            sessionDuration: settingsWithoutLegacyKeys.sessionDuration ?? settingsWithoutLegacyKeys.blockMinutes,
+            soundEnabled:
+                typeof settingsWithoutLegacyKeys.soundEnabled === 'boolean'
+                    ? settingsWithoutLegacyKeys.soundEnabled
+                    : muteFillSound !== undefined
+                        ? !muteFillSound
+                        : undefined,
+            volume: normalizeVolume(settingsWithoutLegacyKeys.volume ?? soundVolume),
         }
         : {};
 
@@ -98,7 +124,14 @@ export const resolveSettings = (
         return globalSettings;
     }
 
-    const overrides = subject.settings as SubjectSettings;
+    const overrides = subject.settings as LegacySubjectSettings;
+    const subjectVolume = normalizeVolume(overrides.volume ?? overrides.soundVolume);
+    const subjectSoundEnabled =
+        typeof overrides.soundEnabled === 'boolean'
+            ? overrides.soundEnabled
+            : overrides.muteFillSound !== undefined
+                ? !overrides.muteFillSound
+                : undefined;
     const {
         dailyGoal,
         weeklyGoal,
@@ -106,6 +139,10 @@ export const resolveSettings = (
         sessionDuration,
         blockMinutes,
         intervalMinutes,
+        muteFillSound: _legacyMuteFillSound,
+        soundVolume: _legacySoundVolume,
+        soundEnabled,
+        volume,
         ...settingsOverrides
     } = overrides;
     const nextBlockMinutes = sessionDuration ?? blockMinutes;
@@ -116,6 +153,8 @@ export const resolveSettings = (
         ...Object.fromEntries(
             Object.entries(settingsOverrides).filter(([, value]) => value !== undefined)
         ),
+        ...(subjectSoundEnabled !== undefined ? { soundEnabled: subjectSoundEnabled } : {}),
+        ...(subjectVolume !== undefined ? { volume: subjectVolume } : {}),
         blockMinutes: nextBlockMinutes ?? globalSettings.blockMinutes,
         intervalMinutes: nextIntervalMinutes ?? globalSettings.intervalMinutes,
         dailyGoalProgress: dailyGoal !== undefined
