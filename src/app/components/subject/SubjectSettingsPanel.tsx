@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal";
 import { KromeSettings, KromeSubject } from "../../types";
+import { buildSubjectSettingsOverrides } from "../../services/subjectService";
 import { AnalyticsCard } from "../analytics/AnalyticsCard";
 import { KromeSlider } from "../ui/KromeSlider";
 import { KromeToggle } from "../ui/KromeToggle";
@@ -41,75 +42,73 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate }: SubjectSet
       settings.weeklyGoalProgress.target,
     ]
   );
-  const [draftSettings, setDraftSettings] = useState(resolvedSettings);
-  const resolvedSettingsKey = JSON.stringify(resolvedSettings);
-  const draftSettingsKey = JSON.stringify(draftSettings);
 
-  useEffect(() => {
-    setDraftSettings(resolvedSettings);
-  }, [resolvedSettingsKey]);
+  const updateResolvedSettings = (nextSettings: Partial<typeof resolvedSettings>) => {
+    const mergedSettings = {
+      ...resolvedSettings,
+      ...nextSettings,
+    };
 
-  useEffect(() => {
-    if (draftSettingsKey === resolvedSettingsKey) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      onUpdate(draftSettings);
-    }, 300);
-
-    return () => window.clearTimeout(timeout);
-  }, [draftSettings, draftSettingsKey, onUpdate, resolvedSettingsKey]);
+    onUpdate(
+      buildSubjectSettingsOverrides(
+        {
+          blockMinutes: mergedSettings.sessionDuration ?? mergedSettings.blockMinutes,
+          intervalMinutes: mergedSettings.plipInterval ?? mergedSettings.intervalMinutes,
+          soundEnabled: mergedSettings.soundEnabled,
+          volume: mergedSettings.volume,
+          dailyGoal: mergedSettings.dailyGoal,
+          weeklyGoal: mergedSettings.weeklyGoal,
+        },
+        settings
+      )
+    );
+  };
 
   return (
     <AnalyticsCard title="Subject Settings" icon={SlidersHorizontal}>
       <div className="space-y-5">
         <KromeSlider
           label="Session Duration"
-          value={draftSettings.sessionDuration ?? settings.blockMinutes}
+          value={resolvedSettings.sessionDuration ?? settings.blockMinutes}
           min={1}
           max={180}
-          onValueChange={(value) =>
-            setDraftSettings((prev) => ({ ...prev, sessionDuration: value, blockMinutes: value }))
-          }
+          onValueChange={(value) => updateResolvedSettings({ sessionDuration: value, blockMinutes: value })}
         />
         <KromeSlider
           label="Plip Interval"
-          value={draftSettings.plipInterval ?? settings.intervalMinutes}
+          value={resolvedSettings.plipInterval ?? settings.intervalMinutes}
           min={1}
           max={60}
-          onValueChange={(value) =>
-            setDraftSettings((prev) => ({ ...prev, plipInterval: value, intervalMinutes: value }))
-          }
+          onValueChange={(value) => updateResolvedSettings({ plipInterval: value, intervalMinutes: value })}
         />
         <KromeToggle
           label="Sound Feedback"
           description={`Global default is ${settings.soundEnabled ? "on" : "off"}.`}
-          checked={draftSettings.soundEnabled ?? settings.soundEnabled}
-          onCheckedChange={(value) => setDraftSettings((prev) => ({ ...prev, soundEnabled: value }))}
+          checked={resolvedSettings.soundEnabled ?? settings.soundEnabled}
+          onCheckedChange={(value) => updateResolvedSettings({ soundEnabled: value })}
         />
-        {(draftSettings.soundEnabled ?? settings.soundEnabled) ? (
+        {(resolvedSettings.soundEnabled ?? settings.soundEnabled) ? (
           <KromeSlider
             label="Plip Volume"
-            value={Math.round((draftSettings.volume ?? settings.volume) * 100)}
+            value={Math.round((resolvedSettings.volume ?? settings.volume) * 100)}
             min={1}
             max={100}
-            onValueChange={(value) => setDraftSettings((prev) => ({ ...prev, volume: value / 100 }))}
+            onValueChange={(value) => updateResolvedSettings({ volume: value / 100 })}
           />
         ) : null}
         <KromeSlider
           label="Daily Goal"
-          value={typeof draftSettings.dailyGoal === "number" ? draftSettings.dailyGoal : settings.dailyGoalProgress.target}
+          value={typeof resolvedSettings.dailyGoal === "number" ? resolvedSettings.dailyGoal : settings.dailyGoalProgress.target}
           min={1}
           max={100}
-          onValueChange={(value) => setDraftSettings((prev) => ({ ...prev, dailyGoal: value }))}
+          onValueChange={(value) => updateResolvedSettings({ dailyGoal: value })}
         />
         <KromeSlider
           label="Weekly Goal"
-          value={typeof draftSettings.weeklyGoal === "number" ? draftSettings.weeklyGoal : settings.weeklyGoalProgress.target}
+          value={typeof resolvedSettings.weeklyGoal === "number" ? resolvedSettings.weeklyGoal : settings.weeklyGoalProgress.target}
           min={1}
           max={500}
-          onValueChange={(value) => setDraftSettings((prev) => ({ ...prev, weeklyGoal: value }))}
+          onValueChange={(value) => updateResolvedSettings({ weeklyGoal: value })}
         />
       </div>
     </AnalyticsCard>

@@ -5,6 +5,7 @@ import { getTasks } from "../../services/taskService";
 import { useKromeStore } from "../../hooks/useKrome";
 import { SubjectSettingsForm } from "./SubjectSettingsForm";
 import { normalizeGoalProgress } from "../../utils/goalUtils";
+import { buildSubjectSettingsOverrides } from "../../services/subjectService";
 import Folder from "lucide-react/dist/esm/icons/folder";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
@@ -25,32 +26,14 @@ const COLOR_VALUES: Record<string, string> = {
 
 function buildEditableSettings(settings: SubjectSettings | undefined, defaults: KromeSettings) {
     return {
-        blockMinutes: settings?.blockMinutes ?? defaults.blockMinutes,
-        intervalMinutes: settings?.intervalMinutes ?? defaults.intervalMinutes,
+        blockMinutes: settings?.blockMinutes ?? settings?.sessionDuration ?? defaults.blockMinutes,
+        intervalMinutes: settings?.intervalMinutes ?? settings?.plipInterval ?? defaults.intervalMinutes,
         soundEnabled: settings?.soundEnabled ?? defaults.soundEnabled,
         volume: settings?.volume ?? defaults.volume,
         dailyGoal: normalizeGoalProgress(settings?.dailyGoal, defaults.dailyGoalProgress),
         weeklyGoal: normalizeGoalProgress(settings?.weeklyGoal, defaults.weeklyGoalProgress),
         strictMode: settings?.strictMode ?? defaults.strictMode,
     };
-}
-
-function buildSubjectSettingsOverrides(settings: ReturnType<typeof buildEditableSettings>, defaults: KromeSettings): SubjectSettings {
-    const overrides: SubjectSettings = {};
-
-    if (settings.blockMinutes !== defaults.blockMinutes) overrides.blockMinutes = settings.blockMinutes;
-    if (settings.intervalMinutes !== defaults.intervalMinutes) overrides.intervalMinutes = settings.intervalMinutes;
-    if (settings.soundEnabled !== defaults.soundEnabled) overrides.soundEnabled = settings.soundEnabled;
-    if (Math.abs(settings.volume - defaults.volume) > 0.001) overrides.volume = settings.volume;
-    if (settings.dailyGoal.type !== defaults.dailyGoalProgress.type || settings.dailyGoal.target !== defaults.dailyGoalProgress.target) {
-        overrides.dailyGoal = settings.dailyGoal;
-    }
-    if (settings.weeklyGoal.type !== defaults.weeklyGoalProgress.type || settings.weeklyGoal.target !== defaults.weeklyGoalProgress.target) {
-        overrides.weeklyGoal = settings.weeklyGoal;
-    }
-    if (settings.strictMode !== defaults.strictMode) overrides.strictMode = settings.strictMode;
-
-    return overrides;
 }
 
 export function SubjectManager() {

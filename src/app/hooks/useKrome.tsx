@@ -7,7 +7,7 @@ import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
 import { STORAGE_KEYS, getHistory, getItem, initializeStorage, setItem, subscribeToKey } from "../services/storageService";
-import { getSubjects, resolveSettings } from "../services/subjectService";
+import { getSubjects, normalizeSubjectSettings, resolveSettings } from "../services/subjectService";
 import { renderInsightText } from "../services/aiService";
 import { generateInsightFlashcards, type DeterministicInsightCard } from "../services/insightService";
 import { emitNotification, evaluateNotifications } from "../services/notificationService";
@@ -394,6 +394,28 @@ export function useKromeLogic() {
     [history, settings.weeklyGoalProgress, subjects, weeklyPlan]
   );
 
+  const commitSettings = (nextSettings: KromeSettings) => {
+    const normalizedSettings = syncGlobalGoalProgress(nextSettings);
+    setSettings(normalizedSettings);
+    setItem(STORAGE_KEYS.SETTINGS, normalizedSettings);
+  };
+
+  const commitSubjects = (
+    nextSubjects:
+      | KromeSubject[]
+      | ((previousSubjects: KromeSubject[]) => KromeSubject[])
+  ) => {
+    setSubjects((previousSubjects) => {
+      const resolvedSubjects =
+        typeof nextSubjects === "function"
+          ? nextSubjects(previousSubjects)
+          : nextSubjects;
+
+      setItem(STORAGE_KEYS.SUBJECTS, resolvedSubjects);
+      return resolvedSubjects;
+    });
+  };
+
   useEffect(() => {
     const unsubscribeHistory = subscribeToKey<HistoryEntry[]>(STORAGE_KEYS.HISTORY, (nextHistory) => {
       startTransition(() => {
@@ -412,12 +434,10 @@ export function useKromeLogic() {
     };
   }, []);
 
-  useEffect(() => setItem(STORAGE_KEYS.SETTINGS, settings), [settings]);
   useEffect(() => setItem(STORAGE_KEYS.DAY, day), [day]);
   useEffect(() => setItem(STORAGE_KEYS.SESSION, session), [session]);
   useEffect(() => setItem(STORAGE_KEYS.STREAK, streak), [streak]);
   useEffect(() => setItem(STORAGE_KEYS.HISTORY, history), [history]);
-  useEffect(() => setItem(STORAGE_KEYS.SUBJECTS, subjects), [subjects]);
   useEffect(() => setItem(STORAGE_KEYS.NOTIFICATIONS, notifications), [notifications]);
 
   useEffect(() => {
@@ -450,11 +470,15 @@ export function useKromeLogic() {
     const previewSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : settings;
     const nextTotalDurationMinutes = previewSettings.blockMinutes;
     const nextIntervalMinutes = previewSettings.intervalMinutes;
+    const nextSoundEnabled = previewSettings.soundEnabled;
+    const nextVolume = previewSettings.volume;
     const nextTotalBlocks = getTotalBlocks(nextTotalDurationMinutes, nextIntervalMinutes);
 
     if (
       session.totalDurationMinutes === nextTotalDurationMinutes &&
       session.intervalMinutes === nextIntervalMinutes &&
+      session.soundEnabled === nextSoundEnabled &&
+      session.volume === nextVolume &&
       session.totalBlocks === nextTotalBlocks
     ) {
       return;
@@ -467,6 +491,8 @@ export function useKromeLogic() {
             ...prev,
             totalDurationMinutes: nextTotalDurationMinutes,
             intervalMinutes: nextIntervalMinutes,
+            soundEnabled: nextSoundEnabled,
+            volume: nextVolume,
             totalBlocks: nextTotalBlocks,
           }
     );
@@ -999,11 +1025,11 @@ export function useKromeLogic() {
       name: nextName,
       createdAt: Date.now(),
       color: requestedColor ?? assignSubjectColor(existingColors),
-      settings: requestedSettings ?? {},
+      settings: normalizeSubjectSettings(requestedSettings ?? {}),
       archived: false,
     };
 
-    setSubjects((prev) => [...prev, newSubject]);
+    commitSubjects((prev) => [...prev, newSubject]);
     return newSubject.id;
   };
 
@@ -1012,15 +1038,15 @@ export function useKromeLogic() {
   };
 
   const updateSubjectSettings = (id: string, nextSettings: KromeSubject["settings"]) => {
-    setSubjects((prev) =>
+    commitSubjects((prev) =>
       prev.map((subject) =>
         subject.id === id
           ? {
               ...subject,
-              settings: {
+              settings: normalizeSubjectSettings({
                 ...(subject.settings ?? {}),
                 ...(nextSettings ?? {}),
-              },
+              }),
             }
           : subject
       )
@@ -1041,16 +1067,16 @@ export function useKromeLogic() {
   };
 
   const editSubject = (id: string, updates: SubjectUpdates) => {
-    setSubjects((prev) =>
+    commitSubjects((prev) =>
       prev.map((subject) =>
         subject.id === id
           ? {
               ...subject,
               ...updates,
-              settings: {
+              settings: normalizeSubjectSettings({
                 ...(subject.settings ?? {}),
                 ...(updates.settings ?? {}),
-              },
+              }),
             }
           : subject
       )
@@ -1066,7 +1092,7 @@ export function useKromeLogic() {
   };
 
   const deleteSubject = (id: string) => {
-    setSubjects((prev) => prev.filter((subject) => subject.id !== id));
+    commitSubjects((prev) => prev.filter((subject) => subject.id !== id));
     setActiveSubjectViewId((prev) => (prev === id ? null : prev));
     setSession((prev) =>
       prev.subjectId === id
@@ -1076,7 +1102,7 @@ export function useKromeLogic() {
   };
 
   const deleteSubjectDeep = (id: string, name: string) => {
-    setSubjects((prev) => prev.filter((subject) => subject.id !== id));
+    commitSubjects((prev) => prev.filter((subject) => subject.id !== id));
     setActiveSubjectViewId((prev) => (prev === id ? null : prev));
     setSession((prev) =>
       prev.subjectId === id
@@ -1110,7 +1136,7 @@ export function useKromeLogic() {
     },
     actions: {
       setView,
-      setSettings: (nextSettings) => setSettings(syncGlobalGoalProgress(nextSettings)),
+      setSettings: commitSettings,
       setIsSessionActive,
       setSubjectView: (subjectId: string) => {
         setActiveSubjectViewId(subjectId);

@@ -46,13 +46,24 @@ const ALL_LOCAL_STORAGE_KEYS = [
 ];
 
 const storageCache = new Map<string, unknown>();
+const storageUpdatedAt = new Map<string, number>();
 const storageListeners = new Map<string, Set<(value: unknown) => void>>();
 const writeQueue = new Map<string, Promise<void>>();
 let initializationPromise: Promise<void> | null = null;
+const STORAGE_RELOAD_JOURNAL_PREFIX = "krome_reload_journal_";
+const STORAGE_RELOAD_JOURNAL_KEYS = new Set<string>([
+  STORAGE_KEYS.SETTINGS,
+  STORAGE_KEYS.SUBJECTS,
+]);
 const storageBroadcastChannel =
   typeof window !== "undefined" && "BroadcastChannel" in window
     ? new BroadcastChannel(STORAGE_BROADCAST_CHANNEL_NAME)
     : null;
+
+type StorageReloadJournalEntry<T> = {
+  updatedAt: number;
+  value: T;
+};
 
 function broadcastStorageChange(key: string) {
   storageBroadcastChannel?.postMessage({ type: "refresh", key });
@@ -67,6 +78,7 @@ if (storageBroadcastChannel) {
 
     if (event.data?.type === "reset") {
       storageCache.clear();
+      storageUpdatedAt.clear();
       initializationPromise = null;
     }
   };
@@ -91,6 +103,75 @@ function removeLegacyLocalStorageKey(key: string) {
   } catch (error) {
     console.warn(`Failed to clear legacy localStorage key ${key}`, error);
   }
+}
+
+function getReloadJournalKey(key: string) {
+  return `${STORAGE_RELOAD_JOURNAL_PREFIX}${key}`;
+}
+
+function readReloadJournal<T>(key: string): StorageReloadJournalEntry<T> | null {
+  if (typeof window === "undefined" || !STORAGE_RELOAD_JOURNAL_KEYS.has(key)) {
+    return null;
+  }
+
+  try {
+    const raw = localStorage.getItem(getReloadJournalKey(key));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<StorageReloadJournalEntry<T>>;
+    if (typeof parsed.updatedAt !== "number") {
+      return null;
+    }
+
+    return {
+      updatedAt: parsed.updatedAt,
+      value: parsed.value as T,
+    };
+  } catch (error) {
+    console.warn(`Failed to read reload journal for ${key}`, error);
+    return null;
+  }
+}
+
+function writeReloadJournal<T>(key: string, value: T, updatedAt: number) {
+  if (typeof window === "undefined" || !STORAGE_RELOAD_JOURNAL_KEYS.has(key)) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      getReloadJournalKey(key),
+      JSON.stringify({
+        updatedAt,
+        value,
+      } satisfies StorageReloadJournalEntry<T>)
+    );
+  } catch (error) {
+    console.warn(`Failed to persist reload journal for ${key}`, error);
+  }
+}
+
+function clearReloadJournal(key: string) {
+  if (typeof window === "undefined" || !STORAGE_RELOAD_JOURNAL_KEYS.has(key)) {
+    return;
+  }
+
+  removeLegacyLocalStorageKey(getReloadJournalKey(key));
+}
+
+function getCollectionUpdatedAt(records: unknown[]): number {
+  return records.reduce((latestTimestamp, record) => {
+    if (!record || typeof record !== "object") {
+      return latestTimestamp;
+    }
+
+    const nextTimestamp =
+      (record as { updatedAt?: number }).updatedAt ??
+      (record as { createdAt?: number }).createdAt ??
+      0;
+
+    return Math.max(latestTimestamp, nextTimestamp);
+  }, 0);
 }
 
 export function getDatasetOwnerId() {
@@ -126,8 +207,11 @@ function notifyListeners(key: string) {
   listeners.forEach((listener) => listener(value));
 }
 
-function applyCacheValue<T>(key: string, value: T, notify = true) {
+function applyCacheValue<T>(key: string, value: T, notify = true, updatedAt?: number) {
   storageCache.set(key, value);
+  if (typeof updatedAt === "number") {
+    storageUpdatedAt.set(key, updatedAt);
+  }
   if (notify) {
     notifyListeners(key);
   }
@@ -195,17 +279,19 @@ async function hydrateCacheFromIndexedDb() {
   ]);
 
   keyValues.forEach((entry) => {
-    storageCache.set(entry.key, entry.value);
+    applyCacheValue(entry.key, entry.value, false, entry.updatedAt);
   });
 
-  storageCache.set(STORAGE_KEYS.SUBJECTS, subjects);
-  storageCache.set(STORAGE_KEYS.TASKS, tasks);
-  storageCache.set(
+  applyCacheValue(STORAGE_KEYS.SUBJECTS, subjects, false, getCollectionUpdatedAt(subjects));
+  applyCacheValue(STORAGE_KEYS.TASKS, tasks, false, getCollectionUpdatedAt(tasks));
+  applyCacheValue(
     STORAGE_KEYS.HISTORY,
-    focusSessions.map((entry) => migrateHistoryEntry(entry))
+    focusSessions.map((entry) => migrateHistoryEntry(entry)),
+    false,
+    getCollectionUpdatedAt(focusSessions)
   );
-  storageCache.set(STORAGE_KEYS.OBSERVATIONS, observations);
-  storageCache.set(STORAGE_KEYS.MILESTONES, milestones);
+  applyCacheValue(STORAGE_KEYS.OBSERVATIONS, observations, false, getCollectionUpdatedAt(observations));
+  applyCacheValue(STORAGE_KEYS.MILESTONES, milestones, false, getCollectionUpdatedAt(milestones));
 }
 
 async function migrateLegacyKeyValue(key: string) {
@@ -282,6 +368,28 @@ async function migrateLegacyLocalStorage() {
   await hydrateCacheFromIndexedDb();
 }
 
+async function reconcileReloadJournalEntry(key: string) {
+  const journalEntry = readReloadJournal<unknown>(key);
+  if (!journalEntry) {
+    return;
+  }
+
+  const currentUpdatedAt = storageUpdatedAt.get(key) ?? 0;
+  if (journalEntry.updatedAt <= currentUpdatedAt) {
+    return;
+  }
+
+  const previousValue = storageCache.get(key);
+  applyCacheValue(key, journalEntry.value, false, journalEntry.updatedAt);
+  await persistCollection(key, previousValue, journalEntry.value);
+}
+
+async function reconcileReloadJournal() {
+  await Promise.all(
+    Array.from(STORAGE_RELOAD_JOURNAL_KEYS).map((key) => reconcileReloadJournalEntry(key))
+  );
+}
+
 export async function initializeStorage() {
   if (initializationPromise) {
     return initializationPromise;
@@ -291,6 +399,7 @@ export async function initializeStorage() {
     await db.open();
     await hydrateCacheFromIndexedDb();
     await migrateLegacyLocalStorage();
+    await reconcileReloadJournal();
 
     if (!storageCache.has(STORAGE_KEYS.SUBJECTS)) applyCacheValue(STORAGE_KEYS.SUBJECTS, [], false);
     if (!storageCache.has(STORAGE_KEYS.TASKS)) applyCacheValue(STORAGE_KEYS.TASKS, [], false);
@@ -310,11 +419,13 @@ export async function initializeStorage() {
 
 export async function clearLocalPersistence() {
   storageCache.clear();
+  storageUpdatedAt.clear();
   initializationPromise = null;
   storageBroadcastChannel?.postMessage({ type: "reset" });
 
   if (typeof window !== "undefined") {
     ALL_LOCAL_STORAGE_KEYS.forEach((key) => removeLegacyLocalStorageKey(key));
+    Array.from(STORAGE_RELOAD_JOURNAL_KEYS).forEach((key) => clearReloadJournal(key));
   }
 
   db.close();
@@ -348,7 +459,9 @@ export function getItem<T>(key: string, fallback: T): T {
 
 export function setItem<T>(key: string, value: T): void {
   const previousValue = storageCache.get(key);
-  applyCacheValue(key, value);
+  const updatedAt = Date.now();
+  applyCacheValue(key, value, true, updatedAt);
+  writeReloadJournal(key, value, updatedAt);
   enqueueWrite(key, () => persistCollection(key, previousValue, value));
 }
 
@@ -361,21 +474,33 @@ export async function refreshStorageKey(key: string) {
       );
       return;
     case STORAGE_KEYS.SUBJECTS:
-      applyCacheValue(key, await getStoredSubjects());
+      {
+        const subjects = await getStoredSubjects();
+        applyCacheValue(key, subjects, true, getCollectionUpdatedAt(subjects));
+      }
       return;
     case STORAGE_KEYS.TASKS:
-      applyCacheValue(key, await getStoredTasks());
+      {
+        const tasks = await getStoredTasks();
+        applyCacheValue(key, tasks, true, getCollectionUpdatedAt(tasks));
+      }
       return;
     case STORAGE_KEYS.OBSERVATIONS:
-      applyCacheValue(key, await getStoredObservations());
+      {
+        const observations = await getStoredObservations();
+        applyCacheValue(key, observations, true, getCollectionUpdatedAt(observations));
+      }
       return;
     case STORAGE_KEYS.MILESTONES:
-      applyCacheValue(key, await getStoredMilestones());
+      {
+        const milestones = await getStoredMilestones();
+        applyCacheValue(key, milestones, true, getCollectionUpdatedAt(milestones));
+      }
       return;
     default: {
       const entry = await db.kv.get(key);
       if (entry) {
-        applyCacheValue(key, entry.value);
+        applyCacheValue(key, entry.value, true, entry.updatedAt);
       }
     }
   }

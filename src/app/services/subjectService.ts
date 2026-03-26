@@ -27,27 +27,100 @@ function normalizeVolume(value: number | undefined) {
     return Math.min(1, Math.max(0, value));
 }
 
-function normalizeSubject(subject: Subject, fallbackColor?: string): Subject {
-    const rawSettings = subject.settings as LegacySubjectSettings | undefined;
+export function normalizeSubjectSettings(settings: SubjectSettings | undefined): SubjectSettings {
+    const rawSettings = settings as LegacySubjectSettings | undefined;
     const {
         muteFillSound,
         soundVolume,
         ...settingsWithoutLegacyKeys
     } = rawSettings ?? {};
-    const normalizedSettings = rawSettings
-        ? {
+    const sessionDuration = settingsWithoutLegacyKeys.sessionDuration ?? settingsWithoutLegacyKeys.blockMinutes;
+    const blockMinutes = settingsWithoutLegacyKeys.blockMinutes ?? settingsWithoutLegacyKeys.sessionDuration;
+    const plipInterval = settingsWithoutLegacyKeys.plipInterval ?? settingsWithoutLegacyKeys.intervalMinutes;
+    const intervalMinutes = settingsWithoutLegacyKeys.intervalMinutes ?? settingsWithoutLegacyKeys.plipInterval;
+    const soundEnabled =
+        typeof settingsWithoutLegacyKeys.soundEnabled === 'boolean'
+            ? settingsWithoutLegacyKeys.soundEnabled
+            : muteFillSound !== undefined
+                ? !muteFillSound
+                : undefined;
+    const volume = normalizeVolume(settingsWithoutLegacyKeys.volume ?? soundVolume);
+
+    return Object.fromEntries(
+        Object.entries({
             ...settingsWithoutLegacyKeys,
-            plipInterval: settingsWithoutLegacyKeys.plipInterval ?? settingsWithoutLegacyKeys.intervalMinutes,
-            sessionDuration: settingsWithoutLegacyKeys.sessionDuration ?? settingsWithoutLegacyKeys.blockMinutes,
-            soundEnabled:
-                typeof settingsWithoutLegacyKeys.soundEnabled === 'boolean'
-                    ? settingsWithoutLegacyKeys.soundEnabled
-                    : muteFillSound !== undefined
-                        ? !muteFillSound
-                        : undefined,
-            volume: normalizeVolume(settingsWithoutLegacyKeys.volume ?? soundVolume),
-        }
-        : {};
+            sessionDuration,
+            blockMinutes,
+            plipInterval,
+            intervalMinutes,
+            soundEnabled,
+            volume,
+        }).filter(([, value]) => value !== undefined)
+    ) as SubjectSettings;
+}
+
+type SubjectSettingsOverrideInput = Pick<SubjectSettings, 'dailyGoal' | 'weeklyGoal'> & {
+    blockMinutes?: number;
+    intervalMinutes?: number;
+    soundEnabled?: boolean;
+    volume?: number;
+    strictMode?: boolean;
+};
+
+export function buildSubjectSettingsOverrides(
+    settings: SubjectSettingsOverrideInput,
+    defaults: KromeSettings
+): SubjectSettings {
+    const overrides: SubjectSettings = {};
+    const normalizedVolume = normalizeVolume(settings.volume);
+    const normalizedDailyGoal = settings.dailyGoal
+        ? normalizeGoalProgress(settings.dailyGoal, defaults.dailyGoalProgress)
+        : undefined;
+    const normalizedWeeklyGoal = settings.weeklyGoal
+        ? normalizeGoalProgress(settings.weeklyGoal, defaults.weeklyGoalProgress)
+        : undefined;
+
+    if (settings.blockMinutes !== undefined && settings.blockMinutes !== defaults.blockMinutes) {
+        overrides.blockMinutes = settings.blockMinutes;
+        overrides.sessionDuration = settings.blockMinutes;
+    }
+    if (settings.intervalMinutes !== undefined && settings.intervalMinutes !== defaults.intervalMinutes) {
+        overrides.intervalMinutes = settings.intervalMinutes;
+        overrides.plipInterval = settings.intervalMinutes;
+    }
+    if (typeof settings.soundEnabled === 'boolean' && settings.soundEnabled !== defaults.soundEnabled) {
+        overrides.soundEnabled = settings.soundEnabled;
+    }
+    if (normalizedVolume !== undefined && Math.abs(normalizedVolume - defaults.volume) > 0.001) {
+        overrides.volume = normalizedVolume;
+    }
+    if (
+        normalizedDailyGoal &&
+        (
+            normalizedDailyGoal.type !== defaults.dailyGoalProgress.type ||
+            normalizedDailyGoal.target !== defaults.dailyGoalProgress.target
+        )
+    ) {
+        overrides.dailyGoal = normalizedDailyGoal;
+    }
+    if (
+        normalizedWeeklyGoal &&
+        (
+            normalizedWeeklyGoal.type !== defaults.weeklyGoalProgress.type ||
+            normalizedWeeklyGoal.target !== defaults.weeklyGoalProgress.target
+        )
+    ) {
+        overrides.weeklyGoal = normalizedWeeklyGoal;
+    }
+    if (typeof settings.strictMode === 'boolean' && settings.strictMode !== defaults.strictMode) {
+        overrides.strictMode = settings.strictMode;
+    }
+
+    return overrides;
+}
+
+function normalizeSubject(subject: Subject, fallbackColor?: string): Subject {
+    const normalizedSettings = normalizeSubjectSettings(subject.settings);
 
     return {
         ...subject,
@@ -68,7 +141,14 @@ export const getSubjects = (): Subject[] => {
     let changed = false;
     const normalized = subjects.map((subject) => {
         const nextColor = subject.color ?? assignSubjectColor(existingColors);
-        if (!subject.color || subject.createdAt === undefined || subject.settings === undefined || subject.archived === undefined) {
+        const normalizedSettings = normalizeSubjectSettings(subject.settings);
+        if (
+            !subject.color ||
+            subject.createdAt === undefined ||
+            subject.settings === undefined ||
+            subject.archived === undefined ||
+            JSON.stringify(subject.settings ?? {}) !== JSON.stringify(normalizedSettings)
+        ) {
             changed = true;
         }
         if (!existingColors.includes(nextColor)) {
@@ -92,17 +172,17 @@ export const saveSubject = (subject: Subject): void => {
         ? subjects.map((existingSubject, index) => index === existingIndex ? {
             ...existingSubject,
             ...subject,
-            settings: {
+            settings: normalizeSubjectSettings({
                 ...(existingSubject.settings ?? {}),
                 ...(subject.settings ?? {}),
-            },
+            }),
         } : existingSubject)
         : [...subjects, normalizeSubject(subject)];
     setItem(SUBJECTS_KEY, updatedSubjects);
 };
 
 export const saveSubjects = (subjects: Subject[]): void => {
-    setItem(SUBJECTS_KEY, subjects);
+    setItem(SUBJECTS_KEY, subjects.map((subject) => normalizeSubject(subject)));
 };
 
 export const deleteSubject = (id: string): void => {
@@ -124,7 +204,7 @@ export const resolveSettings = (
         return globalSettings;
     }
 
-    const overrides = subject.settings as LegacySubjectSettings;
+    const overrides = normalizeSubjectSettings(subject.settings) as LegacySubjectSettings;
     const subjectVolume = normalizeVolume(overrides.volume ?? overrides.soundVolume);
     const subjectSoundEnabled =
         typeof overrides.soundEnabled === 'boolean'
