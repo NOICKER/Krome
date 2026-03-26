@@ -43,6 +43,8 @@ export interface KromeSession {
   startTime: number | null; // Epoch MS
   totalDurationMinutes: number;
   intervalMinutes: number; // For brick filling
+  soundEnabled: boolean;
+  volume: number;
   totalBlocks: number;
   type: SessionType;
   status: SessionStatus;

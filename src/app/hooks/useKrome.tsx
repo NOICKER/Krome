@@ -73,6 +73,8 @@ const DEFAULT_SESSION: KromeSession = {
   startTime: null,
   totalDurationMinutes: 25,
   intervalMinutes: 5,
+  soundEnabled: true,
+  volume: 0.5,
   totalBlocks: 5,
   type: "standard",
   status: "idle",
@@ -146,11 +148,27 @@ function buildIdleSessionPreview(
     ...DEFAULT_SESSION,
     totalDurationMinutes: previewSettings.blockMinutes,
     intervalMinutes: previewSettings.intervalMinutes,
+    soundEnabled: previewSettings.soundEnabled,
+    volume: previewSettings.volume,
     totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
     subject: subject?.name ?? "",
     subjectId: subject?.id,
     subjectLocked: false,
     status: "idle",
+  };
+}
+
+function getSubjectRuntimeSettings(
+  subject: KromeSubject | undefined,
+  session: Pick<KromeSession, "totalDurationMinutes" | "intervalMinutes" | "soundEnabled" | "volume">
+) {
+  const subjectSettings = subject?.settings ?? {};
+
+  return {
+    totalDurationMinutes: subjectSettings.sessionDuration ?? subjectSettings.blockMinutes ?? session.totalDurationMinutes,
+    intervalMinutes: subjectSettings.plipInterval ?? subjectSettings.intervalMinutes ?? session.intervalMinutes,
+    soundEnabled: subjectSettings.soundEnabled ?? session.soundEnabled,
+    volume: subjectSettings.volume ?? session.volume,
   };
 }
 
@@ -347,6 +365,8 @@ export function useKromeLogic() {
   const [insightFlashcards, setInsightFlashcards] = useState<InsightFlashcard[]>([]);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
+  const fillTrackingKeyRef = useRef<string | null>(null);
+  const lastFilledRef = useRef(0);
 
   const currentSubject = useMemo(() => {
     if (session.subjectId) {
@@ -457,6 +477,93 @@ export function useKromeLogic() {
   ]);
 
   useEffect(() => {
+    if (!session.isActive || session.subjectId) {
+      return;
+    }
+
+    const nextTotalDurationMinutes = settings.blockMinutes;
+    const nextIntervalMinutes = settings.intervalMinutes;
+    const nextSoundEnabled = settings.soundEnabled;
+    const nextVolume = settings.volume;
+    const nextTotalBlocks = getTotalBlocks(nextTotalDurationMinutes, nextIntervalMinutes);
+
+    if (
+      session.totalDurationMinutes === nextTotalDurationMinutes &&
+      session.intervalMinutes === nextIntervalMinutes &&
+      session.soundEnabled === nextSoundEnabled &&
+      session.volume === nextVolume &&
+      session.totalBlocks === nextTotalBlocks
+    ) {
+      return;
+    }
+
+    setSession((prev) =>
+      prev.isActive && !prev.subjectId
+        ? {
+            ...prev,
+            totalDurationMinutes: nextTotalDurationMinutes,
+            intervalMinutes: nextIntervalMinutes,
+            soundEnabled: nextSoundEnabled,
+            volume: nextVolume,
+            totalBlocks: nextTotalBlocks,
+          }
+        : prev
+    );
+  }, [
+    session.isActive,
+    session.subjectId,
+    session.totalDurationMinutes,
+    session.intervalMinutes,
+    session.soundEnabled,
+    session.volume,
+    session.totalBlocks,
+    settings.blockMinutes,
+    settings.intervalMinutes,
+    settings.soundEnabled,
+    settings.volume,
+  ]);
+
+  useEffect(() => {
+    if (!session.isActive || !session.subjectId) {
+      return;
+    }
+
+    const activeSubject = subjects.find((subject) => subject.id === session.subjectId);
+    if (!activeSubject) {
+      return;
+    }
+
+    const runtimeSettings = getSubjectRuntimeSettings(activeSubject, session);
+    const nextTotalBlocks = getTotalBlocks(runtimeSettings.totalDurationMinutes, runtimeSettings.intervalMinutes);
+
+    if (
+      session.totalDurationMinutes === runtimeSettings.totalDurationMinutes &&
+      session.intervalMinutes === runtimeSettings.intervalMinutes &&
+      session.soundEnabled === runtimeSettings.soundEnabled &&
+      session.volume === runtimeSettings.volume &&
+      session.totalBlocks === nextTotalBlocks
+    ) {
+      return;
+    }
+
+    setSession((prev) =>
+      prev.isActive && prev.subjectId === session.subjectId
+        ? {
+            ...prev,
+            totalDurationMinutes: runtimeSettings.totalDurationMinutes,
+            intervalMinutes: runtimeSettings.intervalMinutes,
+            soundEnabled: runtimeSettings.soundEnabled,
+            volume: runtimeSettings.volume,
+            totalBlocks: nextTotalBlocks,
+          }
+        : prev
+    );
+  }, [
+    session,
+    subjects,
+  ]);
+
+  useEffect(() => {
     setWeeklyPlan(getCurrentWeekPlan());
   }, [week.weekStartDate]);
 
@@ -515,6 +622,8 @@ export function useKromeLogic() {
   useEffect(() => {
     if (!session.isActive || session.startTime === null) {
       setElapsed(0);
+      fillTrackingKeyRef.current = null;
+      lastFilledRef.current = 0;
       return;
     }
 
@@ -523,28 +632,36 @@ export function useKromeLogic() {
     }
 
     const intervalMs = session.intervalMinutes * 60 * 1000;
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+      return;
+    }
+
     const maxAudibleFill = Number.isFinite(session.totalBlocks)
       ? Math.max(session.totalBlocks - 1, 0)
       : Number.POSITIVE_INFINITY;
-    let lastFilled = Math.min(
-      Math.floor((Date.now() - session.startTime) / intervalMs),
-      maxAudibleFill
-    );
+    const fillTrackingKey = `${session.startTime}:${session.intervalMinutes}:${session.totalBlocks}`;
+    if (fillTrackingKeyRef.current !== fillTrackingKey) {
+      fillTrackingKeyRef.current = fillTrackingKey;
+      lastFilledRef.current = Math.min(
+        Math.floor((Date.now() - session.startTime) / intervalMs),
+        maxAudibleFill
+      );
+    }
 
     const tick = () => {
       const now = Date.now();
       const newElapsed = now - session.startTime!;
 
       const newFilled = Math.min(Math.floor(newElapsed / intervalMs), maxAudibleFill);
-      const missedFills = newFilled - lastFilled;
+      const missedFills = newFilled - lastFilledRef.current;
       if (missedFills > 0) {
-        if (resolvedSettings.soundEnabled) {
+        if (session.soundEnabled) {
           void playFillSounds(
             Math.min(missedFills, MAX_TIMER_SOUND_CATCH_UP),
-            resolvedSettings.volume ?? 0.5
+            session.volume ?? 0.5
           );
         }
-        lastFilled = newFilled;
+        lastFilledRef.current = newFilled;
       }
 
       setElapsed(newElapsed);
@@ -559,9 +676,16 @@ export function useKromeLogic() {
 
     return () => clearInterval(interval);
   }, [
-    session,
-    resolvedSettings.soundEnabled,
-    resolvedSettings.volume,
+    session.isActive,
+    session.startTime,
+    session.status,
+    session.activeInterruptStartTime,
+    session.intervalMinutes,
+    session.totalBlocks,
+    session.totalDurationMinutes,
+    session.claimedEndTime,
+    session.soundEnabled,
+    session.volume,
   ]);
 
   useEffect(() => {
@@ -819,7 +943,7 @@ export function useKromeLogic() {
     setIsSessionActive(false);
 
     if (completed) {
-      if (activeSessionSettings.soundEnabled) playEndSound(activeSessionSettings.volume ?? 0.5, 1000, 1);
+      if (session.soundEnabled) playEndSound(session.volume ?? 0.5, 1000, 1);
       if (activeSessionSettings.notifications && "Notification" in window && Notification.permission === "granted") {
         new Notification("Block Complete", {
           body: "Focus session recorded.",
@@ -853,6 +977,8 @@ export function useKromeLogic() {
         subjectLocked: false,
         totalDurationMinutes: previewSettings.blockMinutes,
         intervalMinutes: previewSettings.intervalMinutes,
+        soundEnabled: previewSettings.soundEnabled,
+        volume: previewSettings.volume,
         totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
       };
     });

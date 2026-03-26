@@ -7,6 +7,8 @@ export function createNewSession(settings: KromeSettings): KromeSession {
         status: 'running',
         totalDurationMinutes: settings.blockMinutes,
         intervalMinutes: settings.intervalMinutes,
+        soundEnabled: settings.soundEnabled,
+        volume: settings.volume,
         totalBlocks: Math.max(1, Math.floor(settings.blockMinutes / settings.intervalMinutes)),
         type: 'standard', // default
         subject: '',
