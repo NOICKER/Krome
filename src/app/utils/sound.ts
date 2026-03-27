@@ -1,11 +1,30 @@
 // Simple synth for sounds
 let audioCtx: AudioContext | null = null;
 const MIN_GAIN = 0.0001;
-const SCHEDULE_LOOKAHEAD_SECONDS = 0.01;
+const SCHEDULE_LOOKAHEAD_SECONDS = 0.03;
+const FILL_SOUND_DURATION_SECONDS = 0.18;
+let fillSoundBuffer: AudioBuffer | null = null;
+let scheduledFillSources: AudioBufferSourceNode[] = [];
+let hasVisibilityResumeListener = false;
+
+function ensureVisibilityResumeListener() {
+  if (typeof document === "undefined" || hasVisibilityResumeListener) {
+    return;
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && audioCtx?.state === "suspended") {
+      void audioCtx.resume().catch(() => {});
+    }
+  });
+  hasVisibilityResumeListener = true;
+}
 
 const createAudioContext = (): AudioContext | null => {
   if (typeof window === "undefined") return null;
-  return new (window.AudioContext || (window as any).webkitAudioContext)();
+  const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  ensureVisibilityResumeListener();
+  return ctx;
 };
 
 const getAudioContext = async (): Promise<AudioContext | null> => {
@@ -30,7 +49,7 @@ function clampVolume(volume: number | undefined, fallback: number = 0.5) {
 
 function toFillGain(volume: number) {
   const normalized = clampVolume(volume);
-  return 0.02 + Math.pow(normalized, 1.15) * 0.18;
+  return 0.12 + Math.pow(normalized, 1.05) * 0.5;
 }
 
 function toEndGain(volume: number) {
@@ -45,21 +64,104 @@ function applyEnvelope(gain: AudioParam, startTime: number, peakGain: number, at
   gain.exponentialRampToValueAtTime(MIN_GAIN, startTime + attackSeconds + releaseSeconds);
 }
 
+function getFillSoundBuffer(ctx: AudioContext) {
+  if (fillSoundBuffer && fillSoundBuffer.sampleRate === ctx.sampleRate) {
+    return fillSoundBuffer;
+  }
+
+  const frameCount = Math.max(1, Math.floor(ctx.sampleRate * FILL_SOUND_DURATION_SECONDS));
+  const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+  const channelData = buffer.getChannelData(0);
+
+  for (let index = 0; index < frameCount; index += 1) {
+    const time = index / ctx.sampleRate;
+    const progress = time / FILL_SOUND_DURATION_SECONDS;
+    const attack = Math.min(1, time / 0.01);
+    const decay = Math.exp(-7 * progress);
+    const envelope = attack * decay;
+    const baseFrequency = 720 + 280 * progress;
+    const shimmerFrequency = baseFrequency * 2;
+
+    const tone =
+      Math.sin(2 * Math.PI * baseFrequency * time) * 0.8 +
+      Math.sin(2 * Math.PI * shimmerFrequency * time) * 0.25;
+
+    channelData[index] = tone * envelope;
+  }
+
+  fillSoundBuffer = buffer;
+  return buffer;
+}
+
 function scheduleFillTone(ctx: AudioContext, volume: number, startTime: number) {
-  const oscillator = ctx.createOscillator();
+  const source = ctx.createBufferSource();
   const gainNode = ctx.createGain();
 
-  oscillator.connect(gainNode);
+  source.buffer = getFillSoundBuffer(ctx);
+  source.connect(gainNode);
   gainNode.connect(ctx.destination);
 
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(600, startTime);
-  oscillator.frequency.exponentialRampToValueAtTime(840, startTime + 0.12);
+  gainNode.gain.setValueAtTime(toFillGain(volume), startTime);
 
-  applyEnvelope(gainNode.gain, startTime, toFillGain(volume), 0.015, 0.16);
+  source.start(startTime);
+  source.stop(startTime + FILL_SOUND_DURATION_SECONDS);
+  source.onended = () => {
+    scheduledFillSources = scheduledFillSources.filter((entry) => entry !== source);
+  };
+  scheduledFillSources.push(source);
+}
 
-  oscillator.start(startTime);
-  oscillator.stop(startTime + 0.2);
+export function cancelScheduledFillSounds() {
+  scheduledFillSources.forEach((source) => {
+    try {
+      source.stop();
+    } catch {
+      // Source may already be stopped; that's fine.
+    }
+    source.disconnect();
+  });
+  scheduledFillSources = [];
+}
+
+export const scheduleFillSoundsForSession = async ({
+  startTimeMs,
+  intervalMinutes,
+  totalBlocks,
+  volume = 0.5,
+}: {
+  startTimeMs: number;
+  intervalMinutes: number;
+  totalBlocks: number;
+  volume?: number;
+}) => {
+  try {
+    const ctx = await getAudioContext();
+    if (!ctx) return;
+
+    cancelScheduledFillSounds();
+
+    const intervalMs = intervalMinutes * 60 * 1000;
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+      return;
+    }
+
+    const maxAudibleFill = Number.isFinite(totalBlocks)
+      ? Math.max(totalBlocks - 1, 0)
+      : 0;
+    const nowMs = Date.now();
+
+    for (let fillIndex = 1; fillIndex <= maxAudibleFill; fillIndex += 1) {
+      const targetWallTimeMs = startTimeMs + fillIndex * intervalMs;
+      if (targetWallTimeMs <= nowMs) {
+        continue;
+      }
+
+      const startTime = ctx.currentTime + ((targetWallTimeMs - nowMs) / 1000) + SCHEDULE_LOOKAHEAD_SECONDS;
+      scheduleFillTone(ctx, volume, startTime);
+    }
+  } catch (e) {
+    console.error("Audio playback failed", e);
+  }
 }
 
 // Call this on user interaction (e.g. Start button click) to pre-warm the AudioContext

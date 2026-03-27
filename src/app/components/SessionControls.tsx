@@ -63,6 +63,8 @@ export function SessionControls({
 
   const isAbandoned = session.status === 'abandoned';
   const isUniversalFocus = !session.subjectId;
+  const previewBlockMinutes = session.totalDurationMinutes;
+  const previewIntervalMinutes = session.intervalMinutes;
 
   if (session.isActive) {
     if (isAbandoned) {
@@ -210,13 +212,13 @@ export function SessionControls({
           className="w-full h-12 text-sm font-bold tracking-widest uppercase rounded-2xl bg-kromeAccent hover:bg-kromeAccent/85 text-white shadow-[0_0_18px_rgba(111,120,181,0.25)] hover:translate-y-[-1px] active:scale-98 transition-all duration-200"
         >
           <Play fill="currentColor" size={18} className="mr-3" />
-          {isUniversalFocus ? "Start Universal Focus" : `Start Block (${settings.blockMinutes}m)`}
+          {isUniversalFocus ? `Start Universal Focus (${previewBlockMinutes}m)` : `Start Block (${previewBlockMinutes}m)`}
         </Button>
 
         <p className="text-[11px] text-slate-500 uppercase tracking-[0.18em]">
           {isUniversalFocus
-            ? `Universal defaults: ${settings.blockMinutes}m block, ${settings.intervalMinutes}m plip`
-            : `${session.subject} settings: ${settings.blockMinutes}m block, ${settings.intervalMinutes}m plip`}
+            ? `Universal defaults: ${previewBlockMinutes}m block, ${previewIntervalMinutes}m plip`
+            : `${session.subject} settings: ${previewBlockMinutes}m block, ${previewIntervalMinutes}m plip`}
         </p>
 
         <p className="text-xs text-slate-600 font-mono tracking-widest uppercase animate-pulse">

@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { playEndSound, playFillSounds, warmUpAudio } from "../utils/sound";
+import { cancelScheduledFillSounds, playEndSound, scheduleFillSoundsForSession, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -95,8 +95,6 @@ const DEFAULT_SESSION: KromeSession = {
   isInterrupted: false,
   interruptDuration: 0,
 };
-
-const MAX_TIMER_SOUND_CATCH_UP = 8;
 
 const getTodayDate = () => format(new Date(), "yyyy-MM-dd");
 
@@ -365,8 +363,10 @@ export function useKromeLogic() {
   const [insightFlashcards, setInsightFlashcards] = useState<InsightFlashcard[]>([]);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
-  const fillTrackingKeyRef = useRef<string | null>(null);
-  const lastFilledRef = useRef(0);
+  const scheduledFillKeyRef = useRef<string | null>(null);
+  const settingsRef = useRef(settings);
+  const subjectsRef = useRef(subjects);
+  const sessionRef = useRef(session);
 
   const currentSubject = useMemo(() => {
     if (session.subjectId) {
@@ -396,6 +396,7 @@ export function useKromeLogic() {
 
   const commitSettings = (nextSettings: KromeSettings) => {
     const normalizedSettings = syncGlobalGoalProgress(nextSettings);
+    settingsRef.current = normalizedSettings;
     setSettings(normalizedSettings);
     setItem(STORAGE_KEYS.SETTINGS, normalizedSettings);
   };
@@ -411,10 +412,23 @@ export function useKromeLogic() {
           ? nextSubjects(previousSubjects)
           : nextSubjects;
 
+      subjectsRef.current = resolvedSubjects;
       setItem(STORAGE_KEYS.SUBJECTS, resolvedSubjects);
       return resolvedSubjects;
     });
   };
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    subjectsRef.current = subjects;
+  }, [subjects]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     const unsubscribeHistory = subscribeToKey<HistoryEntry[]>(STORAGE_KEYS.HISTORY, (nextHistory) => {
@@ -646,10 +660,60 @@ export function useKromeLogic() {
   }, [day.date, settings.dailyGoalProgress]);
 
   useEffect(() => {
+    if (
+      !session.isActive ||
+      session.startTime === null ||
+      session.status !== "running" ||
+      session.activeInterruptStartTime ||
+      !session.soundEnabled
+    ) {
+      scheduledFillKeyRef.current = null;
+      cancelScheduledFillSounds();
+      return;
+    }
+
+    const nextScheduledFillKey = [
+      session.startTime,
+      session.intervalMinutes,
+      session.totalBlocks,
+      session.totalDurationMinutes,
+      session.soundEnabled ? 1 : 0,
+      session.volume ?? 0.5,
+    ].join(":");
+
+    if (scheduledFillKeyRef.current === nextScheduledFillKey) {
+      return;
+    }
+
+    scheduledFillKeyRef.current = nextScheduledFillKey;
+    void scheduleFillSoundsForSession({
+      startTimeMs: session.startTime,
+      intervalMinutes: session.intervalMinutes,
+      totalBlocks: session.totalBlocks,
+      volume: session.volume ?? 0.5,
+    });
+
+    return () => {
+      if (scheduledFillKeyRef.current === nextScheduledFillKey) {
+        scheduledFillKeyRef.current = null;
+      }
+      cancelScheduledFillSounds();
+    };
+  }, [
+    session.isActive,
+    session.startTime,
+    session.status,
+    session.activeInterruptStartTime,
+    session.intervalMinutes,
+    session.totalBlocks,
+    session.totalDurationMinutes,
+    session.soundEnabled,
+    session.volume,
+  ]);
+
+  useEffect(() => {
     if (!session.isActive || session.startTime === null) {
       setElapsed(0);
-      fillTrackingKeyRef.current = null;
-      lastFilledRef.current = 0;
       return;
     }
 
@@ -657,38 +721,9 @@ export function useKromeLogic() {
       return;
     }
 
-    const intervalMs = session.intervalMinutes * 60 * 1000;
-    if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
-      return;
-    }
-
-    const maxAudibleFill = Number.isFinite(session.totalBlocks)
-      ? Math.max(session.totalBlocks - 1, 0)
-      : Number.POSITIVE_INFINITY;
-    const fillTrackingKey = `${session.startTime}:${session.intervalMinutes}:${session.totalBlocks}`;
-    if (fillTrackingKeyRef.current !== fillTrackingKey) {
-      fillTrackingKeyRef.current = fillTrackingKey;
-      lastFilledRef.current = Math.min(
-        Math.floor((Date.now() - session.startTime) / intervalMs),
-        maxAudibleFill
-      );
-    }
-
     const tick = () => {
       const now = Date.now();
       const newElapsed = now - session.startTime!;
-
-      const newFilled = Math.min(Math.floor(newElapsed / intervalMs), maxAudibleFill);
-      const missedFills = newFilled - lastFilledRef.current;
-      if (missedFills > 0) {
-        if (session.soundEnabled) {
-          void playFillSounds(
-            Math.min(missedFills, MAX_TIMER_SOUND_CATCH_UP),
-            session.volume ?? 0.5
-          );
-        }
-        lastFilledRef.current = newFilled;
-      }
 
       setElapsed(newElapsed);
 
@@ -700,18 +735,16 @@ export function useKromeLogic() {
     const interval = setInterval(tick, 200);
     tick();
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [
     session.isActive,
     session.startTime,
     session.status,
     session.activeInterruptStartTime,
-    session.intervalMinutes,
-    session.totalBlocks,
     session.totalDurationMinutes,
     session.claimedEndTime,
-    session.soundEnabled,
-    session.volume,
   ]);
 
   useEffect(() => {
@@ -749,11 +782,15 @@ export function useKromeLogic() {
   }, [day.date, day.goalProgress.current, week.weekStartDate, weeklyPlan, settings.notifications]);
 
   const startSession = (subject?: SubjectSelection, options?: StartSessionOptions) => {
-    if (session.isActive) return;
+    const latestSession = sessionRef.current;
+    const latestSettings = settingsRef.current;
+    const latestSubjects = subjectsRef.current;
+
+    if (latestSession.isActive) return;
 
     warmUpAudio();
-    const selectedSubject = subject ?? getSessionSubjectSelection(session);
-    const sessionSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : settings;
+    const selectedSubject = subject ?? getSessionSubjectSelection(latestSession);
+    const sessionSettings = selectedSubject ? resolveSettings(latestSettings, selectedSubject.id, latestSubjects) : latestSettings;
     const nextSession = createNewSession(sessionSettings);
     const intervalMinutes = options?.intervalMinutes ?? nextSession.intervalMinutes;
     const totalDurationMinutes = options?.totalDurationMinutes ?? nextSession.totalDurationMinutes;
@@ -768,10 +805,10 @@ export function useKromeLogic() {
       totalDurationMinutes,
       intervalMinutes,
       totalBlocks,
-      subject: selectedSubject?.name ?? session.subject,
-      subjectId: selectedSubject?.id ?? session.subjectId,
-      intent: session.intent,
-      taskId: session.taskId,
+      subject: selectedSubject?.name ?? latestSession.subject,
+      subjectId: selectedSubject?.id ?? latestSession.subjectId,
+      intent: latestSession.intent,
+      taskId: latestSession.taskId,
       subjectLocked: options?.lockSubject ?? false,
       interrupts: [],
       interruptCount: 0,
@@ -995,8 +1032,7 @@ export function useKromeLogic() {
   const updateSubject = (subject?: SubjectSelection) =>
     setSession((prev) => {
       const previewSettings = subject ? resolveSettings(settings, subject.id, subjects) : settings;
-
-      return {
+      const nextSession = {
         ...prev,
         subject: subject?.name ?? "",
         subjectId: subject?.id,
@@ -1007,10 +1043,21 @@ export function useKromeLogic() {
         volume: previewSettings.volume,
         totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
       };
+
+      sessionRef.current = nextSession;
+      return nextSession;
     });
 
-  const updateIntent = (val: string) => setSession((prev) => ({ ...prev, intent: val }));
-  const updateTaskId = (val: string | undefined) => setSession((prev) => ({ ...prev, taskId: val }));
+  const updateIntent = (val: string) => setSession((prev) => {
+    const nextSession = { ...prev, intent: val };
+    sessionRef.current = nextSession;
+    return nextSession;
+  });
+  const updateTaskId = (val: string | undefined) => setSession((prev) => {
+    const nextSession = { ...prev, taskId: val };
+    sessionRef.current = nextSession;
+    return nextSession;
+  });
 
   const addSubject = (subjectInput: SubjectInput) => {
     const nextName = typeof subjectInput === "string" ? subjectInput.trim() : subjectInput.name.trim();
@@ -1034,7 +1081,9 @@ export function useKromeLogic() {
   };
 
   const refreshSubjects = () => {
-    setSubjects(getSubjects() as KromeSubject[]);
+    const nextSubjects = getSubjects() as KromeSubject[];
+    subjectsRef.current = nextSubjects;
+    setSubjects(nextSubjects);
   };
 
   const updateSubjectSettings = (id: string, nextSettings: KromeSubject["settings"]) => {
