@@ -117,6 +117,7 @@ export function SubjectDetailView() {
           subject={activeSubjectView}
           settings={settings}
           onUpdate={(nextSettings) => actions.updateSubjectSettings(activeSubjectView.id, nextSettings)}
+          onStart={() => actions.startSession({ id: activeSubjectView.id, name: activeSubjectView.name }, { lockSubject: true })}
         />
       </div>
     </div>

@@ -276,6 +276,7 @@ export default function App() {
                         resumeFromInterrupt: actions.resumeFromInterrupt,
                         clearSessionSummary: actions.clearSessionSummary,
                         setView: actions.setView,
+                        setSubjectView: actions.setSubjectView,
                       }}
                     />
                   </motion.div>

@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import Play from "lucide-react/dist/esm/icons/play";
-import Pause from "lucide-react/dist/esm/icons/pause";
+import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right";
 import XCircle from "lucide-react/dist/esm/icons/x-circle";
 import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw";
 import { Button } from "./ui/button";
@@ -22,6 +22,7 @@ interface SessionControlsProps {
   onUpdateIntent: (val: string) => void;
   onUpdateTaskId: (val: string | undefined) => void;
   onAddSubject: (subject: string | { name: string; color?: string; settings?: KromeSubject["settings"] }) => string;
+  onOpenSubject?: (subjectId: string) => void;
 }
 
 export function SessionControls({
@@ -36,6 +37,7 @@ export function SessionControls({
   onUpdateIntent,
   onUpdateTaskId,
   onAddSubject,
+  onOpenSubject,
 }: SessionControlsProps) {
 
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
@@ -65,6 +67,7 @@ export function SessionControls({
   const isUniversalFocus = !session.subjectId;
   const previewBlockMinutes = session.totalDurationMinutes;
   const previewIntervalMinutes = session.intervalMinutes;
+  const canOpenSelectedSubject = Boolean(session.subjectId && onOpenSubject);
 
   if (session.isActive) {
     if (isAbandoned) {
@@ -120,10 +123,26 @@ export function SessionControls({
             {session.subjectLocked && session.subject ? (
               <div className="space-y-1.5">
                 <p className="text-slate-500 text-xs uppercase tracking-wide px-1">Subject</p>
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3">
-                  <p className="text-sm font-medium text-slate-100">{session.subject}</p>
-                  <p className="text-xs text-slate-500 mt-1">Started from the dashboard. Subject is locked for this block.</p>
-                </div>
+                {session.subjectId && onOpenSubject ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSubject(session.subjectId!)}
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-left transition-colors hover:border-kromeAccent/35 hover:bg-slate-900/70"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-100">{session.subject}</p>
+                        <p className="text-xs text-slate-500 mt-1">Started from the dashboard. Subject is locked for this block.</p>
+                      </div>
+                      <ArrowUpRight size={16} className="mt-0.5 shrink-0 text-kromeAccent" />
+                    </div>
+                  </button>
+                ) : (
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3">
+                    <p className="text-sm font-medium text-slate-100">{session.subject}</p>
+                    <p className="text-xs text-slate-500 mt-1">Started from the dashboard. Subject is locked for this block.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -147,8 +166,17 @@ export function SessionControls({
                       : session.subject === sub.name;
                     return (
                       <button
+                        type="button"
                         key={sub.id}
-                        onClick={() => onUpdateSubject({ id: sub.id, name: sub.name })}
+                        onClick={() => {
+                          if (isSelected && onOpenSubject) {
+                            onOpenSubject(sub.id);
+                            return;
+                          }
+
+                          onUpdateSubject({ id: sub.id, name: sub.name });
+                        }}
+                        title={isSelected ? `Open ${sub.name} intelligence board` : `Select ${sub.name}`}
                         className={cn(
                           "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border",
                           isSelected
@@ -156,11 +184,19 @@ export function SessionControls({
                             : "bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-slate-200"
                         )}
                       >
-                        {sub.name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span>{sub.name}</span>
+                          {isSelected && onOpenSubject ? <ArrowUpRight size={14} className="opacity-80" /> : null}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
+                {canOpenSelectedSubject ? (
+                  <p className="px-1 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+                    Tap the active subject to open its intelligence board.
+                  </p>
+                ) : null}
               </div>
             )}
 

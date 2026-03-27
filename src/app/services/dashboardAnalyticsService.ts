@@ -2,6 +2,7 @@ import { subDays, format } from "date-fns";
 import { generateInsightFlashcards, type DeterministicInsightCard } from "./insightService";
 import { getCurrentWeekBounds, isHistoryEntryInWeek } from "../utils/dateUtils";
 import { getGoalMetricValue } from "../utils/goalUtils";
+import { sortHistoryEntries } from "../utils/migrationUtils";
 import { GoalProgress, HistoryEntry, KromeSettings, KromeSubject } from "../types";
 
 function matchesSubject(entry: HistoryEntry, subject: KromeSubject) {
@@ -21,7 +22,7 @@ function buildSubjectGoal(goal: number | GoalProgress | undefined, fallback: Goa
 }
 
 export function getSubjectHistory(history: HistoryEntry[], subject: KromeSubject) {
-  return history.filter((entry) => matchesSubject(entry, subject));
+  return sortHistoryEntries(history.filter((entry) => matchesSubject(entry, subject)));
 }
 
 export function getTimeDistributionData(entries: HistoryEntry[]) {

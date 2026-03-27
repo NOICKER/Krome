@@ -1,6 +1,7 @@
 import type { HistoryEntry } from "../../types";
 import { db, type LocalFocusSessionRecord } from "../db";
 import { applyRemoteRecords, listActiveRecords, persistCollection } from "./shared";
+import { sortHistoryEntries } from "../../utils/migrationUtils";
 
 function normalizeFocusSessionRecord(entry: HistoryEntry, previous: HistoryEntry | undefined, timestamp: number): LocalFocusSessionRecord {
   return {
@@ -13,7 +14,7 @@ function normalizeFocusSessionRecord(entry: HistoryEntry, previous: HistoryEntry
 }
 
 export async function getStoredFocusSessions() {
-  return listActiveRecords(db.focusSessions);
+  return sortHistoryEntries(await listActiveRecords(db.focusSessions));
 }
 
 export async function replaceStoredFocusSessions(nextEntries: HistoryEntry[], previousEntries: HistoryEntry[]) {

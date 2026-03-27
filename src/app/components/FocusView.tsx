@@ -9,6 +9,7 @@ import { MicroInsight } from "./focus/MicroInsight";
 import { SessionSummaryModal } from "./focus/SessionSummaryModal";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
+import { cn } from "./ui/utils";
 
 interface FocusViewProps {
   session: KromeSession;
@@ -43,6 +44,7 @@ interface FocusViewProps {
     resumeFromInterrupt: () => void;
     clearSessionSummary: () => void;
     setView?: (view: ViewState) => void;
+    setSubjectView?: (subjectId: string) => void;
   };
 }
 
@@ -63,6 +65,11 @@ export function FocusView({
   const [isInterruptTrackerOpen, setIsInterruptTrackerOpen] = useState(false);
   const activeSubjectColor = currentSubject?.color ?? "#64748b";
   const focusTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
+  const sessionBlockCount = Number.isFinite(session.totalDurationMinutes)
+    ? Math.max(1, Math.ceil(session.totalDurationMinutes / Math.max(session.intervalMinutes, 1)))
+    : 10;
+  const estimatedMobileBrickRows = Math.ceil(sessionBlockCount / 2);
+  const shouldLiftActiveRailOnMobile = isSessionActive && !settings.blindMode && estimatedMobileBrickRows >= 7;
 
   useEffect(() => {
     setInsights(getAdvancedObservations());
@@ -76,48 +83,67 @@ export function FocusView({
     <div className="flex flex-col h-full relative p-4 md:p-8 overflow-y-auto overflow-x-hidden pb-32">
       <FocusHeader potValue={day.potValue} title={focusTitle} />
 
-      {isSessionActive && (
-        <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start items-center">
-          <MirrorFrame>
-            <BrickDisplay
-              totalDurationMinutes={session.totalDurationMinutes}
-              intervalMinutes={session.intervalMinutes}
-              elapsedMs={elapsed}
-              isActive={session.isActive}
-              blindMode={settings.blindMode}
-              subjectColor={activeSubjectColor}
+      <div className="flex flex-col">
+        {isSessionActive && (
+          <div
+            className={cn(
+              "w-full max-w-[980px] mx-auto flex flex-col justify-start items-center",
+              shouldLiftActiveRailOnMobile ? "order-2 md:order-1 mt-6 md:mt-0" : "order-1"
+            )}
+          >
+            <MirrorFrame>
+              <BrickDisplay
+                totalDurationMinutes={session.totalDurationMinutes}
+                intervalMinutes={session.intervalMinutes}
+                elapsedMs={elapsed}
+                isActive={session.isActive}
+                blindMode={settings.blindMode}
+                subjectColor={activeSubjectColor}
+              />
+            </MirrorFrame>
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "w-full",
+            isSessionActive
+              ? shouldLiftActiveRailOnMobile
+                ? "order-1 md:order-2"
+                : "order-2"
+              : "order-1"
+          )}
+        >
+          <MicroInsight insights={insights} />
+          <WeeklyStrip onSetView={actions.setView} />
+
+          <div className={cn("w-full max-w-[980px] mx-auto flex flex-col justify-start", isSessionActive ? "pt-6 md:pt-8" : "pt-8")}>
+            <div className="bg-slate-900/60 border border-slate-800 rounded-[20px] p-7 shadow-sm">
+              <SessionControls
+                session={session}
+                settings={settings}
+                subjects={subjects}
+                isSessionActive={isSessionActive}
+                onStart={handleStart}
+                onAbandon={onAbandonRequest}
+                onUndoAbandon={actions.undoAbandon}
+                onUpdateSubject={actions.updateSubject}
+                onUpdateIntent={actions.updateIntent}
+                onUpdateTaskId={actions.updateTaskId}
+                onAddSubject={actions.addSubject}
+                onOpenSubject={actions.setSubjectView}
+              />
+            </div>
+            <InterruptTracker
+              isOpen={isInterruptTrackerOpen}
+              session={session}
+              onOpen={() => setIsInterruptTrackerOpen(true)}
+              onClose={() => setIsInterruptTrackerOpen(false)}
+              onPauseForInterrupt={actions.pauseForInterrupt}
+              onResumeFromInterrupt={actions.resumeFromInterrupt}
             />
-          </MirrorFrame>
+          </div>
         </div>
-      )}
-
-      <MicroInsight insights={insights} />
-      <WeeklyStrip onSetView={actions.setView} />
-
-      <div className="w-full max-w-[980px] mx-auto flex flex-col justify-start pt-8">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-[20px] p-7 shadow-sm">
-          <SessionControls
-            session={session}
-            settings={settings}
-            subjects={subjects}
-            isSessionActive={isSessionActive}
-            onStart={handleStart}
-            onAbandon={onAbandonRequest}
-            onUndoAbandon={actions.undoAbandon}
-            onUpdateSubject={actions.updateSubject}
-            onUpdateIntent={actions.updateIntent}
-            onUpdateTaskId={actions.updateTaskId}
-            onAddSubject={actions.addSubject}
-          />
-        </div>
-        <InterruptTracker
-          isOpen={isInterruptTrackerOpen}
-          session={session}
-          onOpen={() => setIsInterruptTrackerOpen(true)}
-          onClose={() => setIsInterruptTrackerOpen(false)}
-          onPauseForInterrupt={actions.pauseForInterrupt}
-          onResumeFromInterrupt={actions.resumeFromInterrupt}
-        />
       </div>
 
       <SessionSummaryModal summary={latestSessionSummary} onClose={actions.clearSessionSummary} />

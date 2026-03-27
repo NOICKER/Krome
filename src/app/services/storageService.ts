@@ -6,7 +6,7 @@ import { getStoredObservations, replaceStoredObservations } from "../db/reposito
 import { getStoredSubjects, replaceStoredSubjects } from "../db/repositories/subjectRepo";
 import { getStoredTasks, replaceStoredTasks } from "../db/repositories/taskRepo";
 import type { HistoryEntry, Milestone, Observation, Task } from "../types";
-import { migrateHistoryEntry } from "../utils/migrationUtils";
+import { migrateHistoryEntry, sortHistoryEntries } from "../utils/migrationUtils";
 
 export const STORAGE_KEYS = {
   SETTINGS: "krome_settings",
@@ -508,7 +508,7 @@ export async function refreshStorageKey(key: string) {
 
 export const getHistory = (): HistoryEntry[] => {
   const storedHistory = getItem<HistoryEntry[]>(STORAGE_KEYS.HISTORY, []);
-  const migratedHistory = storedHistory.map(migrateHistoryEntry);
+  const migratedHistory = sortHistoryEntries(storedHistory.map(migrateHistoryEntry));
 
   if (JSON.stringify(storedHistory) !== JSON.stringify(migratedHistory)) {
     setItem(STORAGE_KEYS.HISTORY, migratedHistory);

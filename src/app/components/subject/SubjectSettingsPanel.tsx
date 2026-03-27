@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import Play from "lucide-react/dist/esm/icons/play";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal";
 import { KromeSettings, KromeSubject } from "../../types";
 import { buildSubjectSettingsOverrides } from "../../services/subjectService";
@@ -10,9 +11,10 @@ interface SubjectSettingsPanelProps {
   subject: KromeSubject;
   settings: KromeSettings;
   onUpdate: (settings: KromeSubject["settings"]) => void;
+  onStart: () => void;
 }
 
-export function SubjectSettingsPanel({ subject, settings, onUpdate }: SubjectSettingsPanelProps) {
+export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: SubjectSettingsPanelProps) {
   const subjectSettings = subject.settings ?? {};
   const resolvedSettings = useMemo(
     () => ({
@@ -110,6 +112,19 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate }: SubjectSet
           max={500}
           onValueChange={(value) => updateResolvedSettings({ weeklyGoal: value })}
         />
+        <div className="space-y-3 border-t border-slate-800/70 pt-4">
+          <button
+            type="button"
+            onClick={onStart}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-kromeAccent px-5 text-sm font-bold uppercase tracking-[0.2em] text-white shadow-[0_0_18px_rgba(111,120,181,0.25)] transition-all duration-200 hover:bg-kromeAccent/85 hover:translate-y-[-1px]"
+          >
+            <Play size={18} fill="currentColor" />
+            <span>Start Block ({resolvedSettings.sessionDuration ?? settings.blockMinutes}m)</span>
+          </button>
+          <p className="text-center text-[11px] uppercase tracking-[0.18em] text-slate-500">
+            {subject.name} settings: {resolvedSettings.sessionDuration ?? settings.blockMinutes}m block, {resolvedSettings.plipInterval ?? settings.intervalMinutes}m plip
+          </p>
+        </div>
       </div>
     </AnalyticsCard>
   );

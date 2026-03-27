@@ -205,8 +205,8 @@ export async function pullChanges(userId = activeUserId) {
           }
 
           const latestRecord = remoteRecords[remoteRecords.length - 1];
-          if (latestRecord?.updatedAt) {
-            setItem(getSyncCursorKey(tableName), new Date(latestRecord.updatedAt).toISOString());
+          if (latestRecord?.updated_at) {
+            setItem(getSyncCursorKey(tableName), new Date(latestRecord.updated_at).toISOString());
           }
         }
       } catch (error) {

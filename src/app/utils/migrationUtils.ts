@@ -1,6 +1,10 @@
 import { HistoryEntry } from "../types";
 import { getTimeOfDay } from "./timeUtils";
 
+export function sortHistoryEntries<T extends Pick<HistoryEntry, "startedAt" | "id">>(entries: T[]): T[] {
+  return [...entries].sort((left, right) => right.startedAt - left.startedAt || right.id.localeCompare(left.id));
+}
+
 export function migrateHistoryEntry(entry: HistoryEntry): HistoryEntry {
   const interrupts = entry.interrupts ?? [];
   const interruptDurationMs =
