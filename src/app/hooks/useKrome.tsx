@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { cancelScheduledFillSounds, playEndSound, scheduleFillSoundsForSession, warmUpAudio } from "../utils/sound";
+import { playEndSound, playFillSounds, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -24,7 +24,12 @@ import { getCurrentWeekPlan, saveWeeklyPlan as persistWeeklyPlan } from "../serv
 import { getCurrentWeekDailyCounts, getCurrentWeekProgress } from "../utils/dateUtils";
 import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../utils/goalUtils";
 import { getTimeOfDay } from "../utils/timeUtils";
-import { createNewSession, evaluateBlockCompletion, getTotalBlocks } from "../core/sessionEngine";
+import {
+  createNewSession,
+  evaluateBlockCompletion,
+  getNewlyCompletedFillCount,
+  getTotalBlocks,
+} from "../core/sessionEngine";
 import { validateStreak, incrementStreak } from "../core/streakEngine";
 import { evaluatePotResult } from "../core/potEngine";
 import {
@@ -365,7 +370,7 @@ export function useKromeLogic() {
   const [insightFlashcards, setInsightFlashcards] = useState<InsightFlashcard[]>([]);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
-  const scheduledFillKeyRef = useRef<string | null>(null);
+  const lastFillElapsedRef = useRef(0);
   const settingsRef = useRef(settings);
   const subjectsRef = useRef(subjects);
   const sessionRef = useRef(session);
@@ -575,60 +580,9 @@ export function useKromeLogic() {
   }, [day.date, settings.dailyGoalProgress]);
 
   useEffect(() => {
-    if (
-      !session.isActive ||
-      session.startTime === null ||
-      session.status !== "running" ||
-      session.activeInterruptStartTime ||
-      !session.soundEnabled
-    ) {
-      scheduledFillKeyRef.current = null;
-      cancelScheduledFillSounds();
-      return;
-    }
-
-    const nextScheduledFillKey = [
-      session.startTime,
-      session.intervalMinutes,
-      session.totalBlocks,
-      session.totalDurationMinutes,
-      session.soundEnabled ? 1 : 0,
-      session.volume ?? 0.5,
-    ].join(":");
-
-    if (scheduledFillKeyRef.current === nextScheduledFillKey) {
-      return;
-    }
-
-    scheduledFillKeyRef.current = nextScheduledFillKey;
-    void scheduleFillSoundsForSession({
-      startTimeMs: session.startTime,
-      intervalMinutes: session.intervalMinutes,
-      totalBlocks: session.totalBlocks,
-      volume: session.volume ?? 0.5,
-    });
-
-    return () => {
-      if (scheduledFillKeyRef.current === nextScheduledFillKey) {
-        scheduledFillKeyRef.current = null;
-      }
-      cancelScheduledFillSounds();
-    };
-  }, [
-    session.isActive,
-    session.startTime,
-    session.status,
-    session.activeInterruptStartTime,
-    session.intervalMinutes,
-    session.totalBlocks,
-    session.totalDurationMinutes,
-    session.soundEnabled,
-    session.volume,
-  ]);
-
-  useEffect(() => {
     if (!session.isActive || session.startTime === null) {
       setElapsed(0);
+      lastFillElapsedRef.current = 0;
       return;
     }
 
@@ -639,15 +593,32 @@ export function useKromeLogic() {
     const tick = () => {
       const now = Date.now();
       const newElapsed = now - session.startTime!;
+      const previousElapsed = lastFillElapsedRef.current;
 
       setElapsed(newElapsed);
+
+      if (session.soundEnabled) {
+        const completedFillCount = getNewlyCompletedFillCount(
+          previousElapsed,
+          newElapsed,
+          session.intervalMinutes,
+          session.totalBlocks,
+          session.totalDurationMinutes
+        );
+
+        if (completedFillCount > 0) {
+          void playFillSounds(completedFillCount, session.volume ?? 0.5);
+        }
+      }
+
+      lastFillElapsedRef.current = newElapsed;
 
       if (evaluateBlockCompletion(session, newElapsed, now)) {
         handleSessionComplete();
       }
     };
 
-    const interval = setInterval(tick, 200);
+    const interval = setInterval(tick, 50);
     tick();
 
     return () => {

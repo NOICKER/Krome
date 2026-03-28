@@ -126,3 +126,36 @@ export function calculateBricks(
 
     return { filledBricks, currentBrickProgress };
 }
+
+export function getNewlyCompletedFillCount(
+    previousElapsedMs: number,
+    nextElapsedMs: number,
+    intervalMinutes: number,
+    totalBlocks: number,
+    totalDurationMinutes?: number
+) {
+    if (intervalMinutes <= 0 || totalBlocks <= 0 || nextElapsedMs <= previousElapsedMs) {
+        return 0;
+    }
+
+    const previousFilledBricks = calculateBricks(
+        previousElapsedMs,
+        intervalMinutes,
+        totalBlocks,
+        totalDurationMinutes
+    ).filledBricks;
+    const nextFilledBricks = calculateBricks(
+        nextElapsedMs,
+        intervalMinutes,
+        totalBlocks,
+        totalDurationMinutes
+    ).filledBricks;
+    const maxAudibleFill = Number.isFinite(totalDurationMinutes)
+        ? Math.max(totalBlocks - 1, 0)
+        : totalBlocks;
+
+    return Math.max(
+        0,
+        Math.min(nextFilledBricks, maxAudibleFill) - Math.min(previousFilledBricks, maxAudibleFill)
+    );
+}
