@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
-import { calculateBricks } from "../core/sessionEngine";
+import { calculateBricks, getTotalBlocks } from "../core/sessionEngine";
 
 interface BrickDisplayProps {
   totalDurationMinutes: number;
@@ -21,10 +21,10 @@ export function BrickDisplay({
 }: BrickDisplayProps) {
   const isUniversalMode = !Number.isFinite(totalDurationMinutes);
   const intervalMs = intervalMinutes * 60 * 1000;
-  const finiteTotalBlocks = Math.ceil(totalDurationMinutes / intervalMinutes);
+  const finiteTotalBlocks = isUniversalMode ? 0 : getTotalBlocks(totalDurationMinutes, intervalMinutes);
   const finiteBrickState = isUniversalMode
     ? null
-    : calculateBricks(elapsedMs, intervalMinutes, finiteTotalBlocks);
+    : calculateBricks(elapsedMs, intervalMinutes, finiteTotalBlocks, totalDurationMinutes);
   const filledBlocks = isUniversalMode
     ? Math.floor(elapsedMs / intervalMs)
     : finiteBrickState?.filledBricks ?? 0;

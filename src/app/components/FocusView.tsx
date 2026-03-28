@@ -10,6 +10,7 @@ import { SessionSummaryModal } from "./focus/SessionSummaryModal";
 import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
 import { cn } from "./ui/utils";
+import { getTotalBlocks } from "../core/sessionEngine";
 
 interface FocusViewProps {
   session: KromeSession;
@@ -66,7 +67,7 @@ export function FocusView({
   const activeSubjectColor = currentSubject?.color ?? "#64748b";
   const focusTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
   const sessionBlockCount = Number.isFinite(session.totalDurationMinutes)
-    ? Math.max(1, Math.ceil(session.totalDurationMinutes / Math.max(session.intervalMinutes, 1)))
+    ? getTotalBlocks(session.totalDurationMinutes, Math.max(session.intervalMinutes, 1))
     : 10;
   const estimatedMobileBrickRows = Math.ceil(sessionBlockCount / 2);
   const shouldLiftActiveRailOnMobile = isSessionActive && !settings.blindMode && estimatedMobileBrickRows >= 7;

@@ -6,7 +6,15 @@ import { cancelScheduledFillSounds, playEndSound, scheduleFillSoundsForSession, 
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
-import { STORAGE_KEYS, getHistory, getItem, initializeStorage, setItem, subscribeToKey } from "../services/storageService";
+import {
+  STORAGE_KEYS,
+  getHistory,
+  getItem,
+  initializeStorage,
+  setItem,
+  subscribeToKey,
+  type StorageInitializationStep,
+} from "../services/storageService";
 import { getSubjects, normalizeSubjectSettings, resolveSettings } from "../services/subjectService";
 import { renderInsightText } from "../services/aiService";
 import { generateInsightFlashcards, type DeterministicInsightCard } from "../services/insightService";
@@ -16,7 +24,7 @@ import { getCurrentWeekPlan, saveWeeklyPlan as persistWeeklyPlan } from "../serv
 import { getCurrentWeekDailyCounts, getCurrentWeekProgress } from "../utils/dateUtils";
 import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../utils/goalUtils";
 import { getTimeOfDay } from "../utils/timeUtils";
-import { createNewSession, evaluateBlockCompletion } from "../core/sessionEngine";
+import { createNewSession, evaluateBlockCompletion, getTotalBlocks } from "../core/sessionEngine";
 import { validateStreak, incrementStreak } from "../core/streakEngine";
 import { evaluatePotResult } from "../core/potEngine";
 import {
@@ -121,12 +129,6 @@ function normalizeSession(session: Partial<KromeSession> | null): KromeSession {
     isInterrupted: session?.isInterrupted ?? false,
     interruptDuration: session?.interruptDuration ?? 0,
   };
-}
-
-function getTotalBlocks(totalDurationMinutes: number, intervalMinutes: number) {
-  return Number.isFinite(totalDurationMinutes)
-    ? Math.max(1, Math.floor(totalDurationMinutes / intervalMinutes))
-    : Number.POSITIVE_INFINITY;
 }
 
 function getSessionSubjectSelection(session: Pick<KromeSession, "subject" | "subjectId">): SubjectSelection | undefined {
@@ -513,93 +515,6 @@ export function useKromeLogic() {
   }, [
     session,
     settings,
-    subjects,
-  ]);
-
-  useEffect(() => {
-    if (!session.isActive || session.subjectId) {
-      return;
-    }
-
-    const nextTotalDurationMinutes = settings.blockMinutes;
-    const nextIntervalMinutes = settings.intervalMinutes;
-    const nextSoundEnabled = settings.soundEnabled;
-    const nextVolume = settings.volume;
-    const nextTotalBlocks = getTotalBlocks(nextTotalDurationMinutes, nextIntervalMinutes);
-
-    if (
-      session.totalDurationMinutes === nextTotalDurationMinutes &&
-      session.intervalMinutes === nextIntervalMinutes &&
-      session.soundEnabled === nextSoundEnabled &&
-      session.volume === nextVolume &&
-      session.totalBlocks === nextTotalBlocks
-    ) {
-      return;
-    }
-
-    setSession((prev) =>
-      prev.isActive && !prev.subjectId
-        ? {
-            ...prev,
-            totalDurationMinutes: nextTotalDurationMinutes,
-            intervalMinutes: nextIntervalMinutes,
-            soundEnabled: nextSoundEnabled,
-            volume: nextVolume,
-            totalBlocks: nextTotalBlocks,
-          }
-        : prev
-    );
-  }, [
-    session.isActive,
-    session.subjectId,
-    session.totalDurationMinutes,
-    session.intervalMinutes,
-    session.soundEnabled,
-    session.volume,
-    session.totalBlocks,
-    settings.blockMinutes,
-    settings.intervalMinutes,
-    settings.soundEnabled,
-    settings.volume,
-  ]);
-
-  useEffect(() => {
-    if (!session.isActive || !session.subjectId) {
-      return;
-    }
-
-    const activeSubject = subjects.find((subject) => subject.id === session.subjectId);
-    if (!activeSubject) {
-      return;
-    }
-
-    const runtimeSettings = getSubjectRuntimeSettings(activeSubject, session);
-    const nextTotalBlocks = getTotalBlocks(runtimeSettings.totalDurationMinutes, runtimeSettings.intervalMinutes);
-
-    if (
-      session.totalDurationMinutes === runtimeSettings.totalDurationMinutes &&
-      session.intervalMinutes === runtimeSettings.intervalMinutes &&
-      session.soundEnabled === runtimeSettings.soundEnabled &&
-      session.volume === runtimeSettings.volume &&
-      session.totalBlocks === nextTotalBlocks
-    ) {
-      return;
-    }
-
-    setSession((prev) =>
-      prev.isActive && prev.subjectId === session.subjectId
-        ? {
-            ...prev,
-            totalDurationMinutes: runtimeSettings.totalDurationMinutes,
-            intervalMinutes: runtimeSettings.intervalMinutes,
-            soundEnabled: runtimeSettings.soundEnabled,
-            volume: runtimeSettings.volume,
-            totalBlocks: nextTotalBlocks,
-          }
-        : prev
-    );
-  }, [
-    session,
     subjects,
   ]);
 
@@ -1220,6 +1135,14 @@ function KromeProviderInner({ children }: { children: React.ReactNode }) {
 }
 
 const STORAGE_INIT_SLOW_THRESHOLD_MS = 4000;
+const DEFAULT_STORAGE_INIT_STEP: StorageInitializationStep = "opening_database";
+const STORAGE_INIT_STATUS_COPY: Record<StorageInitializationStep, string> = {
+  opening_database: "Opening your browser workspace.",
+  hydrating_indexeddb: "Loading your saved sessions, history, and settings.",
+  migrating_legacy_storage: "Checking older browser data and migrating anything still needed.",
+  reconciling_reload_journal: "Replaying the latest local changes after reload.",
+  seeding_defaults: "Finalizing local defaults.",
+};
 
 function getStorageInitErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -1233,6 +1156,7 @@ export function KromeProvider({ children }: { children: React.ReactNode }) {
   const [initState, setInitState] = useState<"loading" | "ready" | "error">("loading");
   const [showSlowMessage, setShowSlowMessage] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [initStep, setInitStep] = useState<StorageInitializationStep>(DEFAULT_STORAGE_INIT_STEP);
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
@@ -1247,9 +1171,14 @@ export function KromeProvider({ children }: { children: React.ReactNode }) {
 
     setInitState("loading");
     setInitError(null);
+    setInitStep(DEFAULT_STORAGE_INIT_STEP);
     setShowSlowMessage(false);
 
-    void initializeStorage()
+    void initializeStorage((step) => {
+      if (!isCancelled) {
+        setInitStep(step);
+      }
+    })
       .then(() => {
         if (!isCancelled) {
           setInitState("ready");
@@ -1301,6 +1230,8 @@ export function KromeProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (initState !== "ready") {
+    const initStatusCopy = STORAGE_INIT_STATUS_COPY[initStep] ?? STORAGE_INIT_STATUS_COPY[DEFAULT_STORAGE_INIT_STEP];
+
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#080C18] px-6 text-slate-200">
         <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center shadow-2xl">
@@ -1308,8 +1239,8 @@ export function KromeProvider({ children }: { children: React.ReactNode }) {
           <p className="mt-4 text-sm text-slate-300">Preparing your local workspace…</p>
           <p className="mt-2 text-xs text-slate-500">
             {showSlowMessage
-              ? "This is taking longer than expected. The likely bottleneck is browser storage startup, not Vercel hosting."
-              : "Restoring your session, history, and settings."}
+              ? `${initStatusCopy} This is taking longer than expected, which usually means browser storage startup is slow rather than Vercel hosting.`
+              : initStatusCopy}
           </p>
           {showSlowMessage ? (
             <button

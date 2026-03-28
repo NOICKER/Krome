@@ -47,6 +47,21 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
         }
     };
 
+    const handleNumberInputChange = (nextRawValue: string) => {
+        setLocalVal(nextRawValue);
+
+        if (nextRawValue.trim() === "") {
+            return;
+        }
+
+        const numeric = parseInt(nextRawValue, 10);
+        if (isNaN(numeric)) {
+            return;
+        }
+
+        onValueChange(clampValue(numeric));
+    };
+
     return (
         <div className={cn("space-y-3", disabled ? "opacity-50" : "")}>
             <div className="flex justify-between items-center">
@@ -60,7 +75,7 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
                     step={1}
                     disabled={disabled}
                     value={localVal}
-                    onChange={(e) => setLocalVal(e.target.value)}
+                    onChange={(e) => handleNumberInputChange(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     className="w-14 h-8 bg-slate-800/60 border border-slate-600/50 rounded-lg text-center text-sm font-mono font-bold text-kromeAccent focus:outline-none focus:border-kromeAccent/60 focus:ring-1 focus:ring-kromeAccent/30 hide-arrows transition-all duration-200"

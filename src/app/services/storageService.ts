@@ -55,6 +55,12 @@ const STORAGE_RELOAD_JOURNAL_KEYS = new Set<string>([
   STORAGE_KEYS.SETTINGS,
   STORAGE_KEYS.SUBJECTS,
 ]);
+export type StorageInitializationStep =
+  | "opening_database"
+  | "hydrating_indexeddb"
+  | "migrating_legacy_storage"
+  | "reconciling_reload_journal"
+  | "seeding_defaults";
 const storageBroadcastChannel =
   typeof window !== "undefined" && "BroadcastChannel" in window
     ? new BroadcastChannel(STORAGE_BROADCAST_CHANNEL_NAME)
@@ -295,18 +301,20 @@ async function hydrateCacheFromIndexedDb() {
 }
 
 async function migrateLegacyKeyValue(key: string) {
-  if (storageCache.has(key)) return;
+  if (storageCache.has(key)) return false;
 
   const raw = readLegacyLocalStorage(key);
-  if (raw === null) return;
+  if (raw === null) return false;
 
   try {
     const parsed = JSON.parse(raw);
     applyCacheValue(key, parsed, false);
     await putKeyValue(key, parsed);
     removeLegacyLocalStorageKey(key);
+    return true;
   } catch (error) {
     console.warn(`Failed to migrate legacy key ${key}`, error);
+    return false;
   }
 }
 
@@ -316,56 +324,65 @@ async function migrateLegacyCollection<T>(
   parser: (raw: unknown) => T[],
   persist: (records: T[], previousRecords: T[]) => Promise<void>
 ) {
-  if (currentValue.length > 0) return;
+  if (currentValue.length > 0) return false;
 
   const raw = readLegacyLocalStorage(key);
-  if (raw === null) return;
+  if (raw === null) return false;
 
   try {
     const parsed = parser(JSON.parse(raw));
     applyCacheValue(key, parsed, false);
     await persist(parsed, []);
     removeLegacyLocalStorageKey(key);
+    return true;
   } catch (error) {
     console.warn(`Failed to migrate legacy collection ${key}`, error);
+    return false;
   }
 }
 
 async function migrateLegacyLocalStorage() {
-  await Promise.all(LEGACY_KEY_VALUE_KEYS.map((key) => migrateLegacyKeyValue(key)));
+  const migratedKeyValues = await Promise.all(LEGACY_KEY_VALUE_KEYS.map((key) => migrateLegacyKeyValue(key)));
 
-  await migrateLegacyCollection(
+  const migratedCollections = await Promise.all([
+    migrateLegacyCollection(
     STORAGE_KEYS.HISTORY,
     (storageCache.get(STORAGE_KEYS.HISTORY) as HistoryEntry[] | undefined) ?? [],
     (raw) => ((raw as HistoryEntry[]) ?? []).map((entry) => migrateHistoryEntry(entry)),
     replaceStoredFocusSessions
-  );
-  await migrateLegacyCollection(
+    ),
+    migrateLegacyCollection(
     STORAGE_KEYS.SUBJECTS,
     (storageCache.get(STORAGE_KEYS.SUBJECTS) as any[] | undefined) ?? [],
     (raw) => (raw as any[]) ?? [],
     replaceStoredSubjects
-  );
-  await migrateLegacyCollection(
+    ),
+    migrateLegacyCollection(
     STORAGE_KEYS.TASKS,
     (storageCache.get(STORAGE_KEYS.TASKS) as Task[] | undefined) ?? [],
     (raw) => (raw as Task[]) ?? [],
     replaceStoredTasks
-  );
-  await migrateLegacyCollection(
+    ),
+    migrateLegacyCollection(
     STORAGE_KEYS.OBSERVATIONS,
     (storageCache.get(STORAGE_KEYS.OBSERVATIONS) as Observation[] | undefined) ?? [],
     (raw) => (raw as Observation[]) ?? [],
     replaceStoredObservations
-  );
-  await migrateLegacyCollection(
+    ),
+    migrateLegacyCollection(
     STORAGE_KEYS.MILESTONES,
     (storageCache.get(STORAGE_KEYS.MILESTONES) as Milestone[] | undefined) ?? [],
     (raw) => (raw as Milestone[]) ?? [],
     replaceStoredMilestones
-  );
+    ),
+  ]);
 
-  await hydrateCacheFromIndexedDb();
+  if ([...migratedKeyValues, ...migratedCollections].some(Boolean)) {
+    await hydrateCacheFromIndexedDb();
+    return true;
+  }
+
+  return false;
 }
 
 async function reconcileReloadJournalEntry(key: string) {
@@ -390,17 +407,25 @@ async function reconcileReloadJournal() {
   );
 }
 
-export async function initializeStorage() {
+export async function initializeStorage(onProgress?: (step: StorageInitializationStep) => void) {
   if (initializationPromise) {
     return initializationPromise;
   }
 
   initializationPromise = (async () => {
+    onProgress?.("opening_database");
     await db.open();
+
+    onProgress?.("hydrating_indexeddb");
     await hydrateCacheFromIndexedDb();
+
+    onProgress?.("migrating_legacy_storage");
     await migrateLegacyLocalStorage();
+
+    onProgress?.("reconciling_reload_journal");
     await reconcileReloadJournal();
 
+    onProgress?.("seeding_defaults");
     if (!storageCache.has(STORAGE_KEYS.SUBJECTS)) applyCacheValue(STORAGE_KEYS.SUBJECTS, [], false);
     if (!storageCache.has(STORAGE_KEYS.TASKS)) applyCacheValue(STORAGE_KEYS.TASKS, [], false);
     if (!storageCache.has(STORAGE_KEYS.HISTORY)) applyCacheValue(STORAGE_KEYS.HISTORY, [], false);
