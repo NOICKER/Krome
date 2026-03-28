@@ -12,7 +12,7 @@ import {
   SYNC_TABLES,
   upsertRemoteRecords,
 } from "./supabaseApi";
-import { STORAGE_KEYS, getItem, refreshStorageKey, setItem } from "./storageService";
+import { STORAGE_KEYS, getItem, isIndexedDbStorageEnabled, refreshStorageKey, setItem } from "./storageService";
 import { SYNC_REQUEST_EVENT } from "./syncEvents";
 import { isSupabaseConfigured } from "./supabaseClient";
 
@@ -147,6 +147,7 @@ async function getQueuedRecordIds(tableName: SyncTableName) {
 }
 
 export async function processQueue(userId = activeUserId) {
+  if (!isIndexedDbStorageEnabled()) return;
   if (!userId || !isSupabaseConfigured || queueRunInFlight) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
@@ -183,6 +184,7 @@ export async function processQueue(userId = activeUserId) {
 }
 
 export async function pullChanges(userId = activeUserId) {
+  if (!isIndexedDbStorageEnabled()) return;
   if (!userId || !isSupabaseConfigured || pullRunInFlight) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
 
@@ -236,7 +238,7 @@ export function startSyncService(userId: string | null) {
     syncTimer = null;
   }
 
-  if (typeof window === "undefined" || !userId || !isSupabaseConfigured) {
+  if (typeof window === "undefined" || !userId || !isSupabaseConfigured || !isIndexedDbStorageEnabled()) {
     return () => undefined;
   }
 

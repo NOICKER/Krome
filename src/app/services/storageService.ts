@@ -44,17 +44,33 @@ const ALL_LOCAL_STORAGE_KEYS = [
   STORAGE_KEYS.OBSERVATIONS,
   STORAGE_KEYS.MILESTONES,
 ];
+const STORAGE_FALLBACK_PERSIST_KEYS = [
+  STORAGE_KEYS.SETTINGS,
+  STORAGE_KEYS.DAY,
+  STORAGE_KEYS.SESSION,
+  STORAGE_KEYS.STREAK,
+  STORAGE_KEYS.HISTORY,
+  STORAGE_KEYS.SUBJECTS,
+  STORAGE_KEYS.TASKS,
+  STORAGE_KEYS.OBSERVATIONS,
+  STORAGE_KEYS.MILESTONES,
+  STORAGE_KEYS.WEEKLY_PLANS,
+  STORAGE_KEYS.NOTIFICATIONS,
+];
+const DEFAULT_RELOAD_JOURNAL_KEYS = new Set<string>([
+  STORAGE_KEYS.SETTINGS,
+  STORAGE_KEYS.SUBJECTS,
+]);
+const STORAGE_OPEN_TIMEOUT_MS = 6000;
 
 const storageCache = new Map<string, unknown>();
 const storageUpdatedAt = new Map<string, number>();
 const storageListeners = new Map<string, Set<(value: unknown) => void>>();
 const writeQueue = new Map<string, Promise<void>>();
 let initializationPromise: Promise<void> | null = null;
+let activeStorageBackend: "indexeddb" | "localStorage" = "indexeddb";
 const STORAGE_RELOAD_JOURNAL_PREFIX = "krome_reload_journal_";
-const STORAGE_RELOAD_JOURNAL_KEYS = new Set<string>([
-  STORAGE_KEYS.SETTINGS,
-  STORAGE_KEYS.SUBJECTS,
-]);
+const STORAGE_RELOAD_JOURNAL_KEYS = new Set<string>(STORAGE_FALLBACK_PERSIST_KEYS);
 export type StorageInitializationStep =
   | "opening_database"
   | "hydrating_indexeddb"
@@ -70,6 +86,10 @@ type StorageReloadJournalEntry<T> = {
   updatedAt: number;
   value: T;
 };
+
+function shouldWriteReloadJournal(key: string) {
+  return activeStorageBackend === "localStorage" || DEFAULT_RELOAD_JOURNAL_KEYS.has(key);
+}
 
 function broadcastStorageChange(key: string) {
   storageBroadcastChannel?.postMessage({ type: "refresh", key });
@@ -140,7 +160,7 @@ function readReloadJournal<T>(key: string): StorageReloadJournalEntry<T> | null 
 }
 
 function writeReloadJournal<T>(key: string, value: T, updatedAt: number) {
-  if (typeof window === "undefined" || !STORAGE_RELOAD_JOURNAL_KEYS.has(key)) {
+  if (typeof window === "undefined" || !shouldWriteReloadJournal(key)) {
     return;
   }
 
@@ -189,6 +209,93 @@ export function getDatasetOwnerId() {
     console.warn("Failed to read dataset owner key", error);
     return null;
   }
+}
+
+function parseLegacyStorageValue<T>(key: string, fallback: T): T {
+  const raw = readLegacyLocalStorage(key);
+  if (raw === null) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    console.warn(`Failed to parse legacy localStorage key ${key}`, error);
+    return fallback;
+  }
+}
+
+function hydrateCacheFromLegacyLocalStorage() {
+  LEGACY_KEY_VALUE_KEYS.forEach((key) => {
+    const raw = readLegacyLocalStorage(key);
+    if (raw === null) return;
+
+    try {
+      applyCacheValue(key, JSON.parse(raw), false);
+    } catch (error) {
+      console.warn(`Failed to parse legacy key ${key}`, error);
+    }
+  });
+
+  applyCacheValue(
+    STORAGE_KEYS.HISTORY,
+    (parseLegacyStorageValue<HistoryEntry[]>(STORAGE_KEYS.HISTORY, []) ?? []).map((entry) => migrateHistoryEntry(entry)),
+    false
+  );
+  applyCacheValue(STORAGE_KEYS.SUBJECTS, parseLegacyStorageValue(STORAGE_KEYS.SUBJECTS, []), false);
+  applyCacheValue(STORAGE_KEYS.TASKS, parseLegacyStorageValue(STORAGE_KEYS.TASKS, []), false);
+  applyCacheValue(STORAGE_KEYS.OBSERVATIONS, parseLegacyStorageValue(STORAGE_KEYS.OBSERVATIONS, []), false);
+  applyCacheValue(STORAGE_KEYS.MILESTONES, parseLegacyStorageValue(STORAGE_KEYS.MILESTONES, []), false);
+}
+
+function persistCollectionToLegacyLocalStorage(key: string, value: unknown) {
+  if (typeof window === "undefined" || !STORAGE_FALLBACK_PERSIST_KEYS.includes(key)) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(`Failed to persist ${key} to fallback localStorage`, error);
+  }
+}
+
+function getStorageOpenTimeoutMs() {
+  const override = (globalThis as { __KROME_STORAGE_OPEN_TIMEOUT_MS__?: number }).__KROME_STORAGE_OPEN_TIMEOUT_MS__;
+  if (typeof override === "number" && Number.isFinite(override) && override > 0) {
+    return override;
+  }
+
+  return STORAGE_OPEN_TIMEOUT_MS;
+}
+
+async function openIndexedDbWithTimeout() {
+  if (typeof window === "undefined") {
+    await db.open();
+    return;
+  }
+
+  let timeoutId: number | undefined;
+  const timeoutMs = getStorageOpenTimeoutMs();
+
+  try {
+    await Promise.race([
+      db.open(),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("IndexedDB open timed out."));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+}
+
+export function isIndexedDbStorageEnabled() {
+  return activeStorageBackend === "indexeddb";
 }
 
 export function setDatasetOwnerId(userId: string) {
@@ -244,6 +351,11 @@ function enqueueWrite(key: string, task: () => Promise<void>) {
 }
 
 async function persistCollection(key: string, previousValue: unknown, nextValue: unknown) {
+  if (activeStorageBackend === "localStorage") {
+    persistCollectionToLegacyLocalStorage(key, nextValue);
+    return;
+  }
+
   switch (key) {
     case STORAGE_KEYS.HISTORY:
       await replaceStoredFocusSessions(
@@ -414,13 +526,26 @@ export async function initializeStorage(onProgress?: (step: StorageInitializatio
 
   initializationPromise = (async () => {
     onProgress?.("opening_database");
-    await db.open();
+    activeStorageBackend = "indexeddb";
 
-    onProgress?.("hydrating_indexeddb");
-    await hydrateCacheFromIndexedDb();
+    try {
+      await openIndexedDbWithTimeout();
 
-    onProgress?.("migrating_legacy_storage");
-    await migrateLegacyLocalStorage();
+      onProgress?.("hydrating_indexeddb");
+      await hydrateCacheFromIndexedDb();
+
+      onProgress?.("migrating_legacy_storage");
+      await migrateLegacyLocalStorage();
+    } catch (error) {
+      console.warn(
+        "[storage] IndexedDB startup failed or stalled. Falling back to localStorage-backed startup for this session.",
+        error
+      );
+      activeStorageBackend = "localStorage";
+
+      onProgress?.("hydrating_indexeddb");
+      hydrateCacheFromLegacyLocalStorage();
+    }
 
     onProgress?.("reconciling_reload_journal");
     await reconcileReloadJournal();
@@ -453,9 +578,11 @@ export async function clearLocalPersistence() {
     Array.from(STORAGE_RELOAD_JOURNAL_KEYS).forEach((key) => clearReloadJournal(key));
   }
 
-  db.close();
-  await db.delete();
-  await db.open();
+  if (activeStorageBackend === "indexeddb") {
+    db.close();
+    await db.delete();
+    await db.open();
+  }
 }
 
 export function subscribeToKey<T>(key: string, listener: StorageListener<T>) {
@@ -491,6 +618,31 @@ export function setItem<T>(key: string, value: T): void {
 }
 
 export async function refreshStorageKey(key: string) {
+  if (activeStorageBackend === "localStorage") {
+    switch (key) {
+      case STORAGE_KEYS.HISTORY:
+        applyCacheValue(
+          key,
+          (parseLegacyStorageValue<HistoryEntry[]>(key, []) ?? []).map((entry) => migrateHistoryEntry(entry))
+        );
+        return;
+      case STORAGE_KEYS.SUBJECTS:
+      case STORAGE_KEYS.TASKS:
+      case STORAGE_KEYS.OBSERVATIONS:
+      case STORAGE_KEYS.MILESTONES:
+      case STORAGE_KEYS.SETTINGS:
+      case STORAGE_KEYS.DAY:
+      case STORAGE_KEYS.SESSION:
+      case STORAGE_KEYS.STREAK:
+      case STORAGE_KEYS.WEEKLY_PLANS:
+      case STORAGE_KEYS.NOTIFICATIONS:
+        applyCacheValue(key, parseLegacyStorageValue(key, undefined), true);
+        return;
+      default:
+        return;
+    }
+  }
+
   switch (key) {
     case STORAGE_KEYS.HISTORY:
       applyCacheValue(
