@@ -100,7 +100,7 @@ export function DashboardLayout() {
                                     lastSessionTime={last}
                                     goalProgress={goalProgress}
                                     goalCurrent={goalCurrent}
-                                    blockMinutes={subjectResolvedSettings.blockMinutes}
+                                    sessionMinutes={subjectResolvedSettings.sessionMinutes}
                                     strictMode={subjectResolvedSettings.strictMode}
                                     startDisabled={session.isActive}
                                     onOpenDetails={(subject) => actions.setSubjectView(subject.id)}

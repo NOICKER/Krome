@@ -16,11 +16,13 @@ async function importTypescriptModule(relativePath) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 }
 
-const { createNewSession, calculateBricks } = await importTypescriptModule("src/app/core/sessionEngine.ts");
+const { createNewSession, calculateBricks, getTotalBlocks, isSessionComplete } = await importTypescriptModule(
+  "src/app/core/sessionEngine.ts"
+);
 
 const session = createNewSession({
-  blockMinutes: 25,
-  intervalMinutes: 7,
+  sessionMinutes: 25,
+  plipMinutes: 7,
   soundEnabled: true,
   volume: 0.5,
 });
@@ -31,13 +33,40 @@ assert.equal(
   "Finite sessions should include the final partial block in their visual/timing model."
 );
 
-const brickState = calculateBricks(23 * 60 * 1000, 7, 4, 25);
+assert.equal(
+  getTotalBlocks(25, 7),
+  4,
+  "Total block count should round up to include a final partial block."
+);
+
+const brickState = calculateBricks(23 * 60 * 1000, {
+  sessionMinutes: 25,
+  plipMinutes: 7,
+});
 
 assert.equal(brickState.filledBricks, 3, "Three full plip blocks should be complete after 23 minutes.");
 assert.equal(
-  Number(brickState.currentBrickProgress.toFixed(2)),
+  Number(brickState.partialFill.toFixed(2)),
   0.5,
   "The final partial block should be halfway full at 23/25 minutes."
+);
+
+assert.equal(
+  isSessionComplete(24.9 * 60 * 1000, {
+    sessionMinutes: 25,
+    plipMinutes: 7,
+  }),
+  false,
+  "Sessions should not complete before the configured total duration."
+);
+
+assert.equal(
+  isSessionComplete(25 * 60 * 1000, {
+    sessionMinutes: 25,
+    plipMinutes: 7,
+  }),
+  true,
+  "Sessions should complete once the configured total duration is reached."
 );
 
 console.log("session-engine checks passed");

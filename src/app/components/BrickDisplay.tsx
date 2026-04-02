@@ -3,8 +3,8 @@ import { cn } from "./ui/utils";
 import { calculateBricks, getTotalBlocks } from "../core/sessionEngine";
 
 interface BrickDisplayProps {
-  totalDurationMinutes: number;
-  intervalMinutes: number;
+  sessionMinutes: number;
+  plipMinutes: number;
   elapsedMs: number;
   isActive: boolean;
   blindMode: boolean;
@@ -12,27 +12,29 @@ interface BrickDisplayProps {
 }
 
 export function BrickDisplay({
-  totalDurationMinutes,
-  intervalMinutes,
+  sessionMinutes,
+  plipMinutes,
   elapsedMs,
   isActive,
   blindMode,
   subjectColor = "#62699D",
 }: BrickDisplayProps) {
-  const isUniversalMode = !Number.isFinite(totalDurationMinutes);
-  const intervalMs = intervalMinutes * 60 * 1000;
-  const finiteTotalBlocks = isUniversalMode ? 0 : getTotalBlocks(totalDurationMinutes, intervalMinutes);
+  const isUniversalMode = !Number.isFinite(sessionMinutes);
+  const intervalMs = plipMinutes * 60 * 1000;
   const finiteBrickState = isUniversalMode
     ? null
-    : calculateBricks(elapsedMs, intervalMinutes, finiteTotalBlocks, totalDurationMinutes);
+    : calculateBricks(elapsedMs, {
+        sessionMinutes,
+        plipMinutes,
+      });
   const filledBlocks = isUniversalMode
     ? Math.floor(elapsedMs / intervalMs)
     : finiteBrickState?.filledBricks ?? 0;
   const progressInCurrentBlock = isUniversalMode
     ? (elapsedMs % intervalMs) / intervalMs
-    : finiteBrickState?.currentBrickProgress ?? 0;
+    : finiteBrickState?.partialFill ?? 0;
   const currentBlockIndex = filledBlocks;
-  const visibleBlockCount = isUniversalMode ? 10 : finiteTotalBlocks;
+  const visibleBlockCount = isUniversalMode ? 10 : finiteBrickState?.totalBricks ?? getTotalBlocks(sessionMinutes, plipMinutes);
   const visibleStartIndex = isUniversalMode ? Math.max(0, filledBlocks - 4) : 0;
 
   if (blindMode && isActive) {

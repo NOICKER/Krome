@@ -11,7 +11,7 @@ interface SettingsViewProps {
 
 export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) {
 
-  const update = (key: keyof KromeSettings, val: any) => {
+  const update = <K extends keyof KromeSettings>(key: K, val: KromeSettings[K]) => {
     onUpdateSettings({ ...settings, [key]: val });
   };
 
@@ -78,17 +78,17 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
         <Card className="p-4 space-y-6">
           <KromeSlider
             label="Universal Duration (min)"
-            value={settings.blockMinutes}
+            value={settings.sessionMinutes}
             min={1}
             max={180}
-            onValueChange={(v) => update('blockMinutes', v)}
+            onValueChange={(v) => update('sessionMinutes', v)}
           />
           <KromeSlider
             label="Universal Brick Interval (min)"
-            value={settings.intervalMinutes}
+            value={settings.plipMinutes}
             min={1}
             max={60}
-            onValueChange={(v) => update('intervalMinutes', v)}
+            onValueChange={(v) => update('plipMinutes', v)}
           />
           <KromeSlider
             label={`Daily Goal (${settings.dailyGoalProgress.type})`}

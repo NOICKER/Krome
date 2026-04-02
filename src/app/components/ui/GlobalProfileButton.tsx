@@ -318,25 +318,25 @@ export function GlobalProfileButton({ variant = "desktop" }: GlobalProfileButton
                             <div className="space-y-6">
                               <KromeSlider
                                 label="Default block length (min)"
-                                value={settings.blockMinutes}
+                                value={settings.sessionMinutes}
                                 min={1}
                                 max={180}
                                 onValueChange={(value) =>
                                   actions.setSettings({
                                     ...settings,
-                                    blockMinutes: clamp(value, 1, 180),
+                                    sessionMinutes: clamp(value, 1, 180),
                                   })
                                 }
                               />
                               <KromeSlider
                                 label="Default plip interval (min)"
-                                value={settings.intervalMinutes}
+                                value={settings.plipMinutes}
                                 min={1}
                                 max={60}
                                 onValueChange={(value) =>
                                   actions.setSettings({
                                     ...settings,
-                                    intervalMinutes: clamp(value, 1, 60),
+                                    plipMinutes: clamp(value, 1, 60),
                                   })
                                 }
                               />

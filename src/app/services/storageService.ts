@@ -6,7 +6,7 @@ import { getStoredObservations, replaceStoredObservations } from "../db/reposito
 import { getStoredSubjects, replaceStoredSubjects } from "../db/repositories/subjectRepo";
 import { getStoredTasks, replaceStoredTasks } from "../db/repositories/taskRepo";
 import type { HistoryEntry, Milestone, Observation, Task } from "../types";
-import { migrateHistoryEntry, sortHistoryEntries } from "../utils/migrationUtils";
+import { migrateGenericSettings, migrateHistoryEntry, sortHistoryEntries } from "../utils/migrationUtils";
 
 export const STORAGE_KEYS = {
   SETTINGS: "krome_settings",
@@ -185,8 +185,8 @@ function clearReloadJournal(key: string) {
   removeLegacyLocalStorageKey(getReloadJournalKey(key));
 }
 
-function getCollectionUpdatedAt(records: unknown[]): number {
-  return records.reduce((latestTimestamp, record) => {
+function getCollectionUpdatedAt(records: any[]): number {
+  return records.reduce<number>((latestTimestamp: number, record: any) => {
     if (!record || typeof record !== "object") {
       return latestTimestamp;
     }
@@ -397,10 +397,12 @@ async function hydrateCacheFromIndexedDb() {
   ]);
 
   keyValues.forEach((entry) => {
-    applyCacheValue(entry.key, entry.value, false, entry.updatedAt);
+    const value = entry.key === STORAGE_KEYS.SETTINGS ? migrateGenericSettings(entry.value) : entry.value;
+    applyCacheValue(entry.key, value, false, entry.updatedAt);
   });
 
-  applyCacheValue(STORAGE_KEYS.SUBJECTS, subjects, false, getCollectionUpdatedAt(subjects));
+  const migratedSubjects = subjects.map(s => ({ ...s, settings: migrateGenericSettings(s.settings) }));
+  applyCacheValue(STORAGE_KEYS.SUBJECTS, migratedSubjects, false, getCollectionUpdatedAt(migratedSubjects));
   applyCacheValue(STORAGE_KEYS.TASKS, tasks, false, getCollectionUpdatedAt(tasks));
   applyCacheValue(
     STORAGE_KEYS.HISTORY,
@@ -602,11 +604,16 @@ export function subscribeToKey<T>(key: string, listener: StorageListener<T>) {
 }
 
 export function getItem<T>(key: string, fallback: T): T {
-  if (!storageCache.has(key)) {
+  const raw = storageCache.get(key);
+  if (raw === undefined) {
     return fallback;
   }
 
-  return storageCache.get(key) as T;
+  if (key === STORAGE_KEYS.SETTINGS) {
+    return migrateGenericSettings(raw) as T;
+  }
+
+  return raw as T;
 }
 
 export function setItem<T>(key: string, value: T): void {

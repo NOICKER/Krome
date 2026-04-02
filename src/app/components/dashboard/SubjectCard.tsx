@@ -10,7 +10,7 @@ interface SubjectCardProps {
     lastSessionTime: string | null;
     goalProgress: GoalProgress;
     goalCurrent: number;
-    blockMinutes: number;
+    sessionMinutes: number;
     strictMode: boolean;
     startDisabled?: boolean;
     onStart?: (subject: Subject) => void;
@@ -25,7 +25,7 @@ export function SubjectCard({
     lastSessionTime,
     goalProgress,
     goalCurrent,
-    blockMinutes,
+    sessionMinutes,
     strictMode,
     startDisabled = false,
     onStart,
@@ -77,7 +77,7 @@ export function SubjectCard({
                 <div className="h-full rounded-full bg-kromeAccent transition-[width] duration-300" style={{ width: `${progress}%` }} />
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-800/70 pt-3">
-                <span>{blockMinutes}m block</span>
+                <span>{sessionMinutes}m block</span>
                 <span>{strictMode ? "Strict Mode" : "Observed"}</span>
             </div>
             <button

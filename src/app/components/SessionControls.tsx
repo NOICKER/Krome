@@ -65,8 +65,8 @@ export function SessionControls({
 
   const isAbandoned = session.status === 'abandoned';
   const isUniversalFocus = !session.subjectId;
-  const previewBlockMinutes = session.totalDurationMinutes;
-  const previewIntervalMinutes = session.intervalMinutes;
+  const previewBlockMinutes = session.sessionMinutes;
+  const previewIntervalMinutes = session.plipMinutes;
   const canOpenSelectedSubject = Boolean(session.subjectId && onOpenSubject);
 
   if (session.isActive) {

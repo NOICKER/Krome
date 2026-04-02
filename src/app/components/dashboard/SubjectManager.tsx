@@ -26,8 +26,8 @@ const COLOR_VALUES: Record<string, string> = {
 
 function buildEditableSettings(settings: SubjectSettings | undefined, defaults: KromeSettings) {
     return {
-        blockMinutes: settings?.blockMinutes ?? settings?.sessionDuration ?? defaults.blockMinutes,
-        intervalMinutes: settings?.intervalMinutes ?? settings?.plipInterval ?? defaults.intervalMinutes,
+        sessionMinutes: settings?.sessionMinutes ?? defaults.sessionMinutes,
+        plipMinutes: settings?.plipMinutes ?? defaults.plipMinutes,
         soundEnabled: settings?.soundEnabled ?? defaults.soundEnabled,
         volume: settings?.volume ?? defaults.volume,
         dailyGoal: normalizeGoalProgress(settings?.dailyGoal, defaults.dailyGoalProgress),

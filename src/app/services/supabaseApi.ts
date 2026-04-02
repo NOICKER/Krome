@@ -177,15 +177,15 @@ function mapMilestoneRecordToRemote(userId: string, record: LocalMilestoneRecord
 function mapRecordToRemote(tableName: SyncTableName, userId: string, record: Record<string, unknown>) {
   switch (tableName) {
     case "subjects":
-      return mapSubjectRecordToRemote(userId, record as LocalSubjectRecord);
+      return mapSubjectRecordToRemote(userId, record as unknown as LocalSubjectRecord);
     case "tasks":
-      return mapTaskRecordToRemote(userId, record as LocalTaskRecord);
+      return mapTaskRecordToRemote(userId, record as unknown as LocalTaskRecord);
     case "focus_sessions":
-      return mapFocusSessionRecordToRemote(userId, record as LocalFocusSessionRecord);
+      return mapFocusSessionRecordToRemote(userId, record as unknown as LocalFocusSessionRecord);
     case "observations":
-      return mapObservationRecordToRemote(userId, record as LocalObservationRecord);
+      return mapObservationRecordToRemote(userId, record as unknown as LocalObservationRecord);
     case "milestones":
-      return mapMilestoneRecordToRemote(userId, record as LocalMilestoneRecord);
+      return mapMilestoneRecordToRemote(userId, record as unknown as LocalMilestoneRecord);
   }
 }
 

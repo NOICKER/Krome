@@ -34,7 +34,7 @@ interface FocusViewProps {
   actions: {
     startSession: (
       subject?: Pick<KromeSubject, "id" | "name">,
-      options?: { lockSubject?: boolean; type?: KromeSession["type"]; totalDurationMinutes?: number; intervalMinutes?: number }
+      options?: { lockSubject?: boolean; type?: KromeSession["type"]; sessionMinutes?: number; plipMinutes?: number }
     ) => void;
     undoAbandon: () => void;
     updateSubject: (subject?: Pick<KromeSubject, "id" | "name">) => void;
@@ -66,8 +66,8 @@ export function FocusView({
   const [isInterruptTrackerOpen, setIsInterruptTrackerOpen] = useState(false);
   const activeSubjectColor = currentSubject?.color ?? "#64748b";
   const focusTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
-  const sessionBlockCount = Number.isFinite(session.totalDurationMinutes)
-    ? getTotalBlocks(session.totalDurationMinutes, Math.max(session.intervalMinutes, 1))
+  const sessionBlockCount = Number.isFinite(session.sessionMinutes)
+    ? getTotalBlocks(session.sessionMinutes, Math.max(session.plipMinutes, 1))
     : 10;
   const estimatedMobileBrickRows = Math.ceil(sessionBlockCount / 2);
   const shouldLiftActiveRailOnMobile = isSessionActive && !settings.blindMode && estimatedMobileBrickRows >= 7;
@@ -94,8 +94,8 @@ export function FocusView({
           >
             <MirrorFrame>
               <BrickDisplay
-                totalDurationMinutes={session.totalDurationMinutes}
-                intervalMinutes={session.intervalMinutes}
+                sessionMinutes={session.sessionMinutes}
+                plipMinutes={session.plipMinutes}
                 elapsedMs={elapsed}
                 isActive={session.isActive}
                 blindMode={settings.blindMode}

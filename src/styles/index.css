@@ -21,6 +21,7 @@ body.krome-modal-open {
 }
 
 .hide-arrows {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

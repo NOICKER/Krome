@@ -19,10 +19,8 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: S
   const resolvedSettings = useMemo(
     () => ({
       ...subjectSettings,
-      sessionDuration: subjectSettings.sessionDuration ?? subjectSettings.blockMinutes ?? settings.blockMinutes,
-      blockMinutes: subjectSettings.blockMinutes ?? subjectSettings.sessionDuration ?? settings.blockMinutes,
-      plipInterval: subjectSettings.plipInterval ?? subjectSettings.intervalMinutes ?? settings.intervalMinutes,
-      intervalMinutes: subjectSettings.intervalMinutes ?? subjectSettings.plipInterval ?? settings.intervalMinutes,
+      sessionMinutes: subjectSettings.sessionMinutes ?? settings.sessionMinutes,
+      plipMinutes: subjectSettings.plipMinutes ?? settings.plipMinutes,
       soundEnabled: subjectSettings.soundEnabled ?? settings.soundEnabled,
       volume: subjectSettings.volume ?? settings.volume,
       dailyGoal:
@@ -36,8 +34,8 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: S
     }),
     [
       subjectSettings,
-      settings.blockMinutes,
-      settings.intervalMinutes,
+      settings.sessionMinutes,
+      settings.plipMinutes,
       settings.soundEnabled,
       settings.volume,
       settings.dailyGoalProgress.target,
@@ -54,8 +52,8 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: S
     onUpdate(
       buildSubjectSettingsOverrides(
         {
-          blockMinutes: mergedSettings.sessionDuration ?? mergedSettings.blockMinutes,
-          intervalMinutes: mergedSettings.plipInterval ?? mergedSettings.intervalMinutes,
+          sessionMinutes: mergedSettings.sessionMinutes,
+          plipMinutes: mergedSettings.plipMinutes,
           soundEnabled: mergedSettings.soundEnabled,
           volume: mergedSettings.volume,
           dailyGoal: mergedSettings.dailyGoal,
@@ -71,17 +69,17 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: S
       <div className="space-y-5">
         <KromeSlider
           label="Session Duration"
-          value={resolvedSettings.sessionDuration ?? settings.blockMinutes}
+          value={resolvedSettings.sessionMinutes}
           min={1}
           max={180}
-          onValueChange={(value) => updateResolvedSettings({ sessionDuration: value, blockMinutes: value })}
+          onValueChange={(value) => updateResolvedSettings({ sessionMinutes: value })}
         />
         <KromeSlider
           label="Plip Interval"
-          value={resolvedSettings.plipInterval ?? settings.intervalMinutes}
+          value={resolvedSettings.plipMinutes}
           min={1}
           max={60}
-          onValueChange={(value) => updateResolvedSettings({ plipInterval: value, intervalMinutes: value })}
+          onValueChange={(value) => updateResolvedSettings({ plipMinutes: value })}
         />
         <KromeToggle
           label="Sound Feedback"
@@ -119,10 +117,10 @@ export function SubjectSettingsPanel({ subject, settings, onUpdate, onStart }: S
             className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-kromeAccent px-5 text-sm font-bold uppercase tracking-[0.2em] text-white shadow-[0_0_18px_rgba(111,120,181,0.25)] transition-all duration-200 hover:bg-kromeAccent/85 hover:translate-y-[-1px]"
           >
             <Play size={18} fill="currentColor" />
-            <span>Start Block ({resolvedSettings.sessionDuration ?? settings.blockMinutes}m)</span>
+            <span>Start Block ({resolvedSettings.sessionMinutes}m)</span>
           </button>
           <p className="text-center text-[11px] uppercase tracking-[0.18em] text-slate-500">
-            {subject.name} settings: {resolvedSettings.sessionDuration ?? settings.blockMinutes}m block, {resolvedSettings.plipInterval ?? settings.intervalMinutes}m plip
+            {subject.name} settings: {resolvedSettings.sessionMinutes}m block, {resolvedSettings.plipMinutes}m plip
           </p>
         </div>
       </div>

@@ -9,10 +9,8 @@ export interface GoalProgress {
 }
 
 export interface SubjectSettings {
-  plipInterval?: number;
-  sessionDuration?: number;
-  blockMinutes?: number;
-  intervalMinutes?: number;
+  plipMinutes?: number;
+  sessionMinutes?: number;
   soundEnabled?: boolean;
   volume?: number;
   dailyGoal?: GoalProgress | number;
@@ -41,8 +39,8 @@ export interface InterruptEntry {
 export interface KromeSession {
   isActive: boolean;
   startTime: number | null; // Epoch MS
-  totalDurationMinutes: number;
-  intervalMinutes: number; // For brick filling
+  sessionMinutes: number;
+  plipMinutes: number; // For brick filling
   soundEnabled: boolean;
   volume: number;
   totalBlocks: number;
@@ -70,8 +68,8 @@ export interface KromeSession {
 }
 
 export interface KromeSettings {
-  blockMinutes: number;
-  intervalMinutes: number;
+  sessionMinutes: number;
+  plipMinutes: number;
   soundEnabled: boolean;
   wrapperEnabled: boolean;
   goal: number;

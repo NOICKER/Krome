@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { playEndSound, playFillSounds, warmUpAudio } from "../utils/sound";
+import { playEndSound, playPlip, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -27,7 +27,7 @@ import { getTimeOfDay } from "../utils/timeUtils";
 import {
   createNewSession,
   evaluateBlockCompletion,
-  getNewlyCompletedFillCount,
+  getAudibleBoundariesCrossed,
   getTotalBlocks,
 } from "../core/sessionEngine";
 import { validateStreak, incrementStreak } from "../core/streakEngine";
@@ -62,8 +62,8 @@ const DEFAULT_WEEKLY_GOAL_PROGRESS: GoalProgress = {
 };
 
 const DEFAULT_SETTINGS: KromeSettings = {
-  blockMinutes: 25,
-  intervalMinutes: 5,
+  sessionMinutes: 25,
+  plipMinutes: 5,
   soundEnabled: true,
   wrapperEnabled: true,
   goal: 4,
@@ -84,8 +84,8 @@ const DEFAULT_SETTINGS: KromeSettings = {
 const DEFAULT_SESSION: KromeSession = {
   isActive: false,
   startTime: null,
-  totalDurationMinutes: 25,
-  intervalMinutes: 5,
+  sessionMinutes: 25,
+  plipMinutes: 5,
   soundEnabled: true,
   volume: 0.5,
   totalBlocks: 5,
@@ -151,11 +151,11 @@ function buildIdleSessionPreview(
 
   return {
     ...DEFAULT_SESSION,
-    totalDurationMinutes: previewSettings.blockMinutes,
-    intervalMinutes: previewSettings.intervalMinutes,
+    sessionMinutes: previewSettings.sessionMinutes,
+    plipMinutes: previewSettings.plipMinutes,
     soundEnabled: previewSettings.soundEnabled,
     volume: previewSettings.volume,
-    totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
+    totalBlocks: getTotalBlocks(previewSettings.sessionMinutes, previewSettings.plipMinutes),
     subject: subject?.name ?? "",
     subjectId: subject?.id,
     subjectLocked: false,
@@ -165,13 +165,13 @@ function buildIdleSessionPreview(
 
 function getSubjectRuntimeSettings(
   subject: KromeSubject | undefined,
-  session: Pick<KromeSession, "totalDurationMinutes" | "intervalMinutes" | "soundEnabled" | "volume">
+  session: Pick<KromeSession, "sessionMinutes" | "plipMinutes" | "soundEnabled" | "volume">
 ) {
   const subjectSettings = subject?.settings ?? {};
 
   return {
-    totalDurationMinutes: subjectSettings.sessionDuration ?? subjectSettings.blockMinutes ?? session.totalDurationMinutes,
-    intervalMinutes: subjectSettings.plipInterval ?? subjectSettings.intervalMinutes ?? session.intervalMinutes,
+    sessionMinutes: subjectSettings.sessionMinutes ?? session.sessionMinutes,
+    plipMinutes: subjectSettings.plipMinutes ?? session.plipMinutes,
     soundEnabled: subjectSettings.soundEnabled ?? session.soundEnabled,
     volume: subjectSettings.volume ?? session.volume,
   };
@@ -239,8 +239,8 @@ type SubjectUpdates = Partial<Pick<KromeSubject, "name" | "color" | "settings" |
 type StartSessionOptions = {
   lockSubject?: boolean;
   type?: KromeSession["type"];
-  totalDurationMinutes?: number;
-  intervalMinutes?: number;
+  sessionMinutes?: number;
+  plipMinutes?: number;
 };
 
 interface KromeStoreStructure {
@@ -370,10 +370,27 @@ export function useKromeLogic() {
   const [insightFlashcards, setInsightFlashcards] = useState<InsightFlashcard[]>([]);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
-  const lastFillElapsedRef = useRef(0);
+  const elapsedLoopRef = useRef<number | null>(null);
+  const sessionClockOriginRef = useRef<number | null>(null);
+  const previousElapsedMsRef = useRef(0);
   const settingsRef = useRef(settings);
   const subjectsRef = useRef(subjects);
   const sessionRef = useRef(session);
+
+  const clearElapsedLoop = () => {
+    if (elapsedLoopRef.current !== null) {
+      window.clearInterval(elapsedLoopRef.current);
+      elapsedLoopRef.current = null;
+    }
+  };
+
+  const getSessionElapsedFromEpoch = (activeSession: Pick<KromeSession, "startTime">) => {
+    if (activeSession.startTime === null) {
+      return 0;
+    }
+
+    return Math.max(0, Date.now() - activeSession.startTime);
+  };
 
   const currentSubject = useMemo(() => {
     if (session.subjectId) {
@@ -489,15 +506,15 @@ export function useKromeLogic() {
 
     const selectedSubject = getSessionSubjectSelection(session);
     const previewSettings = selectedSubject ? resolveSettings(settings, selectedSubject.id, subjects) : settings;
-    const nextTotalDurationMinutes = previewSettings.blockMinutes;
-    const nextIntervalMinutes = previewSettings.intervalMinutes;
+    const nextSessionMinutes = previewSettings.sessionMinutes;
+    const nextPlipMinutes = previewSettings.plipMinutes;
     const nextSoundEnabled = previewSettings.soundEnabled;
     const nextVolume = previewSettings.volume;
-    const nextTotalBlocks = getTotalBlocks(nextTotalDurationMinutes, nextIntervalMinutes);
+    const nextTotalBlocks = getTotalBlocks(nextSessionMinutes, nextPlipMinutes);
 
     if (
-      session.totalDurationMinutes === nextTotalDurationMinutes &&
-      session.intervalMinutes === nextIntervalMinutes &&
+      session.sessionMinutes === nextSessionMinutes &&
+      session.plipMinutes === nextPlipMinutes &&
       session.soundEnabled === nextSoundEnabled &&
       session.volume === nextVolume &&
       session.totalBlocks === nextTotalBlocks
@@ -510,8 +527,8 @@ export function useKromeLogic() {
         ? prev
         : {
             ...prev,
-            totalDurationMinutes: nextTotalDurationMinutes,
-            intervalMinutes: nextIntervalMinutes,
+            sessionMinutes: nextSessionMinutes,
+            plipMinutes: nextPlipMinutes,
             soundEnabled: nextSoundEnabled,
             volume: nextVolume,
             totalBlocks: nextTotalBlocks,
@@ -581,55 +598,59 @@ export function useKromeLogic() {
 
   useEffect(() => {
     if (!session.isActive || session.startTime === null) {
+      clearElapsedLoop();
+      sessionClockOriginRef.current = null;
+      previousElapsedMsRef.current = 0;
       setElapsed(0);
-      lastFillElapsedRef.current = 0;
       return;
     }
 
     if (session.status !== "running" || session.activeInterruptStartTime) {
+      clearElapsedLoop();
       return;
     }
 
+    const initialElapsed = getSessionElapsedFromEpoch(session);
+    sessionClockOriginRef.current = performance.now() - initialElapsed;
+    previousElapsedMsRef.current = initialElapsed;
+
     const tick = () => {
+      if (sessionClockOriginRef.current === null) {
+        return;
+      }
+
       const now = Date.now();
-      const newElapsed = now - session.startTime!;
-      const previousElapsed = lastFillElapsedRef.current;
+      const newElapsed = Math.max(0, performance.now() - sessionClockOriginRef.current);
+      const previousElapsed = previousElapsedMsRef.current;
+      previousElapsedMsRef.current = newElapsed;
 
       setElapsed(newElapsed);
 
       if (session.soundEnabled) {
-        const completedFillCount = getNewlyCompletedFillCount(
-          previousElapsed,
-          newElapsed,
-          session.intervalMinutes,
-          session.totalBlocks,
-          session.totalDurationMinutes
-        );
-
-        if (completedFillCount > 0) {
-          void playFillSounds(completedFillCount, session.volume ?? 0.5);
-        }
+        const boundaries = getAudibleBoundariesCrossed(previousElapsed, newElapsed, session);
+        boundaries.forEach(() => {
+          playPlip(session.volume ?? 0.5);
+        });
       }
 
-      lastFillElapsedRef.current = newElapsed;
-
       if (evaluateBlockCompletion(session, newElapsed, now)) {
+        clearElapsedLoop();
         handleSessionComplete();
       }
     };
 
-    const interval = setInterval(tick, 50);
     tick();
+    elapsedLoopRef.current = window.setInterval(tick, 100);
 
     return () => {
-      clearInterval(interval);
+      clearElapsedLoop();
     };
   }, [
     session.isActive,
     session.startTime,
     session.status,
     session.activeInterruptStartTime,
-    session.totalDurationMinutes,
+    session.sessionMinutes,
     session.claimedEndTime,
   ]);
 
@@ -678,18 +699,24 @@ export function useKromeLogic() {
     const selectedSubject = subject ?? getSessionSubjectSelection(latestSession);
     const sessionSettings = selectedSubject ? resolveSettings(latestSettings, selectedSubject.id, latestSubjects) : latestSettings;
     const nextSession = createNewSession(sessionSettings);
-    const intervalMinutes = options?.intervalMinutes ?? nextSession.intervalMinutes;
-    const totalDurationMinutes = options?.totalDurationMinutes ?? nextSession.totalDurationMinutes;
-    const totalBlocks = getTotalBlocks(totalDurationMinutes, intervalMinutes);
+    const plipMinutes = options?.plipMinutes ?? nextSession.plipMinutes;
+    const sessionMinutes = options?.sessionMinutes ?? nextSession.sessionMinutes;
+    const totalBlocks = getTotalBlocks(sessionMinutes, plipMinutes);
 
     setIsSessionActive(true);
     setLatestSessionSummary(null);
     setView("focus");
+
+    const startTime = Date.now();
+    sessionClockOriginRef.current = performance.now();
+    previousElapsedMsRef.current = 0;
+    setElapsed(0);
     setSession({
       ...nextSession,
+      startTime,
       type: options?.type ?? nextSession.type,
-      totalDurationMinutes,
-      intervalMinutes,
+      sessionMinutes,
+      plipMinutes,
       totalBlocks,
       subject: selectedSubject?.name ?? latestSession.subject,
       subjectId: selectedSubject?.id ?? latestSession.subjectId,
@@ -756,19 +783,22 @@ export function useKromeLogic() {
       notes: session.activeInterruptNotes,
     };
 
-    setSession((prev) => ({
-      ...prev,
-      startTime: (prev.startTime ?? Date.now()) + durationMs,
-      claimedEndTime: prev.claimedEndTime ? prev.claimedEndTime + durationMs : undefined,
+    const nextStartTime = (session.startTime ?? Date.now()) + durationMs;
+    const nextSession = {
+      ...session,
+      startTime: nextStartTime,
+      claimedEndTime: session.claimedEndTime ? session.claimedEndTime + durationMs : undefined,
       activeInterruptStartTime: undefined,
       activeInterruptReason: undefined,
       activeInterruptType: undefined,
       activeInterruptNotes: undefined,
-      interrupts: [...(prev.interrupts ?? []), nextInterrupt],
-      interruptCount: (prev.interruptCount ?? 0) + 1,
+      interrupts: [...(session.interrupts ?? []), nextInterrupt],
+      interruptCount: (session.interruptCount ?? 0) + 1,
       isInterrupted: false,
-      interruptDuration: (prev.interruptDuration ?? 0) + durationMs,
-    }));
+      interruptDuration: (session.interruptDuration ?? 0) + durationMs,
+    };
+
+    setSession(nextSession);
   };
 
   const commitAbandon = () => {
@@ -847,7 +877,7 @@ export function useKromeLogic() {
       taskId: session.taskId,
       potResult,
       interrupts: finalizedInterrupts,
-      plannedDurationMs: Number.isFinite(session.totalDurationMinutes) ? session.totalDurationMinutes * 60 * 1000 : undefined,
+      plannedDurationMs: Number.isFinite(session.sessionMinutes) ? session.sessionMinutes * 60 * 1000 : undefined,
       actualFocusDurationMs,
       interruptDurationMs,
       protectionRatio,
@@ -865,6 +895,8 @@ export function useKromeLogic() {
         createdAt: sessionEndTime,
       });
     }
+
+    clearElapsedLoop();
 
     const nextHistory = [migrateHistoryEntry(entry), ...history].slice(0, 500);
     const nextDay = recalculateDayState(day, nextHistory, settings.dailyGoalProgress);
@@ -892,7 +924,7 @@ export function useKromeLogic() {
     setIsSessionActive(false);
 
     if (completed) {
-      if (session.soundEnabled) playEndSound(session.volume ?? 0.5, 1000, 1);
+      if (session.soundEnabled) playEndSound(session.volume ?? 0.5);
       if (activeSessionSettings.notifications && "Notification" in window && Notification.permission === "granted") {
         new Notification("Block Complete", {
           body: "Focus session recorded.",
@@ -923,11 +955,11 @@ export function useKromeLogic() {
         subject: subject?.name ?? "",
         subjectId: subject?.id,
         subjectLocked: false,
-        totalDurationMinutes: previewSettings.blockMinutes,
-        intervalMinutes: previewSettings.intervalMinutes,
+        sessionMinutes: previewSettings.sessionMinutes,
+        plipMinutes: previewSettings.plipMinutes,
         soundEnabled: previewSettings.soundEnabled,
         volume: previewSettings.volume,
-        totalBlocks: getTotalBlocks(previewSettings.blockMinutes, previewSettings.intervalMinutes),
+        totalBlocks: getTotalBlocks(previewSettings.sessionMinutes, previewSettings.plipMinutes),
       };
 
       sessionRef.current = nextSession;

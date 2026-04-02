@@ -5,8 +5,8 @@ import { getGoalUnitLabel } from "../../utils/goalUtils";
 
 interface SubjectSettingsFormProps {
   settings: {
-    blockMinutes: number;
-    intervalMinutes: number;
+    sessionMinutes: number;
+    plipMinutes: number;
     soundEnabled: boolean;
     volume: number;
     dailyGoal: GoalProgress;
@@ -15,8 +15,8 @@ interface SubjectSettingsFormProps {
   };
   defaults: KromeSettings;
   onChange: (settings: {
-    blockMinutes: number;
-    intervalMinutes: number;
+    sessionMinutes: number;
+    plipMinutes: number;
     soundEnabled: boolean;
     volume: number;
     dailyGoal: GoalProgress;
@@ -48,19 +48,19 @@ export function SubjectSettingsForm({ settings, defaults, onChange }: SubjectSet
       </div>
 
       <KromeSlider
-        label={`Block Minutes (${defaults.blockMinutes} global)`}
-        value={settings.blockMinutes}
+        label={`Block Minutes (${defaults.sessionMinutes} global)`}
+        value={settings.sessionMinutes}
         min={1}
         max={180}
-        onValueChange={(value) => update("blockMinutes", value)}
+        onValueChange={(value) => update("sessionMinutes", value)}
       />
 
       <KromeSlider
-        label={`Brick Interval (${defaults.intervalMinutes} global)`}
-        value={settings.intervalMinutes}
+        label={`Brick Interval (${defaults.plipMinutes} global)`}
+        value={settings.plipMinutes}
         min={1}
         max={60}
-        onValueChange={(value) => update("intervalMinutes", value)}
+        onValueChange={(value) => update("plipMinutes", value)}
       />
 
       <KromeToggle

@@ -2,6 +2,7 @@ import { KromeSettings, Subject, SubjectSettings } from '../types';
 import { getItem, setItem } from './storageService';
 import { assignSubjectColor } from '../utils/subjectUtils';
 import { normalizeGoalProgress } from '../utils/goalUtils';
+import { migrateGenericSettings } from '../utils/migrationUtils';
 
 const SUBJECTS_KEY = 'krome_subjects';
 
@@ -32,27 +33,20 @@ export function normalizeSubjectSettings(settings: SubjectSettings | undefined):
     const {
         muteFillSound,
         soundVolume,
-        ...settingsWithoutLegacyKeys
-    } = rawSettings ?? {};
-    const sessionDuration = settingsWithoutLegacyKeys.sessionDuration ?? settingsWithoutLegacyKeys.blockMinutes;
-    const blockMinutes = settingsWithoutLegacyKeys.blockMinutes ?? settingsWithoutLegacyKeys.sessionDuration;
-    const plipInterval = settingsWithoutLegacyKeys.plipInterval ?? settingsWithoutLegacyKeys.intervalMinutes;
-    const intervalMinutes = settingsWithoutLegacyKeys.intervalMinutes ?? settingsWithoutLegacyKeys.plipInterval;
+        ...rest
+    } = migrateGenericSettings(rawSettings ?? {});
+
     const soundEnabled =
-        typeof settingsWithoutLegacyKeys.soundEnabled === 'boolean'
-            ? settingsWithoutLegacyKeys.soundEnabled
+        typeof rest.soundEnabled === 'boolean'
+            ? rest.soundEnabled
             : muteFillSound !== undefined
                 ? !muteFillSound
                 : undefined;
-    const volume = normalizeVolume(settingsWithoutLegacyKeys.volume ?? soundVolume);
+    const volume = normalizeVolume(rest.volume ?? soundVolume);
 
     return Object.fromEntries(
         Object.entries({
-            ...settingsWithoutLegacyKeys,
-            sessionDuration,
-            blockMinutes,
-            plipInterval,
-            intervalMinutes,
+            ...rest,
             soundEnabled,
             volume,
         }).filter(([, value]) => value !== undefined)
@@ -60,8 +54,8 @@ export function normalizeSubjectSettings(settings: SubjectSettings | undefined):
 }
 
 type SubjectSettingsOverrideInput = Pick<SubjectSettings, 'dailyGoal' | 'weeklyGoal'> & {
-    blockMinutes?: number;
-    intervalMinutes?: number;
+    sessionMinutes?: number;
+    plipMinutes?: number;
     soundEnabled?: boolean;
     volume?: number;
     strictMode?: boolean;
@@ -80,13 +74,11 @@ export function buildSubjectSettingsOverrides(
         ? normalizeGoalProgress(settings.weeklyGoal, defaults.weeklyGoalProgress)
         : undefined;
 
-    if (settings.blockMinutes !== undefined && settings.blockMinutes !== defaults.blockMinutes) {
-        overrides.blockMinutes = settings.blockMinutes;
-        overrides.sessionDuration = settings.blockMinutes;
+    if (settings.sessionMinutes !== undefined && settings.sessionMinutes !== defaults.sessionMinutes) {
+        overrides.sessionMinutes = settings.sessionMinutes;
     }
-    if (settings.intervalMinutes !== undefined && settings.intervalMinutes !== defaults.intervalMinutes) {
-        overrides.intervalMinutes = settings.intervalMinutes;
-        overrides.plipInterval = settings.intervalMinutes;
+    if (settings.plipMinutes !== undefined && settings.plipMinutes !== defaults.plipMinutes) {
+        overrides.plipMinutes = settings.plipMinutes;
     }
     if (typeof settings.soundEnabled === 'boolean' && settings.soundEnabled !== defaults.soundEnabled) {
         overrides.soundEnabled = settings.soundEnabled;
@@ -215,18 +207,14 @@ export const resolveSettings = (
     const {
         dailyGoal,
         weeklyGoal,
-        plipInterval,
-        sessionDuration,
-        blockMinutes,
-        intervalMinutes,
+        sessionMinutes,
+        plipMinutes,
         muteFillSound: _legacyMuteFillSound,
         soundVolume: _legacySoundVolume,
-        soundEnabled,
-        volume,
+        soundEnabled: _s,
+        volume: _v,
         ...settingsOverrides
     } = overrides;
-    const nextBlockMinutes = sessionDuration ?? blockMinutes;
-    const nextIntervalMinutes = plipInterval ?? intervalMinutes;
 
     return {
         ...globalSettings,
@@ -235,8 +223,8 @@ export const resolveSettings = (
         ),
         ...(subjectSoundEnabled !== undefined ? { soundEnabled: subjectSoundEnabled } : {}),
         ...(subjectVolume !== undefined ? { volume: subjectVolume } : {}),
-        blockMinutes: nextBlockMinutes ?? globalSettings.blockMinutes,
-        intervalMinutes: nextIntervalMinutes ?? globalSettings.intervalMinutes,
+        sessionMinutes: sessionMinutes ?? globalSettings.sessionMinutes,
+        plipMinutes: plipMinutes ?? globalSettings.plipMinutes,
         dailyGoalProgress: dailyGoal !== undefined
             ? normalizeGoalProgress(
                 typeof dailyGoal === 'number'

@@ -35,7 +35,7 @@ export default function App() {
   const { loading: authLoading, user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const focusHeaderTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
-  const currentFilledBricks = Math.floor(elapsed / (session.intervalMinutes * 60 * 1000));
+  const currentFilledBricks = Math.floor(elapsed / (session.plipMinutes * 60 * 1000));
   const frictionTotalBlocks = Number.isFinite(session.totalBlocks)
     ? session.totalBlocks
     : Math.max(currentFilledBricks + 4, 8);
@@ -183,7 +183,7 @@ export default function App() {
             <BreakSuggester
               onStartBreak={() => {
                 setShowBreakSuggester(false);
-                actions.startSession(undefined, { type: "helper", totalDurationMinutes: 5, intervalMinutes: 5 });
+                actions.startSession(undefined, { type: "helper", sessionMinutes: 5, plipMinutes: 5 });
               }}
               onDismiss={() => setShowBreakSuggester(false)}
             />
