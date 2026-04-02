@@ -74,10 +74,10 @@ export function buildSubjectSettingsOverrides(
         ? normalizeGoalProgress(settings.weeklyGoal, defaults.weeklyGoalProgress)
         : undefined;
 
-    if (settings.sessionMinutes !== undefined && settings.sessionMinutes !== defaults.sessionMinutes) {
+    if (settings.sessionMinutes !== undefined) {
         overrides.sessionMinutes = settings.sessionMinutes;
     }
-    if (settings.plipMinutes !== undefined && settings.plipMinutes !== defaults.plipMinutes) {
+    if (settings.plipMinutes !== undefined) {
         overrides.plipMinutes = settings.plipMinutes;
     }
     if (typeof settings.soundEnabled === 'boolean' && settings.soundEnabled !== defaults.soundEnabled) {

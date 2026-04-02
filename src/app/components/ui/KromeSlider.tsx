@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useId, useMemo } from "react";
+import React, { useState, useEffect, useId, useMemo, useRef } from "react";
 import { cn } from "./utils";
 
 interface KromeSliderProps {
@@ -12,6 +12,7 @@ interface KromeSliderProps {
 
 export function KromeSlider({ label, value, min, max, onValueChange, disabled = false }: KromeSliderProps) {
     const [localVal, setLocalVal] = useState(value.toString());
+    const isFocusedRef = useRef(false);
     const reactId = useId();
     const clampValue = (nextValue: number) => Math.min(max, Math.max(min, nextValue));
     const fieldBaseId = useMemo(() => {
@@ -27,7 +28,9 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
     }, [value, min, max]);
 
     useEffect(() => {
-        setLocalVal(value.toString());
+        if (!isFocusedRef.current) {
+            setLocalVal(value.toString());
+        }
     }, [value]);
 
     const handleBlur = () => {
@@ -76,7 +79,13 @@ export function KromeSlider({ label, value, min, max, onValueChange, disabled = 
                     disabled={disabled}
                     value={localVal}
                     onChange={(e) => handleNumberInputChange(e.target.value)}
-                    onBlur={handleBlur}
+                    onFocus={() => {
+                        isFocusedRef.current = true;
+                    }}
+                    onBlur={() => {
+                        isFocusedRef.current = false;
+                        handleBlur();
+                    }}
                     onKeyDown={handleKeyDown}
                     className="w-14 h-8 bg-slate-800/60 border border-slate-600/50 rounded-lg text-center text-sm font-mono font-bold text-kromeAccent focus:outline-none focus:border-kromeAccent/60 focus:ring-1 focus:ring-kromeAccent/30 hide-arrows transition-all duration-200"
                 />
