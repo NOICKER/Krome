@@ -26,6 +26,7 @@ import { useAuth } from "./context/AuthContext";
 import { Modal } from "./components/ui/Modal";
 import { FrictionModal } from "./components/FrictionModal";
 import { startSyncService } from "./services/syncService";
+import { DiagnosticsHost } from "./components/diagnostics/DiagnosticsHost";
 
 export default function App() {
   const { state, actions } = useKromeStore();
@@ -142,6 +143,7 @@ export default function App() {
         forceSignup={new URLSearchParams(window.location.search).get('auth') === 'signup'}
       />
       <Toaster theme="dark" position="top-center" />
+      <DiagnosticsHost enabled={settings.diagnosticsMode} />
 
       {!user ? (
         <div className="flex-1 flex items-center justify-center bg-[#080C18]">

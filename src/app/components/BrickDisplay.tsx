@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
 import { calculateBricks, getTotalBlocks } from "../core/sessionEngine";
@@ -20,6 +21,8 @@ export function BrickDisplay({
   blindMode,
   subjectColor = "#62699D",
 }: BrickDisplayProps) {
+  const [progressTransitionDuration, setProgressTransitionDuration] = useState(0.18);
+  const lastElapsedMsRef = useRef(elapsedMs);
   const isUniversalMode = !Number.isFinite(sessionMinutes);
   const intervalMs = plipMinutes * 60 * 1000;
   const theme = buildBrickDisplayTheme(subjectColor);
@@ -38,6 +41,12 @@ export function BrickDisplay({
   const currentBlockIndex = filledBlocks;
   const visibleBlockCount = isUniversalMode ? 10 : finiteBrickState?.totalBricks ?? getTotalBlocks(sessionMinutes, plipMinutes);
   const visibleStartIndex = isUniversalMode ? Math.max(0, filledBlocks - 4) : 0;
+
+  useEffect(() => {
+    const elapsedDelta = Math.abs(elapsedMs - lastElapsedMsRef.current);
+    setProgressTransitionDuration(elapsedDelta > 1500 ? 0 : 0.18);
+    lastElapsedMsRef.current = elapsedMs;
+  }, [elapsedMs]);
 
   if (blindMode && isActive) {
     return (
@@ -104,12 +113,12 @@ export function BrickDisplay({
                     animate={{
                       height: `${progressInCurrentBlock * 100}%`,
                     }}
-                    style={{
-                      background: theme.currentProgressBackground,
-                      boxShadow: theme.currentProgressGlow,
-                    }}
-                    transition={{ duration: 0.18, ease: "easeOut" }}
-                  />
+                     style={{
+                       background: theme.currentProgressBackground,
+                       boxShadow: theme.currentProgressGlow,
+                     }}
+                     transition={{ duration: progressTransitionDuration, ease: "easeOut" }}
+                   />
                   <motion.div
                     className="absolute inset-0 pointer-events-none"
                     style={{ background: theme.currentHighlight }}

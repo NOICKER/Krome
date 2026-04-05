@@ -80,6 +80,7 @@ export interface KromeSettings {
   progressiveEscalation: boolean;
   countHelperBlocks: boolean;
   notifications: boolean;
+  diagnosticsMode: boolean;
   densityMode: 'comfortable' | 'compact';
   volume: number;
   weeklyGoal: number;

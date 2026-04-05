@@ -16,7 +16,13 @@ async function importTypescriptModule(relativePath) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 }
 
-const { createNewSession, calculateBricks, getTotalBlocks, isSessionComplete } = await importTypescriptModule(
+const {
+  createNewSession,
+  calculateBricks,
+  computeFuturePlipOffsetsSec,
+  getTotalBlocks,
+  isSessionComplete,
+} = await importTypescriptModule(
   "src/app/core/sessionEngine.ts"
 );
 
@@ -67,6 +73,33 @@ assert.equal(
   }),
   true,
   "Sessions should complete once the configured total duration is reached."
+);
+
+assert.deepEqual(
+  computeFuturePlipOffsetsSec(7 * 60 * 1000, {
+    sessionMinutes: 25,
+    plipMinutes: 5,
+  }),
+  [180, 480, 780],
+  "Future plip offsets should start strictly after the current elapsed time and exclude the session-end boundary."
+);
+
+assert.deepEqual(
+  computeFuturePlipOffsetsSec(23 * 60 * 1000, {
+    sessionMinutes: 25,
+    plipMinutes: 7,
+  }),
+  [],
+  "Near the end of a finite session, there may be no remaining plip boundaries before the end chime."
+);
+
+assert.deepEqual(
+  computeFuturePlipOffsetsSec(0, {
+    sessionMinutes: Number.POSITIVE_INFINITY,
+    plipMinutes: 5,
+  }, 3),
+  [300, 600, 900],
+  "Infinite sessions should continue yielding future plip offsets until the requested cap is reached."
 );
 
 console.log("session-engine checks passed");
