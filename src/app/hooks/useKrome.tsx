@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { playEndSound, playPlip, warmUpAudio } from "../utils/sound";
+import { playEndSound, scheduleSessionPlips, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -21,13 +21,14 @@ import { generateInsightFlashcards, type DeterministicInsightCard } from "../ser
 import { emitNotification, evaluateNotifications } from "../services/notificationService";
 import { saveObservation } from "../services/observationService";
 import { getCurrentWeekPlan, saveWeeklyPlan as persistWeeklyPlan } from "../services/planningService";
+import { recordDiagnosticsEvent } from "../services/diagnosticsService";
 import { getCurrentWeekDailyCounts, getCurrentWeekProgress } from "../utils/dateUtils";
 import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../utils/goalUtils";
 import { getTimeOfDay } from "../utils/timeUtils";
 import {
+  computeFuturePlipOffsetsSec,
   createNewSession,
   evaluateBlockCompletion,
-  getAudibleBoundariesCrossed,
   getTotalBlocks,
 } from "../core/sessionEngine";
 import { validateStreak, incrementStreak } from "../core/streakEngine";
@@ -74,6 +75,7 @@ const DEFAULT_SETTINGS: KromeSettings = {
   progressiveEscalation: false,
   countHelperBlocks: false,
   notifications: true,
+  diagnosticsMode: false,
   densityMode: "comfortable",
   volume: 0.5,
   weeklyGoal: 20,
@@ -370,18 +372,41 @@ export function useKromeLogic() {
   const [insightFlashcards, setInsightFlashcards] = useState<InsightFlashcard[]>([]);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
-  const elapsedLoopRef = useRef<number | null>(null);
-  const sessionClockOriginRef = useRef<number | null>(null);
-  const previousElapsedMsRef = useRef(0);
+  const visualLoopRef = useRef<number | null>(null);
+  const cancelScheduledPlipsRef = useRef<() => void>(() => {});
+  const lastVisibleFrameAtRef = useRef<number | null>(null);
+  const scheduledPlipCountRef = useRef(0);
   const settingsRef = useRef(settings);
   const subjectsRef = useRef(subjects);
   const sessionRef = useRef(session);
 
-  const clearElapsedLoop = () => {
-    if (elapsedLoopRef.current !== null) {
-      window.clearInterval(elapsedLoopRef.current);
-      elapsedLoopRef.current = null;
+  const stopVisualLoop = (reason: string, sessionId?: string) => {
+    if (visualLoopRef.current !== null) {
+      window.cancelAnimationFrame(visualLoopRef.current);
+      visualLoopRef.current = null;
+      recordDiagnosticsEvent({
+        type: "visual_loop_stopped",
+        timestamp: Date.now(),
+        sessionId,
+        reason,
+      });
     }
+    lastVisibleFrameAtRef.current = null;
+  };
+
+  const cancelScheduledPlips = (reason: string, isSessionRunning: boolean, sessionId?: string) => {
+    if (scheduledPlipCountRef.current > 0) {
+      cancelScheduledPlipsRef.current();
+      recordDiagnosticsEvent({
+        type: "plips_cancelled",
+        timestamp: Date.now(),
+        sessionId,
+        reason,
+        isSessionRunning,
+      });
+    }
+    cancelScheduledPlipsRef.current = () => {};
+    scheduledPlipCountRef.current = 0;
   };
 
   const getSessionElapsedFromEpoch = (activeSession: Pick<KromeSession, "startTime">) => {
@@ -598,58 +623,94 @@ export function useKromeLogic() {
 
   useEffect(() => {
     if (!session.isActive || session.startTime === null) {
-      clearElapsedLoop();
-      sessionClockOriginRef.current = null;
-      previousElapsedMsRef.current = 0;
+      stopVisualLoop("session-inactive");
+      cancelScheduledPlips("session-inactive", false);
       setElapsed(0);
       return;
     }
 
+    const sessionId = String(session.startTime);
+
     if (session.status !== "running" || session.activeInterruptStartTime) {
-      clearElapsedLoop();
+      stopVisualLoop("session-paused", sessionId);
+      cancelScheduledPlips("session-paused", false, sessionId);
       return;
     }
 
     const initialElapsed = getSessionElapsedFromEpoch(session);
-    sessionClockOriginRef.current = performance.now() - initialElapsed;
-    previousElapsedMsRef.current = initialElapsed;
+    setElapsed(initialElapsed);
+    stopVisualLoop("visual-loop-restart", sessionId);
+    cancelScheduledPlips("scheduler-resubscribe", false, sessionId);
 
-    const tick = () => {
-      if (sessionClockOriginRef.current === null) {
-        return;
+    if (session.soundEnabled) {
+      const futureOffsetsSeconds = computeFuturePlipOffsetsSec(initialElapsed, session);
+      if (futureOffsetsSeconds.length > 0) {
+        cancelScheduledPlipsRef.current = scheduleSessionPlips(futureOffsetsSeconds, session.volume ?? 0.5);
+        scheduledPlipCountRef.current = futureOffsetsSeconds.length;
+        recordDiagnosticsEvent({
+          type: "plips_scheduled",
+          timestamp: Date.now(),
+          sessionId,
+          count: futureOffsetsSeconds.length,
+          startLeadSeconds: 0.1,
+        });
       }
+    }
 
+    recordDiagnosticsEvent({
+      type: "visual_loop_started",
+      timestamp: Date.now(),
+      sessionId,
+    });
+
+    const loop = () => {
       const now = Date.now();
-      const newElapsed = Math.max(0, performance.now() - sessionClockOriginRef.current);
-      const previousElapsed = previousElapsedMsRef.current;
-      previousElapsedMsRef.current = newElapsed;
+      const newElapsed = Math.max(0, now - session.startTime);
+
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        if (lastVisibleFrameAtRef.current !== null) {
+          const gapMs = now - lastVisibleFrameAtRef.current;
+          if (gapMs > 1200) {
+            recordDiagnosticsEvent({
+              type: "visual_tick_gap_detected",
+              timestamp: now,
+              gapMs,
+              expectedMaxGapMs: 1200,
+              visibilityState: document.visibilityState,
+            });
+          }
+        }
+        lastVisibleFrameAtRef.current = now;
+      } else {
+        lastVisibleFrameAtRef.current = null;
+      }
 
       setElapsed(newElapsed);
 
-      if (session.soundEnabled) {
-        const boundaries = getAudibleBoundariesCrossed(previousElapsed, newElapsed, session);
-        boundaries.forEach(() => {
-          playPlip(session.volume ?? 0.5);
-        });
+      if (evaluateBlockCompletion(session, newElapsed, now)) {
+        stopVisualLoop("session-complete", sessionId);
+        cancelScheduledPlips("session-complete", false, sessionId);
+        handleSessionComplete();
+        return;
       }
 
-      if (evaluateBlockCompletion(session, newElapsed, now)) {
-        clearElapsedLoop();
-        handleSessionComplete();
-      }
+      visualLoopRef.current = window.requestAnimationFrame(loop);
     };
 
-    tick();
-    elapsedLoopRef.current = window.setInterval(tick, 100);
+    visualLoopRef.current = window.requestAnimationFrame(loop);
 
     return () => {
-      clearElapsedLoop();
+      stopVisualLoop("effect-cleanup", sessionId);
+      cancelScheduledPlips("effect-cleanup", false, sessionId);
     };
   }, [
     session.isActive,
     session.startTime,
     session.status,
     session.activeInterruptStartTime,
+    session.plipMinutes,
+    session.soundEnabled,
+    session.volume,
     session.sessionMinutes,
     session.claimedEndTime,
   ]);
@@ -695,7 +756,7 @@ export function useKromeLogic() {
 
     if (latestSession.isActive) return;
 
-    warmUpAudio();
+    void warmUpAudio();
     const selectedSubject = subject ?? getSessionSubjectSelection(latestSession);
     const sessionSettings = selectedSubject ? resolveSettings(latestSettings, selectedSubject.id, latestSubjects) : latestSettings;
     const nextSession = createNewSession(sessionSettings);
@@ -708,9 +769,14 @@ export function useKromeLogic() {
     setView("focus");
 
     const startTime = Date.now();
-    sessionClockOriginRef.current = performance.now();
-    previousElapsedMsRef.current = 0;
     setElapsed(0);
+    recordDiagnosticsEvent({
+      type: "session_started",
+      timestamp: startTime,
+      sessionId: String(startTime),
+      soundEnabled: nextSession.soundEnabled,
+      plipMinutes,
+    });
     setSession({
       ...nextSession,
       startTime,
@@ -759,6 +825,12 @@ export function useKromeLogic() {
   const pauseForInterrupt = (reason: string, type: InterruptEntry["type"], notes?: string) => {
     if (!session.isActive || session.activeInterruptStartTime) return;
 
+    recordDiagnosticsEvent({
+      type: "session_paused",
+      timestamp: Date.now(),
+      sessionId: String(session.startTime ?? Date.now()),
+      reason,
+    });
     setSession((prev) => ({
       ...prev,
       activeInterruptStartTime: Date.now(),
@@ -798,6 +870,11 @@ export function useKromeLogic() {
       interruptDuration: (session.interruptDuration ?? 0) + durationMs,
     };
 
+    recordDiagnosticsEvent({
+      type: "session_resumed",
+      timestamp: Date.now(),
+      sessionId: String(nextStartTime),
+    });
     setSession(nextSession);
   };
 
@@ -896,7 +973,8 @@ export function useKromeLogic() {
       });
     }
 
-    clearElapsedLoop();
+    stopVisualLoop(completed ? "session-ended" : "session-abandoned", String(session.startTime ?? sessionEndTime));
+    cancelScheduledPlips(completed ? "session-complete" : "session-abandoned", false, String(session.startTime ?? sessionEndTime));
 
     const nextHistory = [migrateHistoryEntry(entry), ...history].slice(0, 500);
     const nextDay = recalculateDayState(day, nextHistory, settings.dailyGoalProgress);
@@ -922,9 +1000,14 @@ export function useKromeLogic() {
 
     setSession(buildIdleSessionPreview(settings, subjects, getSessionSubjectSelection(session)));
     setIsSessionActive(false);
+    recordDiagnosticsEvent({
+      type: completed ? "session_completed" : "session_abandoned",
+      timestamp: sessionEndTime,
+      sessionId: String(session.startTime ?? sessionEndTime),
+    });
 
     if (completed) {
-      if (session.soundEnabled) playEndSound(session.volume ?? 0.5);
+      if (session.soundEnabled) void playEndSound(session.volume ?? 0.5);
       if (activeSessionSettings.notifications && "Notification" in window && Notification.permission === "granted") {
         new Notification("Block Complete", {
           body: "Focus session recorded.",

@@ -166,6 +166,12 @@ export function SettingsView({ settings, onUpdateSettings }: SettingsViewProps) 
             onCheckedChange={(v) => update('notifications', v)}
           />
           <KromeToggle
+            label="Diagnostics Mode"
+            description="Show runtime issue chips and a detailed diagnostics drawer for session debugging."
+            checked={settings.diagnosticsMode}
+            onCheckedChange={(v) => update('diagnosticsMode', v)}
+          />
+          <KromeToggle
             label="Count Helper Blocks"
             description="Count temporary sessions toward daily goal."
             checked={settings.countHelperBlocks}

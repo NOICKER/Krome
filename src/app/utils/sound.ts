@@ -1,5 +1,18 @@
 let audioCtx: AudioContext | null = null;
 let hasVisibilityResumeListener = false;
+const SCHEDULE_LEAD_SECONDS = 0.1;
+let diagnosticsReporter: ((event: Record<string, unknown>) => void) | null = null;
+
+function emitDiagnosticsEvent(event: Record<string, unknown>) {
+  diagnosticsReporter?.({
+    timestamp: Date.now(),
+    ...event,
+  });
+}
+
+export function setSoundDiagnosticsReporter(reporter: ((event: Record<string, unknown>) => void) | null) {
+  diagnosticsReporter = reporter;
+}
 
 function ensureVisibilityResumeListener() {
   if (typeof document === "undefined" || hasVisibilityResumeListener) {
@@ -22,6 +35,10 @@ function getAudioContext(): AudioContext | null {
   if (!audioCtx || audioCtx.state === "closed") {
     audioCtx = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
     ensureVisibilityResumeListener();
+    emitDiagnosticsEvent({
+      type: "audio_context_created",
+      state: audioCtx.state,
+    });
   }
 
   return audioCtx;
@@ -35,17 +52,71 @@ function clampVolume(volume: number | undefined, fallback: number = 0.5) {
   return Math.min(1, Math.max(0, volume));
 }
 
-function primeContext(ctx: AudioContext) {
-  if (ctx.state === "suspended") {
-    void ctx.resume().catch(() => {});
+async function ensureRunningAudioContext(contextLabel: string) {
+  const ctx = getAudioContext();
+  if (!ctx) {
+    console.log("[audio] No AudioContext available.");
+    return null;
   }
+
+  if (ctx.state === "closed") {
+    console.warn(`[audio] AudioContext is closed during ${contextLabel}.`);
+    return null;
+  }
+
+  if (ctx.state !== "running") {
+    console.log(`[audio] resume requested during ${contextLabel}:`, ctx.state);
+    emitDiagnosticsEvent({
+      type: "audio_resume_requested",
+      contextLabel,
+      state: ctx.state,
+    });
+    try {
+      await ctx.resume();
+      emitDiagnosticsEvent({
+        type: "audio_resume_succeeded",
+        contextLabel,
+        state: ctx.state,
+      });
+    } catch (err) {
+      console.error(`[audio] resume failed during ${contextLabel}:`, err);
+      emitDiagnosticsEvent({
+        type: "audio_resume_failed",
+        contextLabel,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
+  }
+
+  return ctx.state === "running" ? ctx : null;
 }
 
-export function warmUpAudio() {
-  const ctx = getAudioContext();
+function scheduleOscillatorAt(ctx: AudioContext, startTime: number, volume: number) {
+  const oscillator = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(880, startTime);
+
+  gainNode.gain.setValueAtTime(0.0001, startTime);
+  gainNode.gain.linearRampToValueAtTime(clampVolume(volume), startTime + 0.005);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.12);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + 0.15);
+
+  return oscillator;
+}
+
+export async function warmUpAudio() {
+  const ctx = await ensureRunningAudioContext("warmUpAudio()");
   if (!ctx) return;
 
-  primeContext(ctx);
+  console.log("[audio] warmUpAudio() initial state:", ctx.state);
+  console.log("[audio] state after resume:", ctx.state);
 
   const buffer = ctx.createBuffer(1, 1, 22050);
   const source = ctx.createBufferSource();
@@ -54,34 +125,16 @@ export function warmUpAudio() {
   source.start();
 }
 
-export function playPlip(volume: number = 0.5) {
-  const ctx = getAudioContext();
+export async function playPlip(volume: number = 0.5) {
+  const ctx = await ensureRunningAudioContext("playPlip()");
   if (!ctx) return;
 
-  primeContext(ctx);
-
-  const now = ctx.currentTime;
-  const oscillator = ctx.createOscillator();
-  const gainNode = ctx.createGain();
-
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(880, now);
-
-  gainNode.gain.setValueAtTime(0.0001, now);
-  gainNode.gain.linearRampToValueAtTime(clampVolume(volume), now + 0.005);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-
-  oscillator.connect(gainNode);
-  gainNode.connect(ctx.destination);
-  oscillator.start(now);
-  oscillator.stop(now + 0.15);
+  scheduleOscillatorAt(ctx, ctx.currentTime, volume);
 }
 
-export function playEndSound(volume: number = 0.5) {
-  const ctx = getAudioContext();
+export async function playEndSound(volume: number = 0.5) {
+  const ctx = await ensureRunningAudioContext("playEndSound()");
   if (!ctx) return;
-
-  primeContext(ctx);
 
   ([
     [528, 0],
@@ -103,4 +156,53 @@ export function playEndSound(volume: number = 0.5) {
     oscillator.start(startTime);
     oscillator.stop(startTime + 0.65);
   });
+}
+
+export function scheduleSessionPlips(offsetsSeconds: number[], volume: number = 0.5) {
+  if (offsetsSeconds.length === 0) {
+    return () => {};
+  }
+
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return () => {};
+  }
+
+  let cancelled = false;
+  let scheduledOscillators: OscillatorNode[] = [];
+
+  const scheduleAll = () => {
+    if (cancelled) {
+      return;
+    }
+
+    const baseTime = ctx.currentTime + SCHEDULE_LEAD_SECONDS;
+    scheduledOscillators = offsetsSeconds
+      .filter((offset) => Number.isFinite(offset) && offset > 0)
+      .map((offset) => scheduleOscillatorAt(ctx, baseTime + offset, volume));
+  };
+
+  if (ctx.state === "running") {
+    scheduleAll();
+  } else {
+    void ctx.resume().then(() => {
+      if (cancelled) {
+        return;
+      }
+      scheduleAll();
+    }).catch(() => {});
+  }
+
+  return () => {
+    cancelled = true;
+    const oscillatorsToStop = scheduledOscillators;
+    scheduledOscillators = [];
+    oscillatorsToStop.forEach((oscillator) => {
+      try {
+        oscillator.stop(0);
+      } catch {
+        // Ignore already-stopped oscillators.
+      }
+    });
+  };
 }
