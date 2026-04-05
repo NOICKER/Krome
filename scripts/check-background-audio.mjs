@@ -102,6 +102,9 @@ globalThis.document = {
 };
 
 const { playPlip, playEndSound, scheduleSessionPlips } = await importTypescriptModule("src/app/utils/sound.ts");
+const realDateNow = Date.now;
+let fakeNow = 1000;
+Date.now = () => fakeNow;
 
 const plipPromise = Promise.resolve(playPlip(0.5));
 const plipContext = FakeAudioContext.instances[0];
@@ -146,5 +149,21 @@ assert.equal(
   scheduledStartCountBeforeCancel,
   "Cancelling before resume resolves should prevent deferred plip scheduling."
 );
+
+plipContext.state = "suspended";
+const driftTestStartIndex = plipContext.scheduledStartTimes.length;
+fakeNow = 5000;
+const cancelDelayedSchedule = scheduleSessionPlips([3, 6], 0.5);
+fakeNow = 7500;
+plipContext.resumeResolver?.();
+await Promise.resolve();
+assert.deepEqual(
+  plipContext.scheduledStartTimes.slice(driftTestStartIndex).map((value) => Number(value.toFixed(2))),
+  [10.6, 13.6],
+  "Delayed audio-context resume should subtract wall-clock drift so scheduled plips stay aligned with the session clock."
+);
+cancelDelayedSchedule();
+
+Date.now = realDateNow;
 
 console.log("background audio checks passed");
