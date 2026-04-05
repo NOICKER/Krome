@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { cn } from "./ui/utils";
 import { calculateBricks, getTotalBlocks } from "../core/sessionEngine";
+import { buildBrickDisplayTheme } from "./brickDisplayTheme";
 
 interface BrickDisplayProps {
   sessionMinutes: number;
@@ -21,6 +22,7 @@ export function BrickDisplay({
 }: BrickDisplayProps) {
   const isUniversalMode = !Number.isFinite(sessionMinutes);
   const intervalMs = plipMinutes * 60 * 1000;
+  const theme = buildBrickDisplayTheme(subjectColor);
   const finiteBrickState = isUniversalMode
     ? null
     : calculateBricks(elapsedMs, {
@@ -60,8 +62,6 @@ export function BrickDisplay({
           const actualIndex = visibleStartIndex + index;
           const isFilled = actualIndex < filledBlocks;
           const isCurrent = actualIndex === currentBlockIndex && isActive;
-          const filledBg = subjectColor;
-          const glowColor = `${subjectColor}66`;
 
           return (
             <div key={actualIndex} className="aspect-square relative group">
@@ -70,13 +70,13 @@ export function BrickDisplay({
               <motion.div
                 className="absolute inset-0 rounded-lg md:rounded-xl"
                 style={{
-                  backgroundColor: isFilled ? filledBg : "transparent",
-                  boxShadow: isFilled ? `0 0 15px ${glowColor}` : "none",
+                  background: isFilled ? theme.filledBackground : "transparent",
+                  boxShadow: isFilled ? theme.filledGlow : "none",
                 }}
                 initial={false}
                 animate={{
                   opacity: isFilled ? 1 : 0,
-                  scale: isFilled ? 1 : 0.9,
+                  scale: isFilled ? 1 : 0.92,
                 }}
                 transition={{ duration: 0.4 }}
               />
@@ -84,10 +84,14 @@ export function BrickDisplay({
               {isCurrent && (
                 <motion.div
                   className="absolute inset-0 rounded-lg md:rounded-xl border overflow-hidden"
-                  style={{ borderColor: `${subjectColor}80`, backgroundColor: `${subjectColor}14` }}
+                  style={{
+                    borderColor: theme.currentShellBorder,
+                    background: theme.currentShellBackground,
+                    boxShadow: theme.currentShellGlow,
+                  }}
                   animate={{
-                    opacity: [0.2, 0.5, 0.2],
-                    scale: [0.95, 1.02, 0.95],
+                    opacity: [0.7, 1, 0.7],
+                    scale: [0.985, 1.02, 0.985],
                   }}
                   transition={{
                     duration: 2,
@@ -97,11 +101,20 @@ export function BrickDisplay({
                 >
                   <motion.div
                     className="absolute bottom-0 left-0 right-0"
-                    style={{
+                    animate={{
                       height: `${progressInCurrentBlock * 100}%`,
-                      backgroundColor: `${subjectColor}40`,
                     }}
-                    transition={{ duration: 0.2 }}
+                    style={{
+                      background: theme.currentProgressBackground,
+                      boxShadow: theme.currentProgressGlow,
+                    }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: theme.currentHighlight }}
+                    animate={{ opacity: [0.2, 0.45, 0.2] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </motion.div>
               )}
@@ -117,7 +130,7 @@ export function BrickDisplay({
               "w-2 h-2 rounded-full",
               isActive ? "animate-pulse" : "bg-slate-500"
             )}
-            style={isActive ? { backgroundColor: subjectColor } : undefined}
+            style={isActive ? { backgroundColor: theme.statusDot } : undefined}
           />
           <span className="text-slate-400 font-mono text-xs md:text-sm font-medium uppercase tracking-widest">
             {isUniversalMode ? (isActive ? "Universal Focus" : "Universal Ready") : (isActive ? "Session Active" : "Ready")}

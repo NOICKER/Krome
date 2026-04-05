@@ -11,6 +11,7 @@ import { WeeklyStrip } from "./focus/WeeklyStrip";
 import { getAdvancedObservations } from "../services/analyticsService";
 import { cn } from "./ui/utils";
 import { getTotalBlocks } from "../core/sessionEngine";
+import { UNIVERSAL_BRICK_ACCENT } from "./brickDisplayTheme";
 
 interface FocusViewProps {
   session: KromeSession;
@@ -64,7 +65,7 @@ export function FocusView({
 }: FocusViewProps) {
   const [insights, setInsights] = useState<string[]>([]);
   const [isInterruptTrackerOpen, setIsInterruptTrackerOpen] = useState(false);
-  const activeSubjectColor = currentSubject?.color ?? "#64748b";
+  const activeSubjectColor = currentSubject?.color ?? UNIVERSAL_BRICK_ACCENT;
   const focusTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
   const sessionBlockCount = Number.isFinite(session.sessionMinutes)
     ? getTotalBlocks(session.sessionMinutes, Math.max(session.plipMinutes, 1))
