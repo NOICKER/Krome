@@ -25,6 +25,7 @@ import { recordDiagnosticsEvent } from "../services/diagnosticsService";
 import { getCurrentWeekDailyCounts, getCurrentWeekProgress } from "../utils/dateUtils";
 import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../utils/goalUtils";
 import { getTimeOfDay } from "../utils/timeUtils";
+import { createVisualGapMonitor } from "../utils/visualGapMonitor";
 import {
   computeFuturePlipOffsetsSec,
   createNewSession,
@@ -374,7 +375,7 @@ export function useKromeLogic() {
   const lastNotificationCheckRef = useRef<string>("");
   const visualLoopRef = useRef<number | null>(null);
   const cancelScheduledPlipsRef = useRef<() => void>(() => {});
-  const lastVisibleFrameAtRef = useRef<number | null>(null);
+  const visualGapMonitorRef = useRef(createVisualGapMonitor(1200));
   const scheduledPlipCountRef = useRef(0);
   const settingsRef = useRef(settings);
   const subjectsRef = useRef(subjects);
@@ -391,7 +392,7 @@ export function useKromeLogic() {
         reason,
       });
     }
-    lastVisibleFrameAtRef.current = null;
+    visualGapMonitorRef.current.reset();
   };
 
   const cancelScheduledPlips = (reason: string, isSessionRunning: boolean, sessionId?: string) => {
@@ -470,6 +471,21 @@ export function useKromeLogic() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      visualGapMonitorRef.current.noteVisibilityChange(document.visibilityState);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     subjectsRef.current = subjects;
@@ -667,22 +683,15 @@ export function useKromeLogic() {
       const now = Date.now();
       const newElapsed = Math.max(0, now - session.startTime);
 
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        if (lastVisibleFrameAtRef.current !== null) {
-          const gapMs = now - lastVisibleFrameAtRef.current;
-          if (gapMs > 1200) {
-            recordDiagnosticsEvent({
-              type: "visual_tick_gap_detected",
-              timestamp: now,
-              gapMs,
-              expectedMaxGapMs: 1200,
-              visibilityState: document.visibilityState,
-            });
-          }
+      if (typeof document !== "undefined") {
+        const gapAlert = visualGapMonitorRef.current.observeFrame(now, document.visibilityState);
+        if (gapAlert) {
+          recordDiagnosticsEvent({
+            type: "visual_tick_gap_detected",
+            timestamp: now,
+            ...gapAlert,
+          });
         }
-        lastVisibleFrameAtRef.current = now;
-      } else {
-        lastVisibleFrameAtRef.current = null;
       }
 
       setElapsed(newElapsed);

@@ -1,6 +1,7 @@
 let audioCtx: AudioContext | null = null;
 let hasVisibilityResumeListener = false;
 const SCHEDULE_LEAD_SECONDS = 0.1;
+const MAX_ACCEPTABLE_SCHEDULE_DELAY_MS = 250;
 let diagnosticsReporter: ((event: Record<string, unknown>) => void) | null = null;
 
 function emitDiagnosticsEvent(event: Record<string, unknown>) {
@@ -170,16 +171,41 @@ export function scheduleSessionPlips(offsetsSeconds: number[], volume: number = 
 
   let cancelled = false;
   let scheduledOscillators: OscillatorNode[] = [];
+  const requestedAtMs = Date.now();
+  const normalizedOffsetsSeconds = offsetsSeconds.filter((offset) => Number.isFinite(offset) && offset > 0);
 
   const scheduleAll = () => {
     if (cancelled) {
       return;
     }
 
+    const scheduleDelayMs = Math.max(0, Date.now() - requestedAtMs);
+    const remainingOffsetsSeconds = normalizedOffsetsSeconds
+      .map((offset) => offset - scheduleDelayMs / 1000)
+      .filter((offset) => offset > 0);
+    const skippedCount = normalizedOffsetsSeconds.length - remainingOffsetsSeconds.length;
+
+    if (scheduleDelayMs > MAX_ACCEPTABLE_SCHEDULE_DELAY_MS || skippedCount > 0) {
+      emitDiagnosticsEvent({
+        type: "contract_violation",
+        dedupeKey: "plip_schedule_drift_detected",
+        severity: skippedCount > 0 ? "error" : "warning",
+        title: "Plip scheduling drift detected",
+        summary: "Audio scheduling started later than the session clock expected.",
+        expected: "Future plips should be scheduled immediately against the current wall clock.",
+        observed: skippedCount > 0
+          ? `Scheduling started ${Math.round(scheduleDelayMs)}ms late and ${skippedCount} plip(s) were already in the past.`
+          : `Scheduling started ${Math.round(scheduleDelayMs)}ms late.`,
+        probableCause: "The audio context took too long to resume before the session plips could be booked onto the audio timeline.",
+        evidenceLabel: "Delayed plip scheduling observed.",
+        evidenceDetail: `delay=${Math.round(scheduleDelayMs)}ms, skipped=${skippedCount}`,
+      });
+    }
+
     const baseTime = ctx.currentTime + SCHEDULE_LEAD_SECONDS;
-    scheduledOscillators = offsetsSeconds
-      .filter((offset) => Number.isFinite(offset) && offset > 0)
-      .map((offset) => scheduleOscillatorAt(ctx, baseTime + offset, volume));
+    scheduledOscillators = remainingOffsetsSeconds.map((offset) =>
+      scheduleOscillatorAt(ctx, baseTime + offset, volume)
+    );
   };
 
   if (ctx.state === "running") {
