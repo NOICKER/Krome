@@ -11,8 +11,8 @@ export function createVisualGapMonitor(expectedMaxGapMs: number = 1200) {
     noteVisibilityChange(_visibilityState: DocumentVisibilityState) {
       lastVisibleFrameAtMs = null;
     },
-    observeFrame(nowMs: number, visibilityState: DocumentVisibilityState): VisualGapAlert | null {
-      if (visibilityState !== "visible") {
+    observeFrame(nowMs: number, visibilityState: DocumentVisibilityState, isFocused: boolean = true): VisualGapAlert | null {
+      if (visibilityState !== "visible" || !isFocused) {
         lastVisibleFrameAtMs = null;
         return null;
       }

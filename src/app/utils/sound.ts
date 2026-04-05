@@ -202,9 +202,9 @@ export function scheduleSessionPlips(offsetsSeconds: number[], volume: number = 
       });
     }
 
-    const baseTime = ctx.currentTime + SCHEDULE_LEAD_SECONDS;
+    const baseTime = ctx.currentTime;
     scheduledOscillators = remainingOffsetsSeconds.map((offset) =>
-      scheduleOscillatorAt(ctx, baseTime + offset, volume)
+      scheduleOscillatorAt(ctx, baseTime + Math.max(offset, SCHEDULE_LEAD_SECONDS), volume)
     );
   };
 
