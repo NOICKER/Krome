@@ -31,6 +31,18 @@ assert.equal(
   "Normal visible frame cadence should not report a stall."
 );
 
+assert.equal(
+  monitor.observeFrame(1800, "visible", false),
+  null,
+  "Losing page focus should reset the visible-frame tracker."
+);
+
+assert.equal(
+  monitor.observeFrame(25000, "visible"),
+  null,
+  "Returning to a focused page after an unfocused stretch should reseed the monitor instead of reporting a false stall."
+);
+
 monitor.noteVisibilityChange("hidden");
 monitor.noteVisibilityChange("visible");
 

@@ -128,8 +128,8 @@ const cancelScheduled = scheduleSessionPlips([1, 2], 0.5);
 assert.equal(typeof cancelScheduled, "function", "scheduleSessionPlips should return a cancel function");
 assert.deepEqual(
   plipContext.scheduledStartTimes.slice(-2).map((value) => Number(value.toFixed(2))),
-  [11.1, 12.1],
-  "scheduleSessionPlips should pre-schedule future plips against the audio clock with a small lead time."
+  [11, 12],
+  "scheduleSessionPlips should align future plips to their actual session boundaries instead of adding a fixed extra delay."
 );
 
 cancelScheduled();
@@ -159,7 +159,7 @@ plipContext.resumeResolver?.();
 await Promise.resolve();
 assert.deepEqual(
   plipContext.scheduledStartTimes.slice(driftTestStartIndex).map((value) => Number(value.toFixed(2))),
-  [10.6, 13.6],
+  [10.5, 13.5],
   "Delayed audio-context resume should subtract wall-clock drift so scheduled plips stay aligned with the session clock."
 );
 cancelDelayedSchedule();

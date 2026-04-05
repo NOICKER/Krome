@@ -477,13 +477,25 @@ export function useKromeLogic() {
       return;
     }
 
+    const resetVisualGapMonitor = () => {
+      visualGapMonitorRef.current.reset();
+    };
+
     const handleVisibilityChange = () => {
       visualGapMonitorRef.current.noteVisibilityChange(document.visibilityState);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", resetVisualGapMonitor);
+    window.addEventListener("focus", resetVisualGapMonitor);
+    window.addEventListener("pagehide", resetVisualGapMonitor);
+    window.addEventListener("pageshow", resetVisualGapMonitor);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", resetVisualGapMonitor);
+      window.removeEventListener("focus", resetVisualGapMonitor);
+      window.removeEventListener("pagehide", resetVisualGapMonitor);
+      window.removeEventListener("pageshow", resetVisualGapMonitor);
     };
   }, []);
 
@@ -684,7 +696,11 @@ export function useKromeLogic() {
       const newElapsed = Math.max(0, now - session.startTime);
 
       if (typeof document !== "undefined") {
-        const gapAlert = visualGapMonitorRef.current.observeFrame(now, document.visibilityState);
+        const gapAlert = visualGapMonitorRef.current.observeFrame(
+          now,
+          document.visibilityState,
+          typeof document.hasFocus === "function" ? document.hasFocus() : true
+        );
         if (gapAlert) {
           recordDiagnosticsEvent({
             type: "visual_tick_gap_detected",
