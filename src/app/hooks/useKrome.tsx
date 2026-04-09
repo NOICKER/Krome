@@ -2,7 +2,7 @@ import React, { createContext, startTransition, useContext, useEffect, useMemo, 
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { playEndSound, scheduleSessionPlips, warmUpAudio } from "../utils/sound";
+import { playEndSound, playPlip, startAudioKeepAlive, warmUpAudio } from "../utils/sound";
 import { assignSubjectColor } from "../utils/subjectUtils";
 import { migrateHistoryEntry } from "../utils/migrationUtils";
 import { getTasks, updateTask } from "../services/taskService";
@@ -27,9 +27,9 @@ import { getGoalMetricValue, normalizeGoalProgress, withGoalCurrent } from "../u
 import { getTimeOfDay } from "../utils/timeUtils";
 import { createVisualGapMonitor } from "../utils/visualGapMonitor";
 import {
-  computeFuturePlipOffsetsSec,
   createNewSession,
   evaluateBlockCompletion,
+  getAudibleBoundariesCrossed,
   getTotalBlocks,
 } from "../core/sessionEngine";
 import { validateStreak, incrementStreak } from "../core/streakEngine";
@@ -374,9 +374,7 @@ export function useKromeLogic() {
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastNotificationCheckRef = useRef<string>("");
   const visualLoopRef = useRef<number | null>(null);
-  const cancelScheduledPlipsRef = useRef<() => void>(() => {});
   const visualGapMonitorRef = useRef(createVisualGapMonitor(1200));
-  const scheduledPlipCountRef = useRef(0);
   const settingsRef = useRef(settings);
   const subjectsRef = useRef(subjects);
   const sessionRef = useRef(session);
@@ -393,21 +391,6 @@ export function useKromeLogic() {
       });
     }
     visualGapMonitorRef.current.reset();
-  };
-
-  const cancelScheduledPlips = (reason: string, isSessionRunning: boolean, sessionId?: string) => {
-    if (scheduledPlipCountRef.current > 0) {
-      cancelScheduledPlipsRef.current();
-      recordDiagnosticsEvent({
-        type: "plips_cancelled",
-        timestamp: Date.now(),
-        sessionId,
-        reason,
-        isSessionRunning,
-      });
-    }
-    cancelScheduledPlipsRef.current = () => {};
-    scheduledPlipCountRef.current = 0;
   };
 
   const getSessionElapsedFromEpoch = (activeSession: Pick<KromeSession, "startTime">) => {
@@ -652,7 +635,6 @@ export function useKromeLogic() {
   useEffect(() => {
     if (!session.isActive || session.startTime === null) {
       stopVisualLoop("session-inactive");
-      cancelScheduledPlips("session-inactive", false);
       setElapsed(0);
       return;
     }
@@ -661,29 +643,28 @@ export function useKromeLogic() {
 
     if (session.status !== "running" || session.activeInterruptStartTime) {
       stopVisualLoop("session-paused", sessionId);
-      cancelScheduledPlips("session-paused", false, sessionId);
       return;
     }
 
     const initialElapsed = getSessionElapsedFromEpoch(session);
+    let lastAudioElapsed = initialElapsed;
+    const stopAudioKeepAlive = session.soundEnabled ? startAudioKeepAlive() : () => {};
+    const audioWatchdog = window.setInterval(() => {
+      const newElapsed = Math.max(0, Date.now() - session.startTime);
+
+      if (session.soundEnabled) {
+        const crossedBoundaries = getAudibleBoundariesCrossed(lastAudioElapsed, newElapsed, session);
+
+        if (crossedBoundaries.length > 0) {
+          void playPlip(session.volume ?? 0.5);
+        }
+      }
+
+      lastAudioElapsed = newElapsed;
+    }, 1000);
+
     setElapsed(initialElapsed);
     stopVisualLoop("visual-loop-restart", sessionId);
-    cancelScheduledPlips("scheduler-resubscribe", false, sessionId);
-
-    if (session.soundEnabled) {
-      const futureOffsetsSeconds = computeFuturePlipOffsetsSec(initialElapsed, session);
-      if (futureOffsetsSeconds.length > 0) {
-        cancelScheduledPlipsRef.current = scheduleSessionPlips(futureOffsetsSeconds, session.volume ?? 0.5);
-        scheduledPlipCountRef.current = futureOffsetsSeconds.length;
-        recordDiagnosticsEvent({
-          type: "plips_scheduled",
-          timestamp: Date.now(),
-          sessionId,
-          count: futureOffsetsSeconds.length,
-          startLeadSeconds: 0.1,
-        });
-      }
-    }
 
     recordDiagnosticsEvent({
       type: "visual_loop_started",
@@ -713,8 +694,9 @@ export function useKromeLogic() {
       setElapsed(newElapsed);
 
       if (evaluateBlockCompletion(session, newElapsed, now)) {
+        window.clearInterval(audioWatchdog);
+        stopAudioKeepAlive();
         stopVisualLoop("session-complete", sessionId);
-        cancelScheduledPlips("session-complete", false, sessionId);
         handleSessionComplete();
         return;
       }
@@ -725,8 +707,9 @@ export function useKromeLogic() {
     visualLoopRef.current = window.requestAnimationFrame(loop);
 
     return () => {
+      window.clearInterval(audioWatchdog);
+      stopAudioKeepAlive();
       stopVisualLoop("effect-cleanup", sessionId);
-      cancelScheduledPlips("effect-cleanup", false, sessionId);
     };
   }, [
     session.isActive,
@@ -999,7 +982,6 @@ export function useKromeLogic() {
     }
 
     stopVisualLoop(completed ? "session-ended" : "session-abandoned", String(session.startTime ?? sessionEndTime));
-    cancelScheduledPlips(completed ? "session-complete" : "session-abandoned", false, String(session.startTime ?? sessionEndTime));
 
     const nextHistory = [migrateHistoryEntry(entry), ...history].slice(0, 500);
     const nextDay = recalculateDayState(day, nextHistory, settings.dailyGoalProgress);
