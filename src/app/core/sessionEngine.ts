@@ -178,36 +178,6 @@ export function isSessionComplete(elapsedMs: number, config: SessionClockConfig)
     return elapsedMs >= totalDurationMs;
 }
 
-export function computeFuturePlipOffsetsSec(
-    currentElapsedMs: number,
-    config: SessionClockConfig,
-    maxPlips: number = 120
-) {
-    const { plipMinutes, sessionMinutes } = config;
-    if (!Number.isFinite(plipMinutes) || plipMinutes <= 0 || maxPlips <= 0) {
-        return [] as number[];
-    }
-
-    const plipMs = plipMinutes * 60 * 1000;
-    const isFiniteSession = Number.isFinite(sessionMinutes);
-    const totalSessionMs = isFiniteSession ? Math.max(0, sessionMinutes * 60 * 1000) : Number.POSITIVE_INFINITY;
-    const boundedElapsedMs = Math.max(0, currentElapsedMs);
-    const offsetsSeconds: number[] = [];
-
-    let nextBoundaryMs = (Math.floor(boundedElapsedMs / plipMs) + 1) * plipMs;
-
-    while (offsetsSeconds.length < maxPlips) {
-        if (isFiniteSession && nextBoundaryMs >= totalSessionMs) {
-            break;
-        }
-
-        offsetsSeconds.push((nextBoundaryMs - boundedElapsedMs) / 1000);
-        nextBoundaryMs += plipMs;
-    }
-
-    return offsetsSeconds;
-}
-
 export function evaluateBlockCompletion(
     session: KromeSession,
     elapsedMs: number,
