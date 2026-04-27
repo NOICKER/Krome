@@ -44,24 +44,28 @@ export default function LibraryView() {
   const [confirmState, setConfirmState] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const loadLibrary = useCallback(async () => {
-    const fetchedCards = await canvasStorage.getAllCards();
-    const storedPositions = await canvasStorage.getCanvasPositions('main');
-    
-    // Merge positions into cards so library knows what is on canvas
-    const hydratedCards = fetchedCards.map((card) => {
-      const pos = storedPositions.find((p) => p.card_id === card.id);
-      return {
-        ...card,
-        canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
-      };
-    });
+    try {
+      const fetchedCards = await canvasStorage.getAllCards();
+      const storedPositions = await canvasStorage.getCanvasPositions('main');
+      
+      // Merge positions into cards so library knows what is on canvas
+      const hydratedCards = fetchedCards.map((card) => {
+        const pos = storedPositions.find((p) => p.card_id === card.id);
+        return {
+          ...card,
+          canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
+        };
+      });
 
-    setCards(hydratedCards);
+      setCards(hydratedCards);
 
-    const imageEntries = hydratedCards
-      .map((card) => (card.screenshot_url ? [card.id, card.screenshot_url] : null))
-      .filter(Boolean);
-    setImages(Object.fromEntries(imageEntries as any));
+      const imageEntries = hydratedCards
+        .map((card) => (card.screenshot_url ? [card.id, card.screenshot_url] : null))
+        .filter(Boolean);
+      setImages(Object.fromEntries(imageEntries as any));
+    } catch (error) {
+      console.error('Failed to load library', error);
+    }
   }, [canvasStorage]);
 
   useEffect(() => {
@@ -218,7 +222,7 @@ export default function LibraryView() {
   }, [selectedCardId]);
 
   return (
-    <div className="library-screen" style={{ background: 'var(--nt-bg)' }}>
+    <div className="library-screen" style={{ background: 'var(--nt-bg)', minHeight: '100vh', height: '100vh', overflow: 'auto' }}>
       {confirmState && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ position: 'fixed' }}>
           <div className="bg-[#121212] border border-[#333] rounded-lg p-6 max-w-sm w-full shadow-2xl" style={{ background: 'var(--nt-bg)', borderColor: 'var(--nt-border)' }}>

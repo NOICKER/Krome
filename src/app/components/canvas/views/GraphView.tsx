@@ -175,26 +175,30 @@ function InnerGraphView() {
     let cancelled = false;
 
     async function loadGraph() {
-      const nextCards = await canvasStorage.getAllCards();
-      if (cancelled) return;
+      try {
+        const nextCards = await canvasStorage.getAllCards();
+        if (cancelled) return;
 
-      const storedPositions = await canvasStorage.getCanvasPositions('main');
-      const hydratedCards = nextCards.map((card) => {
-        const pos = storedPositions.find((p) => p.card_id === card.id);
-        return {
-          ...card,
-          canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
-        };
-      });
+        const storedPositions = await canvasStorage.getCanvasPositions('main');
+        const hydratedCards = nextCards.map((card) => {
+          const pos = storedPositions.find((p) => p.card_id === card.id);
+          return {
+            ...card,
+            canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
+          };
+        });
 
-      setCards(hydratedCards);
-      setNodes(buildGraphNodes(hydratedCards, dims.width, dims.height));
-      setEdges(buildGraphEdges(hydratedCards));
+        setCards(hydratedCards);
+        setNodes(buildGraphNodes(hydratedCards, dims.width, dims.height));
+        setEdges(buildGraphEdges(hydratedCards));
 
-      const imageEntries = hydratedCards
-        .map((card) => (card.screenshot_url ? [card.id, card.screenshot_url] : null))
-        .filter(Boolean);
-      setImages(Object.fromEntries(imageEntries as any));
+        const imageEntries = hydratedCards
+          .map((card) => (card.screenshot_url ? [card.id, card.screenshot_url] : null))
+          .filter(Boolean);
+        setImages(Object.fromEntries(imageEntries as any));
+      } catch (error) {
+        console.error('Failed to load graph', error);
+      }
     }
 
     loadGraph();
@@ -283,7 +287,7 @@ function InnerGraphView() {
   }, [ensureCardOnCanvas]);
 
   return (
-    <div className="graph-screen" style={{ background: 'var(--nt-bg)', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div className="graph-screen" style={{ background: 'var(--nt-bg)', width: '100%', minHeight: '100vh', height: '100vh', overflow: 'hidden' }}>
       {confirmState && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ position: 'fixed' }}>
           <div className="bg-[#121212] border border-[#333] rounded-lg p-6 max-w-sm w-full shadow-2xl" style={{ background: 'var(--nt-bg)', borderColor: 'var(--nt-border)' }}>

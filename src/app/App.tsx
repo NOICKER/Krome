@@ -32,6 +32,9 @@ import LibraryView from "./components/canvas/views/LibraryView";
 import DashboardView from "./components/canvas/views/DashboardView";
 import GraphView from "./components/canvas/views/GraphView";
 import ExamSimView from "./components/canvas/views/ExamSimView";
+import { ProGateModal } from "./components/ProGateModal";
+import { isProUser } from "./utils/proGate";
+import type { ViewState } from "./types";
 import Library from "lucide-react/dist/esm/icons/library";
 import Network from "lucide-react/dist/esm/icons/network";
 import Palette from "lucide-react/dist/esm/icons/palette";
@@ -41,6 +44,7 @@ export default function App() {
   const { view, viewPayload, settings, resolvedSettings, currentSubject, activeSubjectView, day, session, streak, history, subjects, elapsed, isSessionActive, latestSessionSummary } = state;
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
+  const [isProGateOpen, setIsProGateOpen] = useState(false);
   const { loading: authLoading, user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const focusHeaderTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
@@ -134,7 +138,16 @@ export default function App() {
     { id: "review", label: "Review", icon: CheckSquare },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
-  const proNavItemIds = new Set(["canvas", "library", "graph", "canvasDashboard"]);
+  const proNavItemIds = new Set<ViewState>(["canvas", "library", "graph", "canvasDashboard"]);
+
+  const handleProNavClick = (nextView: ViewState) => {
+    if (proNavItemIds.has(nextView) && !isProUser(user)) {
+      setIsProGateOpen(true);
+      return;
+    }
+
+    actions.setView(nextView);
+  };
 
   if (authLoading) {
     return (
@@ -154,6 +167,7 @@ export default function App() {
         onClose={() => setShowAuthModal(false)}
         forceSignup={new URLSearchParams(window.location.search).get('auth') === 'signup'}
       />
+      <ProGateModal isOpen={isProGateOpen} onClose={() => setIsProGateOpen(false)} />
       <Toaster theme="dark" position="top-center" />
       <DiagnosticsHost enabled={settings.diagnosticsMode} />
 
@@ -216,7 +230,7 @@ export default function App() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => actions.setView(item.id)}
+                    onClick={() => handleProNavClick(item.id)}
                     className={cn(
                       "relative flex items-center space-x-3 px-3 py-3 rounded-xl transition-all duration-150 group",
                       isActive
@@ -436,7 +450,7 @@ export default function App() {
               </AnimatePresence>
             </main>
             {/* Mobile Bottom Navigation */}
-            <MobileBottomNav navItems={navItems as any} view={view} setView={actions.setView} />
+            <MobileBottomNav navItems={navItems as any} view={view} setView={handleProNavClick} />
           </div>
         </>
       )}

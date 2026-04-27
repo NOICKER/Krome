@@ -444,53 +444,57 @@ export default function CanvasView({ activeSessionContext }: { activeSessionCont
     let cancelled = false;
 
     async function hydrateCanvas() {
-      const [storedCards, storedStickies, storedConnections, storedPositions, storedShapes, storedNotes, storedConfig] = await Promise.all([
-        canvasStorage.getAllCards(),
-        canvasStorage.getStickies('main'),
-        canvasStorage.getConnections(),
-        canvasStorage.getCanvasPositions('main'),
-        canvasStorage.getShapes('main'),
-        canvasStorage.loadNotes(),
-        canvasStorage.getConfig(),
-      ]);
-      if (cancelled) return;
+      try {
+        const [storedCards, storedStickies, storedConnections, storedPositions, storedShapes, storedNotes, storedConfig] = await Promise.all([
+          canvasStorage.getAllCards(),
+          canvasStorage.getStickies('main'),
+          canvasStorage.getConnections(),
+          canvasStorage.getCanvasPositions('main'),
+          canvasStorage.getShapes('main'),
+          canvasStorage.loadNotes(),
+          canvasStorage.getConfig(),
+        ]);
+        if (cancelled) return;
 
-      const hydratedCards = storedCards.map(card => {
-        const pos = storedPositions.find(p => p.card_id === card.id);
-        return {
-          ...card,
-          canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
-          w: card.w,
-          h: card.h,
-        };
-      }).filter(card => card.canvasPos);
+        const hydratedCards = storedCards.map(card => {
+          const pos = storedPositions.find(p => p.card_id === card.id);
+          return {
+            ...card,
+            canvasPos: pos ? { x: pos.x, y: pos.y } : undefined,
+            w: card.w,
+            h: card.h,
+          };
+        }).filter(card => card.canvasPos);
 
-      const manualConnections = storedConnections.filter(c => c.type === 'manual');
-      setCards(hydratedCards);
-      setStickies((storedStickies || []).map(normalizeSticky));
-      setConnections(manualConnections);
-      setShapes(storedShapes || []);
-      setNotes({
-        text: storedNotes.text || '',
-        lastUpdated: storedNotes.lastUpdated || null,
-        lastPattern: storedNotes.lastPattern || '',
-      });
-      setConfig(storedConfig || {});
-      
-      const legacyCardAnnotations = hydratedCards.flatMap((card) =>
-        ((card as any).annotations || []).map((annotation: any) => ({
-          ...annotation,
-          cardId: annotation.cardId || card.id,
-        })),
-      );
-      setAnnotations(legacyCardAnnotations);
+        const manualConnections = storedConnections.filter(c => c.type === 'manual');
+        setCards(hydratedCards);
+        setStickies((storedStickies || []).map(normalizeSticky));
+        setConnections(manualConnections);
+        setShapes(storedShapes || []);
+        setNotes({
+          text: storedNotes.text || '',
+          lastUpdated: storedNotes.lastUpdated || null,
+          lastPattern: storedNotes.lastPattern || '',
+        });
+        setConfig(storedConfig || {});
+        
+        const legacyCardAnnotations = hydratedCards.flatMap((card) =>
+          ((card as any).annotations || []).map((annotation: any) => ({
+            ...annotation,
+            cardId: annotation.cardId || card.id,
+          })),
+        );
+        setAnnotations(legacyCardAnnotations);
 
-      const imageEntries = hydratedCards.map(card => card.screenshot_url ? [card.id, card.screenshot_url] : null).filter(Boolean);
-      setImages(Object.fromEntries(imageEntries as any));
+        const imageEntries = hydratedCards.map(card => card.screenshot_url ? [card.id, card.screenshot_url] : null).filter(Boolean);
+        setImages(Object.fromEntries(imageEntries as any));
 
-      if (!cancelled && !connectionsComputedRef.current) {
-        connectionsRef.current = manualConnections;
-        await recomputeConnections(hydratedCards);
+        if (!cancelled && !connectionsComputedRef.current) {
+          connectionsRef.current = manualConnections;
+          await recomputeConnections(hydratedCards);
+        }
+      } catch (error) {
+        console.error('Failed to hydrate canvas', error);
       }
     }
 
@@ -1623,7 +1627,8 @@ export default function CanvasView({ activeSessionContext }: { activeSessionCont
         background: 'var(--nt-bg)',
         overflow: 'hidden',
         width: '100%',
-        height: '100%',
+        height: '100vh',
+        minHeight: '100vh',
       }}
     >
       <Stage
