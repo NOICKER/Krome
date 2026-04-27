@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import X from "lucide-react/dist/esm/icons/x";
+import { cn } from "./utils";
 
 interface ModalProps {
     isOpen: boolean;
@@ -46,7 +47,10 @@ export function Modal({
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className={`relative w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh] ${panelClassName}`}
+                    className={cn(
+                        "relative flex max-h-[90vh] w-[95vw] max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl sm:w-full",
+                        panelClassName,
+                    )}
                 >
                     <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
                         <h2 className="text-lg font-bold text-slate-100">{title}</h2>
@@ -59,7 +63,7 @@ export function Modal({
                             </button>
                         )}
                     </div>
-                    <div className={`p-6 overflow-y-auto custom-scrollbar ${bodyClassName}`}>
+                    <div className={cn("overflow-y-auto custom-scrollbar p-6", bodyClassName)}>
                         {children}
                     </div>
                 </motion.div>
