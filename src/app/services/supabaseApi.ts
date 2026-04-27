@@ -7,7 +7,14 @@ import type {
   LocalTaskRecord,
   SyncTableName,
 } from "../db/db";
-import type { KromeSubject } from "../types";
+import type {
+  KromeSubject,
+  LocalCardRecord,
+  LocalCardConnectionRecord,
+  LocalCanvasPositionRecord,
+  LocalCanvasShapeRecord,
+  LocalCanvasStickyRecord,
+} from "../types";
 import { STORAGE_KEYS, getItem } from "./storageService";
 import { isSupabaseConfigured, supabase } from "./supabaseClient";
 
@@ -17,6 +24,11 @@ export const SYNC_TABLES: SyncTableName[] = [
   "focus_sessions",
   "observations",
   "milestones",
+  "cards",
+  "card_connections",
+  "canvas_positions",
+  "canvas_shapes",
+  "canvas_stickies",
 ];
 const REMOTE_PULL_PAGE_SIZE = 1000;
 
@@ -174,6 +186,87 @@ function mapMilestoneRecordToRemote(userId: string, record: LocalMilestoneRecord
   };
 }
 
+// ---------------------------------------------------------------------------
+// Neutrawn mappers — local → remote
+// ---------------------------------------------------------------------------
+
+function mapCardRecordToRemote(userId: string, record: LocalCardRecord) {
+  return {
+    id: record.id,
+    user_id: userId,
+    session_id: record.session_id ?? null,
+    subject: record.subject,
+    tags: record.tags ?? [],
+    error_type: record.error_type ?? '',
+    status: record.status ?? 'unseen',
+    note: record.note ?? '',
+    why_wrong: record.why_wrong ?? '',
+    ocr_text: record.ocr_text ?? '',
+    screenshot_url: record.screenshot_url ?? '',
+    next_review: record.next_review ?? null,
+    w: record.w ?? 0,
+    h: record.h ?? 0,
+    created_at: toIso(record.created_at),
+    updated_at: toIso(record.updated_at) ?? new Date().toISOString(),
+    deleted_at: toIso(record.deleted_at),
+  };
+}
+
+function mapCardConnectionRecordToRemote(userId: string, record: LocalCardConnectionRecord) {
+  return {
+    id: record.id,
+    user_id: userId,
+    card_from: record.card_from,
+    card_to: record.card_to,
+    reason: record.reason ?? 'manual',
+    type: record.type ?? 'manual',
+    label: record.label ?? '',
+    color: record.color ?? '',
+    created_at: toIso(record.created_at),
+    updated_at: toIso(record.updated_at) ?? new Date().toISOString(),
+    deleted_at: toIso(record.deleted_at),
+  };
+}
+
+function mapCanvasPositionRecordToRemote(userId: string, record: LocalCanvasPositionRecord) {
+  return {
+    id: record.id,
+    user_id: userId,
+    card_id: record.card_id,
+    canvas_id: record.canvas_id,
+    x: record.x ?? 0,
+    y: record.y ?? 0,
+    updated_at: toIso(record.updated_at) ?? new Date().toISOString(),
+  };
+}
+
+function mapCanvasShapeRecordToRemote(userId: string, record: LocalCanvasShapeRecord) {
+  return {
+    id: record.id,
+    user_id: userId,
+    canvas_id: record.canvas_id,
+    shape_data: record.shape_data ?? {},
+    updated_at: toIso(record.updated_at) ?? new Date().toISOString(),
+    deleted_at: toIso(record.deleted_at),
+  };
+}
+
+function mapCanvasStickyRecordToRemote(userId: string, record: LocalCanvasStickyRecord) {
+  return {
+    id: record.id,
+    user_id: userId,
+    canvas_id: record.canvas_id,
+    x: record.x ?? 0,
+    y: record.y ?? 0,
+    w: record.w ?? 0,
+    h: record.h ?? 0,
+    text: record.text ?? '',
+    color: record.color ?? '',
+    updated_at: toIso(record.updated_at) ?? new Date().toISOString(),
+    deleted_at: toIso(record.deleted_at),
+  };
+}
+
 function mapRecordToRemote(tableName: SyncTableName, userId: string, record: Record<string, unknown>) {
   switch (tableName) {
     case "subjects":
@@ -186,6 +279,16 @@ function mapRecordToRemote(tableName: SyncTableName, userId: string, record: Rec
       return mapObservationRecordToRemote(userId, record as unknown as LocalObservationRecord);
     case "milestones":
       return mapMilestoneRecordToRemote(userId, record as unknown as LocalMilestoneRecord);
+    case "cards":
+      return mapCardRecordToRemote(userId, record as unknown as LocalCardRecord);
+    case "card_connections":
+      return mapCardConnectionRecordToRemote(userId, record as unknown as LocalCardConnectionRecord);
+    case "canvas_positions":
+      return mapCanvasPositionRecordToRemote(userId, record as unknown as LocalCanvasPositionRecord);
+    case "canvas_shapes":
+      return mapCanvasShapeRecordToRemote(userId, record as unknown as LocalCanvasShapeRecord);
+    case "canvas_stickies":
+      return mapCanvasStickyRecordToRemote(userId, record as unknown as LocalCanvasStickyRecord);
   }
 }
 
@@ -270,6 +373,87 @@ function mapRemoteMilestoneRecord(record: any): LocalMilestoneRecord {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Neutrawn mappers — remote → local
+// ---------------------------------------------------------------------------
+
+function mapRemoteCardRecord(record: any): LocalCardRecord {
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    session_id: record.session_id ?? null,
+    subject: record.subject ?? '',
+    tags: Array.isArray(record.tags) ? record.tags : [],
+    error_type: record.error_type ?? '',
+    status: record.status ?? 'unseen',
+    note: record.note ?? '',
+    why_wrong: record.why_wrong ?? '',
+    ocr_text: record.ocr_text ?? '',
+    screenshot_url: record.screenshot_url ?? '',
+    next_review: record.next_review ?? null,
+    w: record.w ?? 0,
+    h: record.h ?? 0,
+    created_at: fromIso(record.created_at) ?? Date.now(),
+    updated_at: fromIso(record.updated_at) ?? Date.now(),
+    deleted_at: fromIso(record.deleted_at),
+  };
+}
+
+function mapRemoteCardConnectionRecord(record: any): LocalCardConnectionRecord {
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    card_from: record.card_from,
+    card_to: record.card_to,
+    reason: record.reason ?? 'manual',
+    type: record.type ?? 'manual',
+    label: record.label ?? '',
+    color: record.color ?? '',
+    created_at: fromIso(record.created_at) ?? Date.now(),
+    updated_at: fromIso(record.updated_at) ?? Date.now(),
+    deleted_at: fromIso(record.deleted_at),
+  };
+}
+
+function mapRemoteCanvasPositionRecord(record: any): LocalCanvasPositionRecord {
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    card_id: record.card_id,
+    canvas_id: record.canvas_id,
+    x: record.x ?? 0,
+    y: record.y ?? 0,
+    updated_at: fromIso(record.updated_at) ?? Date.now(),
+  };
+}
+
+function mapRemoteCanvasShapeRecord(record: any): LocalCanvasShapeRecord {
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    canvas_id: record.canvas_id,
+    shape_data: record.shape_data ?? {},
+    updated_at: fromIso(record.updated_at) ?? Date.now(),
+    deleted_at: fromIso(record.deleted_at),
+  };
+}
+
+function mapRemoteCanvasStickyRecord(record: any): LocalCanvasStickyRecord {
+  return {
+    id: record.id,
+    user_id: record.user_id,
+    canvas_id: record.canvas_id,
+    x: record.x ?? 0,
+    y: record.y ?? 0,
+    w: record.w ?? 0,
+    h: record.h ?? 0,
+    text: record.text ?? '',
+    color: record.color ?? '',
+    updated_at: fromIso(record.updated_at) ?? Date.now(),
+    deleted_at: fromIso(record.deleted_at),
+  };
+}
+
 export async function upsertRemoteRecords(tableName: SyncTableName, userId: string, records: Record<string, unknown>[]) {
   if (!isSupabaseConfigured || records.length === 0) return;
 
@@ -332,5 +516,15 @@ export async function fetchRemoteChanges(tableName: SyncTableName, userId: strin
       return rows.map((record) => mapRemoteObservationRecord(record));
     case "milestones":
       return rows.map((record) => mapRemoteMilestoneRecord(record));
+    case "cards":
+      return rows.map((record) => mapRemoteCardRecord(record));
+    case "card_connections":
+      return rows.map((record) => mapRemoteCardConnectionRecord(record));
+    case "canvas_positions":
+      return rows.map((record) => mapRemoteCanvasPositionRecord(record));
+    case "canvas_shapes":
+      return rows.map((record) => mapRemoteCanvasShapeRecord(record));
+    case "canvas_stickies":
+      return rows.map((record) => mapRemoteCanvasStickyRecord(record));
   }
 }

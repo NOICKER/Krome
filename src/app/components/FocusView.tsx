@@ -45,7 +45,7 @@ interface FocusViewProps {
     pauseForInterrupt: (reason: string, type: "external" | "internal", notes?: string) => void;
     resumeFromInterrupt: () => void;
     clearSessionSummary: () => void;
-    setView?: (view: ViewState) => void;
+    setView?: (view: ViewState, payload?: any) => void;
     setSubjectView?: (subjectId: string) => void;
   };
 }
@@ -79,6 +79,11 @@ export function FocusView({
 
   const handleStart = () => {
     actions.startSession();
+  };
+  const completedSession = latestSessionSummary;
+  const handleLogMistakeFromSession = () => {
+    if (!completedSession) return;
+    actions.setView?.("canvas", completedSession.id);
   };
 
   return (
@@ -148,7 +153,11 @@ export function FocusView({
         </div>
       </div>
 
-      <SessionSummaryModal summary={latestSessionSummary} onClose={actions.clearSessionSummary} />
+      <SessionSummaryModal
+        summary={latestSessionSummary}
+        onClose={actions.clearSessionSummary}
+        onLogMistakeFromSession={actions.setView ? handleLogMistakeFromSession : undefined}
+      />
     </div>
   );
 }

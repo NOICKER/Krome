@@ -27,10 +27,18 @@ import { Modal } from "./components/ui/Modal";
 import { FrictionModal } from "./components/FrictionModal";
 import { startSyncService } from "./services/syncService";
 import { DiagnosticsHost } from "./components/diagnostics/DiagnosticsHost";
+import CanvasView from "./components/canvas/views/CanvasView";
+import LibraryView from "./components/canvas/views/LibraryView";
+import DashboardView from "./components/canvas/views/DashboardView";
+import GraphView from "./components/canvas/views/GraphView";
+import ExamSimView from "./components/canvas/views/ExamSimView";
+import Library from "lucide-react/dist/esm/icons/library";
+import Network from "lucide-react/dist/esm/icons/network";
+import Palette from "lucide-react/dist/esm/icons/palette";
 
 export default function App() {
   const { state, actions } = useKromeStore();
-  const { view, settings, resolvedSettings, currentSubject, activeSubjectView, day, session, streak, history, subjects, elapsed, isSessionActive, latestSessionSummary } = state;
+  const { view, viewPayload, settings, resolvedSettings, currentSubject, activeSubjectView, day, session, streak, history, subjects, elapsed, isSessionActive, latestSessionSummary } = state;
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
   const { loading: authLoading, user } = useAuth();
@@ -119,10 +127,14 @@ export default function App() {
   const navItems = [
     { id: "focus", label: "Focus", icon: Target },
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "canvasDashboard", label: "Canvas", icon: Palette },
+    { id: "library", label: "Library", icon: Library },
+    { id: "graph", label: "Graph", icon: Network },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "review", label: "Review", icon: CheckSquare },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
+  const proNavItemIds = new Set(["canvas", "library", "graph", "canvasDashboard"]);
 
   if (authLoading) {
     return (
@@ -158,8 +170,6 @@ export default function App() {
         </div>
       ) : (
         <>
-
-
           {/* Undo Snackbar Overlay */}
           <AnimatePresence>
             {session.status === 'abandoned' ? (
@@ -191,9 +201,7 @@ export default function App() {
             />
           ) : null}
 
-          {/* Mobile Top Header removed as per new architecture (headers handled per-page) */}
-
-          {/* Desktop Side Navigation — hidden on mobile */}
+          {/* Desktop Side Navigation */}
           <nav className="hidden md:flex flex-col w-20 lg:w-56 h-full border-r border-slate-800 bg-[#080C18]/80 backdrop-blur-md py-8 px-2 lg:px-4 flex-shrink-0">
             <div className="mb-10 px-2 flex items-center justify-center lg:justify-start">
               <img src="/krome-logo.png" alt="Krome Logo" className="h-11 w-auto object-contain ml-9" />
@@ -203,6 +211,7 @@ export default function App() {
               {navItems.map((item) => {
                 const isActive = view === item.id;
                 const Icon = item.icon;
+                const isProNavItem = proNavItemIds.has(item.id);
 
                 return (
                   <button
@@ -222,12 +231,16 @@ export default function App() {
                     )}>
                       {item.label}
                     </span>
+                    {isProNavItem ? (
+                      <span className="hidden lg:inline-flex rounded-full border border-kromeAccent/30 bg-kromeAccent/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-kromeAccent">
+                        Pro
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
             </div>
 
-            {/* Streak badge on sidebar */}
             <div className="mt-auto flex items-center justify-center lg:justify-start space-x-2 px-3 py-2">
               <div className="w-2 h-2 bg-kromeAccent rounded-full shadow-[0_0_8px_rgba(98,105,157,0.8)]" />
               <span className="text-slate-300 font-mono text-sm font-bold">{streak.current}</span>
@@ -235,13 +248,16 @@ export default function App() {
             </div>
           </nav>
 
-          {/* Mobile Top Header */}
+          {/* Mobile Header */}
           {view === "focus" ? <MobileHeader title={focusHeaderTitle} potValue={day.potValue} /> : null}
           {view === "dashboard" ? <MobileHeader title="Dashboard" potValue={day.potValue} /> : null}
           {view === "subjectDetail" ? <MobileHeader title={activeSubjectView?.name ?? "Subject"} potValue={day.potValue} /> : null}
           {view === "analytics" ? <MobileHeader title="Analytics" /> : null}
           {view === "review" ? <MobileHeader title="Review" /> : null}
           {view === "settings" ? <MobileHeader title="Settings" /> : null}
+          {view === "canvasDashboard" ? <MobileHeader title="Canvas" /> : null}
+          {view === "library" ? <MobileHeader title="Library" /> : null}
+          {view === "graph" ? <MobileHeader title="Graph" /> : null}
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -352,22 +368,83 @@ export default function App() {
                     <SettingsView settings={settings} onUpdateSettings={actions.setSettings} />
                   </motion.div>
                 )}
+
+                {view === "canvasDashboard" && (
+                  <motion.div
+                    key="canvasDashboard"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    <DashboardView />
+                  </motion.div>
+                )}
+
+                {view === "canvas" && (
+                  <motion.div
+                    key="canvas"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    <CanvasView activeSessionContext={viewPayload} />
+                  </motion.div>
+                )}
+
+                {view === "library" && (
+                  <motion.div
+                    key="library"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    <LibraryView />
+                  </motion.div>
+                )}
+
+                {view === "graph" && (
+                  <motion.div
+                    key="graph"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    <GraphView />
+                  </motion.div>
+                )}
+
+                {view === "examSim" && (
+                  <motion.div
+                    key="examSim"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full"
+                  >
+                    <ExamSimView />
+                  </motion.div>
+                )}
               </AnimatePresence>
             </main>
-
             {/* Mobile Bottom Navigation */}
             <MobileBottomNav navItems={navItems as any} view={view} setView={actions.setView} />
           </div>
         </>
       )}
 
-      {/* Decorative Background Elements — very subtle noise/radial texture */}
-
-      {/* Decorative Background Elements — very subtle noise/radial texture */}
+      {/* Decorative Background Elements */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-kromeAccent/8 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/8 rounded-full blur-[100px]" />
-        {/* 2% opacity noise layer — barely noticeable structural depth */}
         <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
@@ -390,6 +467,6 @@ export default function App() {
           onCancel={() => setShowQuitModal(false)}
         />
       </Modal>
-    </div >
+    </div>
   );
 }
