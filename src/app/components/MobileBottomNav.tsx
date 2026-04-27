@@ -14,11 +14,14 @@ interface MobileBottomNavProps {
 }
 
 export function MobileBottomNav({ navItems, view, setView }: MobileBottomNavProps) {
+    const proNavItemIds = new Set(["canvas", "library", "graph", "canvasDashboard"]);
+
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0b1220] border-t border-white/5 flex justify-around items-center z-50 px-2 pb-[env(safe-area-inset-bottom)]">
             {navItems.map((item) => {
                 const isActive = view === item.id;
                 const Icon = item.icon;
+                const isProNavItem = proNavItemIds.has(item.id);
 
                 return (
                     <button
@@ -29,7 +32,14 @@ export function MobileBottomNav({ navItems, view, setView }: MobileBottomNavProp
                             isActive ? "bg-white/5 rounded-xl text-kromeAccent" : "text-slate-500 hover:text-slate-300"
                         )}
                     >
-                        <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className="mb-1" />
+                        <span className="relative mb-1">
+                            <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                            {isProNavItem ? (
+                                <span className="absolute -right-4 -top-2 rounded-full border border-kromeAccent/30 bg-kromeAccent/10 px-1 text-[8px] font-bold uppercase tracking-wide text-kromeAccent">
+                                    Pro
+                                </span>
+                            ) : null}
+                        </span>
                         <span className="text-[10px] font-medium tracking-wide">
                             {item.label}
                         </span>

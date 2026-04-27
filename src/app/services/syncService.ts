@@ -23,6 +23,11 @@ const PULL_ORDER: SyncTableName[] = [
   "milestones",
   "observations",
   "focus_sessions",
+  "cards",
+  "card_connections",
+  "canvas_positions",
+  "canvas_shapes",
+  "canvas_stickies",
 ];
 
 let syncTimer: number | null = null;
@@ -67,6 +72,9 @@ function getStorageKeyForTable(tableName: SyncTableName) {
       return STORAGE_KEYS.OBSERVATIONS;
     case "milestones":
       return STORAGE_KEYS.MILESTONES;
+    default:
+      // Neutrawn tables are Dexie-only — no localStorage mirror.
+      return undefined;
   }
 }
 
@@ -134,6 +142,23 @@ async function applyRemoteRecords(tableName: SyncTableName, records: any[]) {
       return;
     case "milestones":
       await applyRemoteMilestones(records);
+      return;
+    // Neutrawn tables — write directly to Dexie (no legacy localStorage mirror).
+    case "cards":
+      if (records.length > 0) await db.cards.bulkPut(records);
+      return;
+    case "card_connections":
+      if (records.length > 0) await db.cardConnections.bulkPut(records);
+      return;
+    case "canvas_positions":
+      if (records.length > 0) await db.canvasPositions.bulkPut(records);
+      return;
+    case "canvas_shapes":
+      if (records.length > 0) await db.canvasShapes.bulkPut(records);
+      return;
+    case "canvas_stickies":
+      if (records.length > 0) await db.canvasStickies.bulkPut(records);
+      return;
   }
 }
 
@@ -203,12 +228,16 @@ export async function pullChanges(userId = activeUserId) {
           const filteredRecords = remoteRecords.filter((record) => !queuedRecordIds.has(record.id));
           if (filteredRecords.length > 0) {
             await applyRemoteRecords(tableName, filteredRecords);
-            await refreshStorageKey(getStorageKeyForTable(tableName));
+            const storageKey = getStorageKeyForTable(tableName);
+            if (storageKey) {
+              await refreshStorageKey(storageKey);
+            }
           }
 
-          const latestRecord = remoteRecords[remoteRecords.length - 1];
-          if (typeof latestRecord?.updatedAt === "number") {
-            setItem(getSyncCursorKey(tableName), new Date(latestRecord.updatedAt).toISOString());
+          const latestRecord = remoteRecords[remoteRecords.length - 1] as unknown as Record<string, unknown> | undefined;
+          const latestTimestamp = (latestRecord?.updatedAt ?? latestRecord?.updated_at) as number | undefined;
+          if (typeof latestTimestamp === "number") {
+            setItem(getSyncCursorKey(tableName), new Date(latestTimestamp).toISOString());
           }
         }
       } catch (error) {

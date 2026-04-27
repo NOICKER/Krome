@@ -158,35 +158,37 @@ export async function warmUpAudio() {
   source.start();
 }
 
-export function startAudioKeepAlive() {
+export async function startAudioKeepAlive() {
   audioKeepAliveConsumerCount += 1;
 
   if (!audioKeepAliveSource && !audioKeepAliveSetupPromise) {
-    audioKeepAliveSetupPromise = ensureRunningAudioContext("startAudioKeepAlive()")
-      .then((ctx) => {
-        if (!ctx || audioKeepAliveConsumerCount === 0 || audioKeepAliveSource) {
-          return;
-        }
+    audioKeepAliveSetupPromise = (async () => {
+      const ctx = await ensureRunningAudioContext("startAudioKeepAlive()");
+      if (!ctx || audioKeepAliveConsumerCount === 0 || audioKeepAliveSource) {
+        return;
+      }
 
-        const silentBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-        const source = ctx.createBufferSource();
-        const gainNode = ctx.createGain();
+      const silentBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      const gainNode = ctx.createGain();
 
-        source.buffer = silentBuffer;
-        source.loop = true;
-        gainNode.gain.value = 0;
+      source.buffer = silentBuffer;
+      source.loop = true;
+      gainNode.gain.value = 0;
 
-        source.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        source.start();
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start();
 
-        audioKeepAliveSource = source;
-        audioKeepAliveGainNode = gainNode;
-      })
-      .catch(() => {})
-      .finally(() => {
-        audioKeepAliveSetupPromise = null;
-      });
+      audioKeepAliveSource = source;
+      audioKeepAliveGainNode = gainNode;
+    })().catch(() => {}).finally(() => {
+      audioKeepAliveSetupPromise = null;
+    });
+  }
+
+  if (audioKeepAliveSetupPromise) {
+    await audioKeepAliveSetupPromise;
   }
 
   let cleanedUp = false;

@@ -161,7 +161,7 @@ export interface NotificationEntry {
   read: boolean;
 }
 
-export type ViewState = 'focus' | 'dashboard' | 'review' | 'analytics' | 'settings' | 'subjectDetail';
+export type ViewState = 'focus' | 'dashboard' | 'review' | 'analytics' | 'settings' | 'subjectDetail' | 'canvas' | 'library' | 'canvasDashboard' | 'graph' | 'examSim';
 
 export interface Subject {
   id: string;
@@ -216,4 +216,75 @@ export interface SessionSummary {
   interruptDurationMs: number;
   protectionRatio: number;
   plannedDurationMs?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Neutrawn — canvas / card types
+// ---------------------------------------------------------------------------
+
+export interface LocalCardRecord {
+  id: string;
+  user_id: string;
+  session_id: string | null;
+  subject: string;
+  tags: string[];
+  error_type: 'conceptual' | 'calculation' | 'misread' | 'careless' | '';
+  status: 'unseen' | 'wrong' | 'shaky' | 'correct';
+  note: string;
+  why_wrong: string;
+  ocr_text: string;
+  screenshot_url: string;
+  next_review: string | null;
+  w: number;
+  h: number;
+  created_at: number;
+  updated_at: number;
+  deleted_at: number | null;
+}
+
+export interface LocalCardConnectionRecord {
+  id: string;
+  user_id: string;
+  card_from: string;
+  card_to: string;
+  reason: 'tag' | 'errorType' | 'keyword' | 'manual';
+  type: 'auto' | 'manual';
+  label: string;
+  color: string;
+  created_at: number;
+  updated_at: number;
+  deleted_at: number | null;
+}
+
+export interface LocalCanvasPositionRecord {
+  id: string;
+  user_id: string;
+  card_id: string;
+  canvas_id: string;
+  x: number;
+  y: number;
+  updated_at: number;
+}
+
+export interface LocalCanvasShapeRecord {
+  id: string;
+  user_id: string;
+  canvas_id: string;
+  shape_data: object;
+  updated_at: number;
+  deleted_at: number | null;
+}
+
+export interface LocalCanvasStickyRecord {
+  id: string;
+  user_id: string;
+  canvas_id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  text: string;
+  color: string;
+  updated_at: number;
+  deleted_at: number | null;
 }

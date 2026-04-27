@@ -158,8 +158,8 @@ test("startAudioKeepAlive creates one looping silent source and tears it down on
   const fakeAudioContext = new FakeAudioContext();
   installFakeBrowser(fakeAudioContext);
 
-  const firstCleanup = startAudioKeepAlive();
-  const secondCleanup = startAudioKeepAlive();
+  const firstCleanup = await startAudioKeepAlive();
+  const secondCleanup = await startAudioKeepAlive();
 
   await flushMicrotasks();
 

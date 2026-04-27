@@ -4,13 +4,14 @@ import { Modal } from "../ui/Modal";
 interface SessionSummaryModalProps {
   summary: SessionSummary | null;
   onClose: () => void;
+  onLogMistakeFromSession?: () => void;
 }
 
 function formatMinutes(durationMs: number) {
   return Math.round(durationMs / 60000);
 }
 
-export function SessionSummaryModal({ summary, onClose }: SessionSummaryModalProps) {
+export function SessionSummaryModal({ summary, onClose, onLogMistakeFromSession }: SessionSummaryModalProps) {
   if (!summary) {
     return null;
   }
@@ -42,6 +43,25 @@ export function SessionSummaryModal({ summary, onClose }: SessionSummaryModalPro
           <p className="text-sm text-slate-400">
             Planned duration: {formatMinutes(summary.plannedDurationMs)}m
           </p>
+        ) : null}
+
+        {onLogMistakeFromSession ? (
+          <button
+            type="button"
+            onClick={onLogMistakeFromSession}
+            style={{
+              marginTop: '1rem',
+              padding: '0.75rem 1.5rem',
+              background: 'var(--nt-accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.95rem'
+            }}
+          >
+            Log a mistake from this session →
+          </button>
         ) : null}
 
         <div className="flex justify-end">

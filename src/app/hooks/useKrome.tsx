@@ -249,6 +249,7 @@ type StartSessionOptions = {
 interface KromeStoreStructure {
   state: {
     view: ViewState;
+    viewPayload?: any;
     settings: KromeSettings;
     resolvedSettings: KromeSettings;
     currentSubject: KromeSubject | null;
@@ -269,7 +270,7 @@ interface KromeStoreStructure {
     latestSessionSummary: SessionSummary | null;
   };
   actions: {
-    setView: (view: ViewState) => void;
+    setView: (view: ViewState, payload?: any) => void;
     setSettings: (settings: KromeSettings) => void;
     setIsSessionActive: (isActive: boolean) => void;
     setSubjectView: (subjectId: string) => void;
@@ -308,6 +309,7 @@ export function useKromeLogic() {
     if (storedSession.isActive) return "focus";
     return "dashboard";
   });
+  const [viewPayload, setViewPayload] = useState<any>(undefined);
 
   const [settings, setSettings] = useState<KromeSettings>(() => {
     const stored = getItem<LegacyStoredSettings>(STORAGE_KEYS.SETTINGS, {});
@@ -648,9 +650,21 @@ export function useKromeLogic() {
 
     const initialElapsed = getSessionElapsedFromEpoch(session);
     let lastAudioElapsed = initialElapsed;
-    const stopAudioKeepAlive = session.soundEnabled ? startAudioKeepAlive() : () => {};
+    let stopAudioKeepAlive = () => {};
+    let isTornDown = false;
+
+    if (session.soundEnabled) {
+      startAudioKeepAlive().then((cleanup) => {
+        if (isTornDown) {
+          cleanup();
+        } else {
+          stopAudioKeepAlive = cleanup;
+        }
+      }).catch(console.error);
+    }
+
     const audioWatchdog = window.setInterval(() => {
-      const newElapsed = Math.max(0, Date.now() - session.startTime);
+      const newElapsed = Math.max(0, Date.now() - session.startTime!);
 
       if (session.soundEnabled) {
         const crossedBoundaries = getAudibleBoundariesCrossed(lastAudioElapsed, newElapsed, session);
@@ -674,7 +688,7 @@ export function useKromeLogic() {
 
     const loop = () => {
       const now = Date.now();
-      const newElapsed = Math.max(0, now - session.startTime);
+      const newElapsed = Math.max(0, now - session.startTime!);
 
       if (typeof document !== "undefined") {
         const gapAlert = visualGapMonitorRef.current.observeFrame(
@@ -695,6 +709,7 @@ export function useKromeLogic() {
 
       if (evaluateBlockCompletion(session, newElapsed, now)) {
         window.clearInterval(audioWatchdog);
+        isTornDown = true;
         stopAudioKeepAlive();
         stopVisualLoop("session-complete", sessionId);
         handleSessionComplete();
@@ -707,6 +722,7 @@ export function useKromeLogic() {
     visualLoopRef.current = window.requestAnimationFrame(loop);
 
     return () => {
+      isTornDown = true;
       window.clearInterval(audioWatchdog);
       stopAudioKeepAlive();
       stopVisualLoop("effect-cleanup", sessionId);
@@ -1172,6 +1188,7 @@ export function useKromeLogic() {
   return {
     state: {
       view,
+      viewPayload,
       settings,
       resolvedSettings,
       currentSubject,
@@ -1192,7 +1209,10 @@ export function useKromeLogic() {
       latestSessionSummary,
     },
     actions: {
-      setView,
+      setView: (nextView: ViewState, payload?: any) => {
+        setView(nextView);
+        setViewPayload(payload);
+      },
       setSettings: commitSettings,
       setIsSessionActive,
       setSubjectView: (subjectId: string) => {

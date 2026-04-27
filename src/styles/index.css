@@ -65,3 +65,18 @@ body.krome-modal-open {
   border-radius: 9999px;
   background: transparent;
 }
+
+:root {
+  --nt-bg: #0C0C0D;
+  --nt-bg2: #131315;
+  --nt-bg3: #1A1A1D;
+  --nt-border: rgba(255, 255, 255, 0.07);
+  --nt-border2: rgba(255, 255, 255, 0.12);
+  --nt-text: #F0EDE8;
+  --nt-text2: #9A9690;
+  --nt-text3: #5C5A57;
+  --nt-accent: #E8834A;
+  --nt-green: #5CC98A;
+  --nt-blue: #5B9EF0;
+  --nt-red: #E86060;
+}
