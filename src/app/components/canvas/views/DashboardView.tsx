@@ -124,16 +124,16 @@ export default function DashboardView() {
 
   if (!cards.length) {
     return (
-      <div className="dashboard-screen" style={{ background: 'var(--nt-bg)', minHeight: '100vh' }}>
+      <div className="dashboard-screen" style={{ background: 'var(--nt-bg)', minHeight: '100%' }}>
         <div className="screen-empty-state" style={{ color: 'var(--nt-text3)' }}>save some cards first to see your patterns.</div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-screen" style={{ background: 'var(--nt-bg)', minHeight: '100vh' }}>
+    <div className="dashboard-screen" style={{ background: 'var(--nt-bg)', minHeight: '100%' }}>
       <section className="dashboard-hero">
-        <h2 style={{ color: 'var(--nt-text1)' }}>NEUTRAWN.</h2>
+        <h2 style={{ color: 'var(--nt-text1)' }}>KROME Canvas.</h2>
         <p style={{ color: 'var(--nt-text2)' }}>your weak spots, at a glance.</p>
       </section>
 

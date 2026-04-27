@@ -10,9 +10,19 @@ interface ModalProps {
     title: string;
     children: React.ReactNode;
     allowClose?: boolean;
+    panelClassName?: string;
+    bodyClassName?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children, allowClose = true }: ModalProps) {
+export function Modal({
+    isOpen,
+    onClose,
+    title,
+    children,
+    allowClose = true,
+    panelClassName = "",
+    bodyClassName = "",
+}: ModalProps) {
     useEffect(() => {
         if (!isOpen) return;
 
@@ -36,7 +46,7 @@ export function Modal({ isOpen, onClose, title, children, allowClose = true }: M
                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="relative w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    className={`relative w-full max-w-md bg-slate-900 border border-slate-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh] ${panelClassName}`}
                 >
                     <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
                         <h2 className="text-lg font-bold text-slate-100">{title}</h2>
@@ -49,7 +59,7 @@ export function Modal({ isOpen, onClose, title, children, allowClose = true }: M
                             </button>
                         )}
                     </div>
-                    <div className="p-6 overflow-y-auto custom-scrollbar">
+                    <div className={`p-6 overflow-y-auto custom-scrollbar ${bodyClassName}`}>
                         {children}
                     </div>
                 </motion.div>

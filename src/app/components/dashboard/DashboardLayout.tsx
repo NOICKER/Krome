@@ -34,9 +34,9 @@ export function DashboardLayout() {
     const observations = useMemo(() => getAdvancedObservations(), [history]);
 
     return (
-        <div className="w-full h-full flex flex-col overflow-hidden">
+        <div className="w-full min-h-full flex flex-col">
             {/* Header sits outside the scrolling container so it never scrolls away */}
-            <div className="hidden md:block flex-shrink-0 px-8 pt-8 bg-[#080C18]">
+            <div className="sticky top-0 z-10 hidden flex-shrink-0 bg-[#080C18]/95 px-8 pb-4 pt-8 backdrop-blur-md md:block">
                 <DashboardHeader
                     date={dateStr}
                     streak={streak.current}
@@ -47,7 +47,7 @@ export function DashboardLayout() {
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 p-4 md:px-8 md:pb-8">
+            <div className="flex-1 overflow-hidden p-4 md:px-8 md:pb-8">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full max-w-7xl mx-auto">
                     <div className="md:col-span-12 space-y-6">
                         <GoalProgressBars day={day} week={week} />

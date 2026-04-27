@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useKromeStore } from "./hooks/useKrome";
 import { FocusView } from "./components/FocusView";
 import { ReviewView } from "./components/ReviewView";
@@ -10,6 +10,7 @@ import { DashboardLayout } from "./components/dashboard/DashboardLayout";
 import { AnalyticsView } from "./components/analytics/AnalyticsView";
 import { SubjectDetailView } from "./components/subject/SubjectDetailView";
 import { MobileBottomNav } from "./components/MobileBottomNav";
+import type { MobileNavId, NavItem } from "./components/MobileBottomNav";
 import { MobileHeader } from "./components/MobileHeader";
 import Settings from "lucide-react/dist/esm/icons/settings";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square";
@@ -17,8 +18,6 @@ import Target from "lucide-react/dist/esm/icons/target";
 import Undo from "lucide-react/dist/esm/icons/undo";
 import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard";
 import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
-import Menu from "lucide-react/dist/esm/icons/menu";
-import X from "lucide-react/dist/esm/icons/x";
 import { motion, AnimatePresence } from "motion/react";
 import { Toaster } from "sonner";
 import { cn } from "./components/ui/utils";
@@ -33,11 +32,14 @@ import DashboardView from "./components/canvas/views/DashboardView";
 import GraphView from "./components/canvas/views/GraphView";
 import ExamSimView from "./components/canvas/views/ExamSimView";
 import { ProGateModal } from "./components/ProGateModal";
+import type { ProSection } from "./components/ProGateModal";
 import { isProUser } from "./utils/proGate";
 import type { ViewState } from "./types";
 import Library from "lucide-react/dist/esm/icons/library";
 import Network from "lucide-react/dist/esm/icons/network";
 import Palette from "lucide-react/dist/esm/icons/palette";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 
 export default function App() {
   const { state, actions } = useKromeStore();
@@ -45,6 +47,8 @@ export default function App() {
   const [showBreakSuggester, setShowBreakSuggester] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
   const [isProGateOpen, setIsProGateOpen] = useState(false);
+  const [proGateSection, setProGateSection] = useState<ProSection>("canvas");
+  const [isProNavExpanded, setIsProNavExpanded] = useState(false);
   const { loading: authLoading, user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const focusHeaderTitle = currentSubject ? currentSubject.name : "UNIVERSAL FOCUS";
@@ -53,13 +57,10 @@ export default function App() {
     ? session.totalBlocks
     : Math.max(currentFilledBricks + 4, 8);
 
-  // Show break suggester when a standard block completes
   useEffect(() => {
-    if (session.status === 'idle' && history.length > 0) {
+    if (session.status === "idle" && history.length > 0) {
       const lastSession = history[0];
-      // If we just finished a standard block, suggest a break
-      if (lastSession && lastSession.completed && lastSession.sessionType === 'standard' && settings.autoSuggestBreaks) {
-        // Only show if the completion was very recent (within last 5 seconds to avoid showing on reload)
+      if (lastSession && lastSession.completed && lastSession.sessionType === "standard" && settings.autoSuggestBreaks) {
         if (Date.now() - lastSession.startedAt - lastSession.durationMs < 5000) {
           setShowBreakSuggester(true);
         }
@@ -82,13 +83,11 @@ export default function App() {
     }
   };
 
-  // Global background style
   useEffect(() => {
     document.body.classList.add("bg-[#080C18]", "text-slate-200", "antialiased", "w-full", "max-w-full", "overflow-x-hidden");
 
     const handleMouseMove = (e: MouseEvent) => {
       const cards = document.getElementsByClassName("spotlight-card");
-      // Batch all reads first to avoid layout thrashing (Rule 7.1)
       const rects: { el: HTMLElement; x: number; y: number }[] = [];
       for (const card of cards) {
         const rect = card.getBoundingClientRect();
@@ -98,7 +97,6 @@ export default function App() {
           y: e.clientY - rect.top,
         });
       }
-      // Then batch all writes
       for (const { el, x, y } of rects) {
         el.style.setProperty("--mouse-x", `${x}px`);
         el.style.setProperty("--mouse-y", `${y}px`);
@@ -117,33 +115,70 @@ export default function App() {
     if (authLoading) return;
 
     const params = new URLSearchParams(window.location.search);
-    const isSignupRequest = params.get('auth') === 'signup';
+    const isSignupRequest = params.get("auth") === "signup";
 
     if (!user) {
       if (isSignupRequest) {
         setShowAuthModal(true);
-      } else if (window.location.pathname !== '/krome-landing.html') {
-        window.location.href = '/krome-landing.html';
+      } else if (window.location.pathname !== "/krome-landing.html") {
+        window.location.href = "/krome-landing.html";
       }
     }
   }, [user, authLoading]);
 
-  const navItems = [
-    { id: "focus", label: "Focus", icon: Target },
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  const hasProAccess = isProUser(user);
+  const proRouteIds = new Set<ViewState>(["canvas", "canvasDashboard", "library", "graph", "examSim"]);
+  const proSubmenuItems = [
     { id: "canvasDashboard", label: "Canvas", icon: Palette },
     { id: "library", label: "Library", icon: Library },
     { id: "graph", label: "Graph", icon: Network },
+  ] as const;
+
+  const navItems: readonly NavItem[] = [
+    { id: "focus", label: "Focus", icon: Target },
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "kromePro", label: "KROME PRO", icon: Sparkles, isProEntry: true },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "review", label: "Review", icon: CheckSquare },
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
-  const proNavItemIds = new Set<ViewState>(["canvas", "library", "graph", "canvasDashboard"]);
 
-  const handleProNavClick = (nextView: ViewState) => {
-    if (proNavItemIds.has(nextView) && !isProUser(user)) {
+  const isProRoute = (nextView: ViewState) => proRouteIds.has(nextView);
+  const isCanvasProductRoute = (nextView: ViewState) =>
+    nextView === "canvas" || nextView === "canvasDashboard" || nextView === "examSim";
+  const getProSectionForView = (nextView: MobileNavId): ProSection => {
+    if (nextView === "library") return "library";
+    if (nextView === "graph") return "graph";
+    return "canvas";
+  };
+
+  useEffect(() => {
+    if (!hasProAccess) {
+      setIsProNavExpanded(false);
+    }
+  }, [hasProAccess]);
+
+  const handleNavSelect = (nextView: MobileNavId) => {
+    if (nextView === "kromePro") {
+      if (hasProAccess) {
+        setIsProNavExpanded((previousValue) => !previousValue);
+      } else {
+        setProGateSection("canvas");
+        setIsProGateOpen(true);
+      }
+      return;
+    }
+
+    if (isProRoute(nextView) && !hasProAccess) {
+      setProGateSection(getProSectionForView(nextView));
       setIsProGateOpen(true);
       return;
+    }
+
+    if (nextView === "canvasDashboard" || nextView === "library" || nextView === "graph") {
+      setIsProNavExpanded(true);
+    } else if (!isProRoute(nextView)) {
+      setIsProNavExpanded(false);
     }
 
     actions.setView(nextView);
@@ -165,9 +200,13 @@ export default function App() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        forceSignup={new URLSearchParams(window.location.search).get('auth') === 'signup'}
+        forceSignup={new URLSearchParams(window.location.search).get("auth") === "signup"}
       />
-      <ProGateModal isOpen={isProGateOpen} onClose={() => setIsProGateOpen(false)} />
+      <ProGateModal
+        isOpen={isProGateOpen}
+        onClose={() => setIsProGateOpen(false)}
+        defaultSection={proGateSection}
+      />
       <Toaster theme="dark" position="top-center" />
       <DiagnosticsHost enabled={settings.diagnosticsMode} />
 
@@ -184,9 +223,8 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* Undo Snackbar Overlay */}
           <AnimatePresence>
-            {session.status === 'abandoned' ? (
+            {session.status === "abandoned" ? (
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -204,7 +242,6 @@ export default function App() {
             ) : null}
           </AnimatePresence>
 
-          {/* Break Suggester Overlay */}
           {showBreakSuggester && settings.wrapperEnabled ? (
             <BreakSuggester
               onStartBreak={() => {
@@ -215,42 +252,86 @@ export default function App() {
             />
           ) : null}
 
-          {/* Desktop Side Navigation */}
-          <nav className="hidden md:flex flex-col w-20 lg:w-56 h-full border-r border-slate-800 bg-[#080C18]/80 backdrop-blur-md py-8 px-2 lg:px-4 flex-shrink-0">
+          <nav className="hidden md:flex flex-col w-20 lg:w-56 h-full border-r border-slate-800 bg-[#080C18]/80 backdrop-blur-md py-8 px-2 lg:px-4 flex-shrink-0 overflow-hidden">
             <div className="mb-10 px-2 flex items-center justify-center lg:justify-start">
               <img src="/krome-logo.png" alt="Krome Logo" className="h-11 w-auto object-contain ml-9" />
             </div>
 
-            <div className="flex flex-col space-y-4 flex-1 mt-4">
+            <div className="flex flex-col space-y-4 flex-1 mt-4 min-h-0 overflow-hidden">
               {navItems.map((item) => {
-                const isActive = view === item.id;
+                const isActive = item.isProEntry ? isProRoute(view) : view === item.id;
                 const Icon = item.icon;
-                const isProNavItem = proNavItemIds.has(item.id);
 
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleProNavClick(item.id)}
-                    className={cn(
-                      "relative flex items-center space-x-3 px-3 py-3 rounded-xl transition-all duration-150 group",
-                      isActive
-                        ? "bg-slate-800/80 text-kromeAccent border-l-[3px] border-kromeAccent"
-                        : "text-slate-500 hover:text-slate-200 hover:bg-slate-800/70 border-l-[3px] border-transparent"
-                    )}
-                  >
-                    <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className={cn(
-                      "text-sm font-semibold tracking-wide hidden lg:block",
-                      isActive ? "text-kromeAccent" : "text-slate-400 group-hover:text-slate-200"
-                    )}>
-                      {item.label}
-                    </span>
-                    {isProNavItem ? (
-                      <span className="hidden lg:inline-flex rounded-full border border-kromeAccent/30 bg-kromeAccent/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-kromeAccent">
-                        Pro
-                      </span>
+                  <div key={item.id} className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleNavSelect(item.id)}
+                      className={cn(
+                        "relative flex w-full items-center justify-between rounded-xl px-3 py-3 transition-all duration-150 group",
+                        item.isProEntry
+                          ? isActive
+                            ? "border border-kromeAccent/30 bg-kromeAccent/10 shadow-[0_0_24px_rgba(111,120,181,0.18)]"
+                            : "border border-kromeAccent/20 bg-kromeAccent/10 hover:bg-kromeAccent/15"
+                          : isActive
+                            ? "bg-slate-800/80 text-kromeAccent border-l-[3px] border-kromeAccent"
+                            : "text-slate-500 hover:text-slate-200 hover:bg-slate-800/70 border-l-[3px] border-transparent"
+                      )}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={item.isProEntry ? "text-kromeAccent" : ""} />
+                        <span
+                          className={cn(
+                            "text-sm font-semibold tracking-wide hidden lg:block",
+                            item.isProEntry
+                              ? "text-kromeAccent"
+                              : isActive
+                                ? "text-kromeAccent"
+                                : "text-slate-400 group-hover:text-slate-200"
+                          )}
+                        >
+                          {item.isProEntry ? "\u2726 KROME PRO" : item.label}
+                        </span>
+                      </div>
+                      {item.isProEntry && hasProAccess ? (
+                        <ChevronDown
+                          size={16}
+                          className={cn(
+                            "hidden lg:block text-kromeAccent transition-transform",
+                            isProNavExpanded ? "rotate-180" : "rotate-0",
+                          )}
+                        />
+                      ) : null}
+                    </button>
+
+                    {item.isProEntry && hasProAccess && isProNavExpanded ? (
+                      <div className="hidden lg:flex flex-col gap-1 pl-6">
+                        {proSubmenuItems.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isSubActive = subItem.id === "canvasDashboard"
+                            ? isCanvasProductRoute(view)
+                            : view === subItem.id;
+
+                          return (
+                            <button
+                              key={subItem.id}
+                              type="button"
+                              onClick={() => handleNavSelect(subItem.id)}
+                              className={cn(
+                                "flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                                isSubActive
+                                  ? "bg-kromeAccent/12 text-kromeAccent"
+                                  : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-200",
+                              )}
+                            >
+                              <SubIcon size={15} />
+                              <span className="font-medium">{subItem.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     ) : null}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -262,7 +343,6 @@ export default function App() {
             </div>
           </nav>
 
-          {/* Mobile Header */}
           {view === "focus" ? <MobileHeader title={focusHeaderTitle} potValue={day.potValue} /> : null}
           {view === "dashboard" ? <MobileHeader title="Dashboard" potValue={day.potValue} /> : null}
           {view === "subjectDetail" ? <MobileHeader title={activeSubjectView?.name ?? "Subject"} potValue={day.potValue} /> : null}
@@ -273,9 +353,8 @@ export default function App() {
           {view === "library" ? <MobileHeader title="Library" /> : null}
           {view === "graph" ? <MobileHeader title="Graph" /> : null}
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pt-14 pb-[88px] md:pt-0 md:pb-0">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent pt-14 pb-[88px] md:pt-0 md:pb-0">
               <AnimatePresence mode="wait">
                 {view === "focus" && (
                   <motion.div
@@ -284,7 +363,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <FocusView
                       session={session}
@@ -321,7 +400,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <DashboardLayout />
                   </motion.div>
@@ -334,7 +413,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <SubjectDetailView />
                   </motion.div>
@@ -347,7 +426,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <AnalyticsView />
                   </motion.div>
@@ -360,7 +439,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="p-4 md:p-8 h-full"
+                    className="min-h-full p-4 md:p-8"
                   >
                     <ReviewView day={day} history={history} />
                   </motion.div>
@@ -373,7 +452,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="p-4 md:p-8 h-full"
+                    className="min-h-full p-4 md:p-8"
                   >
                     <div className="mb-6 min-w-0 max-w-full">
                       <h2 className="text-2xl font-display font-bold tracking-tight text-slate-100 mb-2 truncate">Settings</h2>
@@ -390,7 +469,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <DashboardView />
                   </motion.div>
@@ -416,7 +495,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.2 }}
-                    className="h-full"
+                    className="min-h-full"
                   >
                     <LibraryView />
                   </motion.div>
@@ -449,13 +528,18 @@ export default function App() {
                 )}
               </AnimatePresence>
             </main>
-            {/* Mobile Bottom Navigation */}
-            <MobileBottomNav navItems={navItems as any} view={view} setView={handleProNavClick} />
+            <MobileBottomNav
+              navItems={navItems as any}
+              view={view}
+              setView={handleNavSelect}
+              isProUser={hasProAccess}
+              proItems={proSubmenuItems as any}
+              isProView={isProRoute}
+            />
           </div>
         </>
       )}
 
-      {/* Decorative Background Elements */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-kromeAccent/8 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/8 rounded-full blur-[100px]" />

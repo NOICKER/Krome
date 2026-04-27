@@ -1627,8 +1627,8 @@ export default function CanvasView({ activeSessionContext }: { activeSessionCont
         background: 'var(--nt-bg)',
         overflow: 'hidden',
         width: '100%',
-        height: '100vh',
-        minHeight: '100vh',
+        height: '100%',
+        minHeight: '100%',
       }}
     >
       <Stage

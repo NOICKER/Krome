@@ -34,7 +34,7 @@ export default function NotesPanel({
       <div className="notes-panel-footer">
         <span className="notes-panel-label">EMERGING PATTERNS</span>
         <p className="notes-panel-pattern">
-          {pattern || fallbackPattern || 'Write a little longer and Neutrawn will connect your notes to your mistakes.'}
+          {pattern || fallbackPattern || 'Write a little longer and KROME will connect your notes to your mistakes.'}
         </p>
       </div>
     </aside>

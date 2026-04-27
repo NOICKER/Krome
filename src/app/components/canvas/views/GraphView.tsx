@@ -287,7 +287,7 @@ function InnerGraphView() {
   }, [ensureCardOnCanvas]);
 
   return (
-    <div className="graph-screen" style={{ background: 'var(--nt-bg)', width: '100%', minHeight: '100vh', height: '100vh', overflow: 'hidden' }}>
+    <div className="graph-screen" style={{ background: 'var(--nt-bg)', width: '100%', minHeight: '100%', height: '100%', overflow: 'hidden' }}>
       {confirmState && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ position: 'fixed' }}>
           <div className="bg-[#121212] border border-[#333] rounded-lg p-6 max-w-sm w-full shadow-2xl" style={{ background: 'var(--nt-bg)', borderColor: 'var(--nt-border)' }}>

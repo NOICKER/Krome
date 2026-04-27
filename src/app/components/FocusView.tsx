@@ -87,7 +87,7 @@ export function FocusView({
   };
 
   return (
-    <div className="flex flex-col h-full relative p-4 md:p-8 overflow-y-auto overflow-x-hidden pb-32">
+    <div className="relative flex min-h-full flex-col p-4 pb-32 md:p-8">
       <FocusHeader potValue={day.potValue} title={focusTitle} />
 
       <div className="flex flex-col">

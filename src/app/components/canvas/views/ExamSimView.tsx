@@ -158,7 +158,7 @@ export default function ExamSimView() {
 
   if (!cards.length && !completed) {
     return (
-      <div className="exam-screen" style={{ background: 'var(--nt-bg)', minHeight: '100vh' }}>
+      <div className="exam-screen" style={{ background: 'var(--nt-bg)', minHeight: '100%' }}>
         <div className="screen-empty-state" style={{ color: 'var(--nt-text3)' }}>No cards match this review mode yet.</div>
       </div>
     );
@@ -166,7 +166,7 @@ export default function ExamSimView() {
 
   if (completed) {
     return (
-      <div className="exam-screen" style={{ background: 'var(--nt-bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="exam-screen" style={{ background: 'var(--nt-bg)', minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="exam-results-card" style={{ background: 'var(--nt-bg2)', border: '1px solid var(--nt-border)', padding: '32px', borderRadius: '12px', textAlign: 'center' }}>
           <span className="exam-results-kicker" style={{ color: 'var(--nt-text3)' }}>Session complete</span>
           <h2 style={{ color: 'var(--nt-text1)', fontSize: '48px', margin: '16px 0' }}>{results.score}%</h2>
@@ -216,7 +216,7 @@ export default function ExamSimView() {
       : '';
 
   return (
-    <div className="exam-screen" style={{ background: 'var(--nt-bg)', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="exam-screen" style={{ background: 'var(--nt-bg)', height: '100%', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="exam-top-bar" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: 'var(--nt-bg2)', borderBottom: '1px solid var(--nt-border)' }}>
         <span style={{ color: 'var(--nt-text2)' }}>{`Card ${Math.min(currentIndex + 1, cards.length)} of ${cards.length}`}</span>
         <span className={`exam-timer ${timerClass}`} style={{ color: timerClass === 'danger' ? 'var(--nt-red)' : timerClass === 'warning' ? 'var(--nt-accent)' : 'var(--nt-text1)' }}>{timerDisplay}</span>
