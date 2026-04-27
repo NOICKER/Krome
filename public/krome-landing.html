@@ -928,6 +928,96 @@
         }
 
         /* ─── CTA SECTION ─── */
+        .pro-layer {
+            position: relative;
+        }
+
+        .pro-subheading {
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-top: -4px;
+        }
+
+        .pro-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            margin-top: 52px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .pro-card {
+            background: var(--card);
+            padding: 34px 32px;
+            border-right: 1px solid var(--border);
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .pro-card:last-child {
+            border-right: none;
+        }
+
+        .pro-card:hover {
+            background: #151f32;
+        }
+
+        .pro-card-kicker {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent2);
+            margin-bottom: 18px;
+        }
+
+        .pro-card-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            letter-spacing: -0.3px;
+        }
+
+        .pro-card-copy {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .pro-pricing-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-top: 28px;
+            padding: 22px 24px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(123, 114, 240, 0.04);
+        }
+
+        .pro-prices {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            color: var(--subtle);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .pro-price-divider {
+            color: var(--muted);
+        }
+
         .cta-section {
             max-width: 1200px;
             margin: 0 auto;
@@ -1113,6 +1203,24 @@
 
             .steps::before {
                 display: none;
+            }
+
+            .pro-card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pro-card {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .pro-card:last-child {
+                border-bottom: none;
+            }
+
+            .pro-pricing-row {
+                align-items: flex-start;
+                flex-direction: column;
             }
 
             .brick-demo {
@@ -1411,6 +1519,53 @@
             </div>
         </div>
     </div>
+
+    <!-- PRO LAYER -->
+    <section class="section pro-layer reveal">
+        <div class="section-tag">KROME Pro</div>
+        <h2 class="section-title">Now see why you kept getting it wrong.</h2>
+        <p class="pro-subheading">KROME Pro — the canvas layer</p>
+
+        <div class="pro-card-grid">
+            <article class="pro-card">
+                <div class="pro-card-kicker">01</div>
+                <h3 class="pro-card-title">Mistake Canvas</h3>
+                <p class="pro-card-copy">
+                    Paste a screenshot the moment you get something wrong. Tag the error type. Build a map of exactly
+                    where your preparation is breaking down.
+                </p>
+            </article>
+
+            <article class="pro-card">
+                <div class="pro-card-kicker">02</div>
+                <h3 class="pro-card-title">Session Link</h3>
+                <p class="pro-card-copy">
+                    Every mistake card is stamped with the focus session it came from. See if your worst mistakes happen
+                    when your protection ratio drops.
+                </p>
+            </article>
+
+            <article class="pro-card">
+                <div class="pro-card-kicker">03</div>
+                <h3 class="pro-card-title">Pattern Diagnosis</h3>
+                <p class="pro-card-copy">
+                    Your error type matrix shows which topics correlate with which failure types. AI surfaces the
+                    pattern in plain language.
+                </p>
+            </article>
+        </div>
+
+        <div class="pro-pricing-row">
+            <div class="pro-prices">
+                <span>Rs 149 / month</span>
+                <span class="pro-price-divider">|</span>
+                <span>Rs 999 / year</span>
+                <span class="pro-price-divider">|</span>
+                <span>Rs 2499 lifetime</span>
+            </div>
+            <a href="mailto:am6201493@gmail.com?subject=KROME Pro Upgrade" class="btn-primary">Get Pro Access →</a>
+        </div>
+    </section>
 
     <!-- FINAL CTA -->
     <section class="cta-section reveal">
